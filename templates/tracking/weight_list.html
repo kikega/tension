@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row mt-4">
+    <div class="col-12 d-flex justify-content-between align-items-center mb-4">
+        <h2>Historial de Peso</h2>
+        <div>
+            <a href="{% url 'add_weight' %}" class="btn btn-primary">Añadir Peso</a>
+            <a href="{% url 'dashboard' %}" class="btn btn-secondary">Dashboard</a>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title text-muted">Aumento/Pérdida Total</h5>
+                <h2 class="display-5 mb-0">
+                    {% if total_weight_diff > 0 %}
+                        <span class="text-success"><i class="fas fa-arrow-down"></i> -{{ total_weight_diff|floatformat:1 }} kg</span>
+                    {% elif total_weight_diff < 0 %}
+                        <span class="text-danger"><i class="fas fa-arrow-up"></i> +{{ total_weight_diff|floatformat:1|cut:"-" }} kg</span>
+                    {% else %}
+                        <span class="text-muted">0.0 kg</span>
+                    {% endif %}
+                </h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm h-100">
+            <div class="card-body text-center">
+                <h5 class="card-title text-muted">Aumento/Pérdida (%)</h5>
+                <h2 class="display-5 mb-0">
+                    {% if total_weight_diff_pct > 0 %}
+                        <span class="text-success">-{{ total_weight_diff_pct|floatformat:1 }}%</span>
+                    {% elif total_weight_diff_pct < 0 %}
+                        <span class="text-danger">+{{ total_weight_diff_pct|floatformat:1|cut:"-" }}%</span>
+                    {% else %}
+                        <span class="text-muted">0.0%</span>
+                    {% endif %}
+                </h2>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="card shadow-sm">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th>Fecha</th>
+                        <th>Peso (kg)</th>
+                        <th>Diferencia (kg)</th>
+                        <th>Diferencia (%)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for measurement in weight_measurements %}
+                    <tr>
+                        <td>{{ measurement.date|date:"d M Y" }}</td>
+                        <td><strong>{{ measurement.weight }}</strong></td>
+                        
+                        <!-- Variación de Peso -->
+                        <td>
+                            {% if measurement.peso_perdido > 0 %}
+                                <span class="text-success">
+                                    <i class="fas fa-arrow-down"></i> -{{ measurement.peso_perdido|floatformat:1 }} kg
+                                </span>
+                            {% elif measurement.peso_perdido < 0 %}
+                                <!-- invertimos el signo visualmente ya que perdiodo negativo es ganancia -->
+                                <span class="text-danger">
+                                    <i class="fas fa-arrow-up"></i> +{{ measurement.peso_perdido|floatformat:1|cut:"-" }} kg
+                                </span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                        
+                        <!-- Porcentaje de Variación -->
+                        <td>
+                            {% if measurement.porcentaje > 0 %}
+                                <span class="text-success">-{{ measurement.porcentaje|floatformat:1 }}%</span>
+                            {% elif measurement.porcentaje < 0 %}
+                                <span class="text-danger">+{{ measurement.porcentaje|floatformat:1|cut:"-" }}%</span>
+                            {% else %}
+                                <span class="text-muted">-</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="4" class="text-center py-4">No hay registros de peso todavía.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% if is_paginated %}
+<div class="mt-4 d-flex justify-content-center">
+    <nav aria-label="Navegación de páginas">
+        <ul class="pagination">
+            {% if page_obj.has_previous %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a></li>
+            {% endif %}
+            
+            <li class="page-item disabled"><span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
+            
+            {% if page_obj.has_next %}
+                <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a></li>
+            {% endif %}
+        </ul>
+    </nav>
+</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm mt-5">
+            <div class="card-header bg-primary text-white">
+                <h4 class="mb-0">Añadir Control de Peso</h4>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger">
+                            {{ form.non_field_errors }}
+                        </div>
+                    {% endif %}
+
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.errors %}
+                                <div class="invalid-feedback d-block">
+                                    {{ field.errors }}
+                                </div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-primary">Guardar Medición</button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer bg-light text-center">
+                <a href="{% url 'weight_history' %}" class="btn btn-link">Ver Historial de Peso</a>
+                <a href="{% url 'dashboard' %}" class="btn btn-link">Volver al Dashboard</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

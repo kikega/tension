@@ -8,3 +8,30 @@ wheels/
 
 # Virtual environments
 .venv
+
+# pyenv
+.python-version
+
+### Django ###
+*.log
+*.pot
+*.pyc
+__pycache__/
+migrations/
+db.sqlite3
+media
+collectstatic
+logs
+
+### Linux ###
+*~
+
+# IDE
+.vscode
+*.code-workspace
+
+# dotenv
+.env
+
+# Documentacion
+*.md

@@ -18,8 +18,8 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         sessions = MeasurementSession.objects.filter(user=self.request.user).order_by('-date', '-created_at')
         context['recent_sessions'] = sessions[:10]
         
-        last_20_sessions = sessions[:20] 
-        chart_sessions = list(reversed(last_20_sessions))
+        last_30_sessions = sessions[:30] 
+        chart_sessions = list(reversed(last_30_sessions))
         dates = [s.date.strftime("%d/%m") for s in chart_sessions]
         bp_data = [[s.avg_diastolic, s.avg_systolic] for s in chart_sessions]
         pulse_data = [s.avg_pulse for s in chart_sessions]

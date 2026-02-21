@@ -1,33 +1,48 @@
-<!doctype html>
-<html lang="es">
+<!DOCTYPE html>
+<html lang="es" data-bs-theme="dark">
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>{% block title %}Tension App{% endblock %}</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <title>
+      {% block title %}Tension App{% endblock %}
+    </title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
+          rel="stylesheet"
+          integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
+          crossorigin="anonymous">
+    {% load static %}
+    <link rel="stylesheet" href="{% static 'css/tension.css' %}">
     {% block extra_css %}{% endblock %}
   </head>
-  <body>
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary mb-4">
+  <body class="{% block body_class %}{% endblock %}">
+    <nav class="navbar navbar-expand-lg navbar-dark navbar-glass mb-4">
       <div class="container">
         <a class="navbar-brand" href="/">Tension App</a>
-        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarText" aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
+        <button class="navbar-toggler"
+                type="button"
+                data-bs-toggle="collapse"
+                data-bs-target="#navbarText"
+                aria-controls="navbarText"
+                aria-expanded="false"
+                aria-label="Toggle navigation">
           <span class="navbar-toggler-icon"></span>
         </button>
         <div class="collapse navbar-collapse" id="navbarText">
           <ul class="navbar-nav me-auto mb-2 mb-lg-0">
             {% if user.is_authenticated %}
-            <li class="nav-item">
-              <a class="nav-link" href="/">Dashboard</a>
-            </li>
+              <li class="nav-item">
+                <a class="nav-link" href="/">Dashboard</a>
+              </li>
             {% endif %}
           </ul>
           <span class="navbar-text">
             {% if user.is_authenticated %}
-              Usuario: {{ user.email }} | 
+              Usuario: {{ user.email }} |
               <form action="{% url 'logout' %}" method="post" class="d-inline">
                 {% csrf_token %}
-                <button type="submit" class="btn btn-link nav-link d-inline p-0" style="color: rgba(255,255,255,.55)">Logout</button>
+                <button type="submit"
+                        class="btn btn-link nav-link d-inline p-0"
+                        style="color: rgba(255,255,255,.55)">Logout</button>
               </form>
             {% else %}
               <a href="{% url 'login' %}" class="nav-link">Login</a>
@@ -36,21 +51,16 @@
         </div>
       </div>
     </nav>
-
     <div class="container">
       {% if messages %}
-        {% for message in messages %}
-          <div class="alert alert-{{ message.tags }}">
-            {{ message }}
-          </div>
-        {% endfor %}
+        {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}
       {% endif %}
-
-      {% block content %}
-      {% endblock %}
+      {% block content %}{% endblock %}
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js" integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous"></script>
-    {% block extra_js %}{% endblock %}
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+            integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+            crossorigin="anonymous"></script>
+    {% block extra_js %}
+    {% endblock %}
   </body>
 </html>

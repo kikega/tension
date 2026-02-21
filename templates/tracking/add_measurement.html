@@ -1,88 +1,80 @@
 {% extends "base.html" %}
-
 {% block title %}Nueva Medición - Tension App{% endblock %}
-
 {% block content %}
-<div class="row">
-  <div class="col-md-8 offset-md-2">
-    <div class="card">
-      <div class="card-header bg-primary text-white">
-        <h4 class="mb-0">Nueva Medición</h4>
-      </div>
-      <div class="card-body">
-        <form method="post">
-          {% csrf_token %}
-          
-          <h5 class="mb-3">Datos de la Sesión</h5>
-          <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Fecha</label>
-              {{ form.date }}
+  <div class="row">
+    <div class="col-md-8 offset-md-2">
+      <div class="card">
+        <div class="card-header bg-warning text-dark">
+          <h4 class="mb-0">Nueva Medición</h4>
+        </div>
+        <div class="card-body">
+          <form method="post">
+            {% csrf_token %}
+            <h5 class="mb-3">Datos de la Sesión</h5>
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Fecha</label>
+                {{ form.date }}
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Momento</label>
+                {{ form.time_of_day }}
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Tipo</label>
+                {{ form.session_type }}
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Estado de Animo</label>
+                {{ form.mood }}
+              </div>
             </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Momento</label>
-              {{ form.time_of_day }}
+            <div class="mb-3">
+              <label class="form-label">Suplementos</label>
+              {{ form.supplements }}
             </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Tipo</label>
-              {{ form.session_type }}
+            <div class="row">
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Comida</label>
+                {{ form.food_type }}
+              </div>
+              <div class="col-md-6 mb-3">
+                <label class="form-label">Actividad</label>
+                {{ form.activity_type }}
+              </div>
             </div>
-             <div class="col-md-6 mb-3">
-              <label class="form-label">Estado de Animo</label>
-              {{ form.mood }}
-            </div>
-          </div>
-          
-          <div class="mb-3">
-            <label class="form-label">Suplementos</label>
-            {{ form.supplements }}
-          </div>
-           <div class="row">
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Comida</label>
-              {{ form.food_type }}
-            </div>
-            <div class="col-md-6 mb-3">
-              <label class="form-label">Actividad</label>
-              {{ form.activity_type }}
-            </div>
-          </div>
-          
-          <hr>
-          
-          <h5 class="mb-3">Lecturas (3 obligatorias)</h5>
-          {{ readings.management_form }}
-          <div class="table-responsive">
-            <table class="table table-sm">
-              <thead>
-                <tr>
-                  <th>Sistólica</th>
-                  <th>Diastólica</th>
-                  <th>Pulsaciones</th>
-                </tr>
-              </thead>
-              <tbody>
-                {% for form in readings %}
+            <hr>
+            <h5 class="mb-3">Lecturas (3 obligatorias)</h5>
+            {{ readings.management_form }}
+            <div class="table-responsive">
+              <table class="table table-sm">
+                <thead>
                   <tr>
-                    <td>{{ form.systolic }}</td>
-                    <td>{{ form.diastolic }}</td>
-                    <td>{{ form.pulse }}</td>
-                    {{ form.id }} <!-- Hidden ID field -->
+                    <th>Sistólica</th>
+                    <th>Diastólica</th>
+                    <th>Pulsaciones</th>
                   </tr>
-                {% endfor %}
-              </tbody>
-            </table>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label">Observaciones</label>
-            {{ form.observations }}
-          </div>
-          
-          <button type="submit" class="btn btn-success w-100">Guardar Medición</button>
-        </form>
+                </thead>
+                <tbody>
+                  {% for form in readings %}
+                    <tr>
+                      <td>{{ form.systolic }}</td>
+                      <td>{{ form.diastolic }}</td>
+                      <td>{{ form.pulse }}</td>
+                      {{ form.id }} <!-- Hidden ID field -->
+                    </tr>
+                  {% endfor %}
+                </tbody>
+              </table>
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Observaciones</label>
+              {{ form.observations }}
+            </div>
+            <button type="submit" class="btn btn-success w-100">Guardar Medición</button>
+          </form>
+        </div>
       </div>
     </div>
   </div>
-</div>
 {% endblock %}

@@ -1,0 +1,219 @@
+/* ==========================================================================
+   Tension App Stylesheet
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Base & Global Styles
+   -------------------------------------------------------------------------- */
+html,
+body {
+    height: 100%;
+    background: linear-gradient(135deg, #161823 0%, #111e3b 100%);
+    background-attachment: fixed;
+    color: #e2e8f0;
+}
+
+/* Typography global overrides */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+    font-weight: 600;
+    color: #fff;
+    letter-spacing: -0.02em;
+}
+
+/* --------------------------------------------------------------------------
+   2. Layout & Navigation
+   -------------------------------------------------------------------------- */
+.navbar-glass {
+    background: rgba(22, 24, 35, 0.85) !important;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.3);
+}
+
+.navbar-brand {
+    font-weight: 700;
+    color: #ffc107 !important;
+    letter-spacing: 0.5px;
+}
+
+.nav-link {
+    color: #a0aabf !important;
+    transition: all 0.2s ease;
+}
+
+.nav-link:hover,
+.nav-link.active {
+    color: #ffc107 !important;
+}
+
+/* Oculta la navbar exclusivamente en la pantalla de login */
+body.login-page .navbar {
+    display: none !important;
+}
+
+/* --------------------------------------------------------------------------
+   3. Global Components: Cards & Tables
+   -------------------------------------------------------------------------- */
+.card {
+    background: rgba(30, 32, 47, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 1rem;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.2);
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+
+.card-header {
+    background: rgba(255, 255, 255, 0.03) !important;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05) !important;
+    font-weight: 600;
+    color: #fff !important;
+    padding: 1.2rem 1.5rem;
+}
+
+.card-body {
+    padding: 1.5rem;
+}
+
+.table {
+    color: #e2e8f0;
+}
+
+.table-striped>tbody>tr:nth-of-type(odd)>* {
+    color: #e2e8f0;
+    background-color: rgba(255, 255, 255, 0.02);
+}
+
+.table-hover>tbody>tr:hover>* {
+    color: #fff;
+    background-color: rgba(255, 193, 7, 0.05);
+}
+
+.table-light {
+    background-color: rgba(22, 24, 35, 0.9) !important;
+    color: #fff;
+}
+
+.table-light th {
+    background-color: rgba(22, 24, 35, 0.9) !important;
+    color: #ffc107;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
+}
+
+/* --------------------------------------------------------------------------
+   4. Login Page Specific
+   -------------------------------------------------------------------------- */
+.login-wrapper {
+    min-height: 90vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.login-logo {
+    width: 170px;
+    height: auto;
+    margin-bottom: 2rem;
+    filter: drop-shadow(0 0 10px rgba(255, 193, 7, 0.5));
+}
+
+.glass-card {
+    background: rgba(30, 32, 47, 0.7);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+    border-radius: 1.5rem;
+    padding: 2rem 1.5rem;
+    width: 100%;
+    max-width: 420px;
+}
+
+/* --------------------------------------------------------------------------
+   5. Forms & Floating Labels
+   -------------------------------------------------------------------------- */
+.form-floating>.form-control,
+.form-control,
+.form-select {
+    background-color: rgba(20, 21, 31, 0.8) !important;
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    color: #fff !important;
+    border-radius: 0.75rem;
+}
+
+.form-floating>.form-control:focus,
+.form-control:focus,
+.form-select:focus {
+    background-color: rgba(20, 21, 31, 1) !important;
+    border-color: #ffc107;
+    box-shadow: 0 0 0 0.25rem rgba(255, 193, 7, 0.25);
+    color: #fff !important;
+}
+
+.form-floating>label,
+.form-label {
+    color: #a0aabf;
+}
+
+.form-floating>.form-control:focus~label,
+.form-floating>.form-control:not(:placeholder-shown)~label {
+    color: #ffc107;
+}
+
+/* --------------------------------------------------------------------------
+   6. Buttons & Links
+   -------------------------------------------------------------------------- */
+.btn-accent,
+.btn-primary,
+.btn-warning {
+    background-color: #ffc107;
+    border-color: #ffc107;
+    color: #161823 !important;
+    font-weight: 600;
+    box-shadow: 0 4px 14px 0 rgba(255, 193, 7, 0.3);
+    transition: all 0.3s ease;
+    border-radius: 0.75rem;
+}
+
+.btn-accent:hover,
+.btn-primary:hover,
+.btn-warning:hover {
+    background-color: #e0a800;
+    border-color: #e0a800;
+    box-shadow: 0 6px 20px 0 rgba(255, 193, 7, 0.5);
+    transform: translateY(-2px);
+    color: #000 !important;
+}
+
+.btn-outline-warning {
+    border-color: #ffc107;
+    color: #ffc107;
+    border-radius: 0.5rem;
+}
+
+.btn-outline-warning:hover {
+    background-color: #ffc107;
+    color: #161823 !important;
+}
+
+/* Bootstrap Global Style Overrides for links */
+a,
+.btn-link {
+    color: #ffc107;
+    text-decoration: none;
+    transition: color 0.2s ease;
+}
+
+a:hover,
+.btn-link:hover {
+    color: #e0a800;
+    text-decoration: underline;
+}

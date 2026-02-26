@@ -21,6 +21,3 @@ dev = [
 prod = [
     "psycopg2>=2.9.11",
 ]
-test = [
-    "django-extension>=0.1.0",
-]

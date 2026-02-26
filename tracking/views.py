@@ -134,5 +134,6 @@ class WeightMeasurementListView(LoginRequiredMixin, ListView):
                 
         context['total_weight_diff'] = total_weight_diff
         context['total_weight_diff_pct'] = total_weight_diff_pct
+        context['last_weight'] = last_measurement.weight if last_measurement else None
         
         return context

@@ -61,6 +61,19 @@ wheels = [
 ]
 
 [[package]]
+name = "django-debug-toolbar"
+version = "6.2.0"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "django" },
+    { name = "sqlparse" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/f1/4d/6acf660500d3d581bfc19460d9605cdf14c275640f35825da1329eaafafa/django_debug_toolbar-6.2.0.tar.gz", hash = "sha256:dc1c174d8fb0ea01435e02d9ceef735cf62daf37c1a6a5692d33b4127327679b", size = 313779, upload-time = "2026-01-20T12:38:25.268Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/88/04/e24611299a5ee0d4edfacf935b09cfb7d5d9cb653bd7b7883c3b43a6f90d/django_debug_toolbar-6.2.0-py3-none-any.whl", hash = "sha256:1575461954e6befa720e999dec13fe4f1cc8baf40b6c3ac2aec5f340c0f9c85f", size = 271354, upload-time = "2026-01-20T12:38:23.608Z" },
+]
+
+[[package]]
 name = "django-environ"
 version = "0.13.0"
 source = { registry = "https://pypi.org/simple" }
@@ -190,6 +203,15 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/f9/e2/3e91f31a7d2b083fe6ef3fa267035b518369d9511ffab804f839851d2779/pluggy-1.6.0.tar.gz", hash = "sha256:7dcc130b76258d33b90f61b658791dede3486c3e6bfb003ee5c9bfb396dd22f3", size = 69412, upload-time = "2025-05-15T12:30:07.975Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/54/20/4d324d65cc6d9205fabedc306948156824eb9f0ee1633355a8f7ec5c66bf/pluggy-1.6.0-py3-none-any.whl", hash = "sha256:e920276dd6813095e9377c0bc5566d94c932c33b27a3e3945d8389c374dd4746", size = 20538, upload-time = "2025-05-15T12:30:06.134Z" },
+]
+
+[[package]]
+name = "psycopg2"
+version = "2.9.11"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/89/8d/9d12bc8677c24dad342ec777529bce705b3e785fa05d85122b5502b9ab55/psycopg2-2.9.11.tar.gz", hash = "sha256:964d31caf728e217c697ff77ea69c2ba0865fa41ec20bb00f0977e62fdcc52e3", size = 379598, upload-time = "2025-10-10T11:14:46.075Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/47/08/737aa39c78d705a7ce58248d00eeba0e9fc36be488f9b672b88736fbb1f7/psycopg2-2.9.11-cp314-cp314-win_amd64.whl", hash = "sha256:f10a48acba5fe6e312b891f290b4d2ca595fc9a06850fe53320beac353575578", size = 2803738, upload-time = "2025-10-10T11:10:23.196Z" },
 ]
 
 [[package]]
@@ -386,14 +408,18 @@ dependencies = [
     { name = "django" },
     { name = "django-environ" },
     { name = "django-extensions" },
-    { name = "djlint" },
 ]
 
 [package.dev-dependencies]
 dev = [
+    { name = "django-debug-toolbar" },
     { name = "django-extension" },
+    { name = "djlint" },
     { name = "pytest" },
     { name = "pytest-django" },
+]
+prod = [
+    { name = "psycopg2" },
 ]
 test = [
     { name = "django-extension" },
@@ -404,15 +430,17 @@ requires-dist = [
     { name = "django", specifier = ">=6.0.2" },
     { name = "django-environ", specifier = ">=0.13.0" },
     { name = "django-extensions", specifier = ">=4.1" },
-    { name = "djlint", specifier = ">=1.36.4" },
 ]
 
 [package.metadata.requires-dev]
 dev = [
+    { name = "django-debug-toolbar", specifier = ">=6.2.0" },
     { name = "django-extension", specifier = ">=0.1.0" },
+    { name = "djlint", specifier = ">=1.36.4" },
     { name = "pytest", specifier = ">=9.0.2" },
     { name = "pytest-django", specifier = ">=4.12.0" },
 ]
+prod = [{ name = "psycopg2", specifier = ">=2.9.11" }]
 test = [{ name = "django-extension", specifier = ">=0.1.0" }]
 
 [[package]]

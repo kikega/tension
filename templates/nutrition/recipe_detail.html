@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}{{ recipe.name }} - Salud App{% endblock %}
+{% block content %}
+    <div class="d-flex justify-content-between pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">{{ recipe.name }}</h1>
+        <a href="{% url 'recipe_list' %}"
+           class="btn btn-sm btn-outline-secondary">← Volver</a>
+    </div>
+    <div class="row">
+        <div class="col-md-5">
+            <div class="card mb-3">
+                <div class="card-header">Ingredientes ({{ recipe.servings }} ración/es)</div>
+                <ul class="list-group list-group-flush">
+                    {% for ing in recipe.ingredients.all %}
+                        <li class="list-group-item d-flex justify-content-between">
+                            <a href="{% url 'food_detail' ing.food.pk %}">{{ ing.food.name }}</a>
+                            <span class="text-muted">{{ ing.quantity_g }} g</span>
+                        </li>
+                    {% empty %}
+                        <li class="list-group-item text-muted">Sin ingredientes. Añádelos desde el admin.</li>
+                    {% endfor %}
+                </ul>
+            </div>
+            {% if recipe.instructions %}
+                <div class="card mb-3">
+                    <div class="card-header">Preparación</div>
+                    <div class="card-body">
+                        <p>{{ recipe.instructions|linebreaksbr }}</p>
+                    </div>
+                </div>
+            {% endif %}
+        </div>
+        <div class="col-md-7">
+            <div class="card mb-3">
+                <div class="card-header">Composición Nutricional Total</div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0">
+                        <thead>
+                            <tr>
+                                <th>Nutriente</th>
+                                <th class="text-end">Total</th>
+                                <th class="text-end">Por ración</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% with s=recipe.servings %}
+                                <tr>
+                                    <td>Energía (kcal)</td>
+                                    <td class="text-end">{{ nutrition.energy_kcal|floatformat:1 }}</td>
+                                    <td class="text-end">{{ nutrition.energy_kcal|floatformat:1 }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Proteínas (g)</td>
+                                    <td class="text-end">{{ nutrition.proteins_g|floatformat:2 }}</td>
+                                    <td class="text-end">{{ nutrition.proteins_g|floatformat:2 }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Lípidos (g)</td>
+                                    <td class="text-end">{{ nutrition.lipids_g|floatformat:2 }}</td>
+                                    <td class="text-end">{{ nutrition.lipids_g|floatformat:2 }}</td>
+                                </tr>
+                                <tr>
+                                    <td>H. de carbono (g)</td>
+                                    <td class="text-end">{{ nutrition.carbohydrates_g|floatformat:2 }}</td>
+                                    <td class="text-end">{{ nutrition.carbohydrates_g|floatformat:2 }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Fibra (g)</td>
+                                    <td class="text-end">{{ nutrition.fiber_g|floatformat:2 }}</td>
+                                    <td class="text-end">{{ nutrition.fiber_g|floatformat:2 }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Calcio (mg)</td>
+                                    <td class="text-end">{{ nutrition.calcium_mg|floatformat:1 }}</td>
+                                    <td class="text-end">{{ nutrition.calcium_mg|floatformat:1 }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Hierro (mg)</td>
+                                    <td class="text-end">{{ nutrition.iron_mg|floatformat:2 }}</td>
+                                    <td class="text-end">{{ nutrition.iron_mg|floatformat:2 }}</td>
+                                </tr>
+                                <tr>
+                                    <td>Vitamina C (mg)</td>
+                                    <td class="text-end">{{ nutrition.vitamin_c_mg|floatformat:1 }}</td>
+                                    <td class="text-end">{{ nutrition.vitamin_c_mg|floatformat:1 }}</td>
+                                </tr>
+                            {% endwith %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

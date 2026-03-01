@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Recetas - Salud App{% endblock %}
+{% block content %}
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Recetas</h1>
+        <a href="{% url 'recipe_add' %}" class="btn btn-sm btn-outline-warning">+ Nueva Receta</a>
+    </div>
+    {% if recipes %}
+        <div class="row row-cols-1 row-cols-md-3 g-3">
+            {% for recipe in recipes %}
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ recipe.name }}</h5>
+                            <p class="card-text small text-muted">{{ recipe.description|truncatechars:80 }}</p>
+                            <p class="card-text small">
+                                <strong>Raciones:</strong> {{ recipe.servings }}
+                            </p>
+                        </div>
+                        <div class="card-footer">
+                            <a href="{% url 'recipe_detail' recipe.pk %}"
+                               class="btn btn-sm btn-outline-secondary">Ver detalle</a>
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-secondary text-center">
+            No hay recetas todavía. <a href="{% url 'recipe_add' %}" class="alert-link">Crea la primera</a>.
+        </div>
+    {% endif %}
+{% endblock content %}

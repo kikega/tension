@@ -31,13 +31,79 @@
           <ul class="navbar-nav me-auto mb-2 mb-lg-0">
             {% if user.is_authenticated %}
               <li class="nav-item">
-                <a class="nav-link" href="/">Dashboard</a>
+                <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
+              </li>
+              <!-- Tensión -->
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle"
+                   href="#"
+                   role="button"
+                   data-bs-toggle="dropdown">Tensión</a>
+                <ul class="dropdown-menu">
+                  <li>
+                    <a class="dropdown-item" href="{% url 'add_measurement' %}">+ Nueva Medición</a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="{% url 'history' %}">Historial</a>
+                  </li>
+                </ul>
+              </li>
+              <!-- Peso -->
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle"
+                   href="#"
+                   role="button"
+                   data-bs-toggle="dropdown">Peso</a>
+                <ul class="dropdown-menu">
+                  <li>
+                    <a class="dropdown-item" href="{% url 'add_weight' %}">+ Nueva Medición</a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="{% url 'weight_history' %}">Historial</a>
+                  </li>
+                </ul>
+              </li>
+              <!-- Nutrición -->
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle"
+                   href="#"
+                   role="button"
+                   data-bs-toggle="dropdown">Nutrición</a>
+                <ul class="dropdown-menu">
+                  <li>
+                    <a class="dropdown-item" href="{% url 'food_list' %}">Alimentos</a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="{% url 'recipe_list' %}">Recetas</a>
+                  </li>
+                </ul>
+              </li>
+              <!-- Config -->
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle"
+                   href="#"
+                   role="button"
+                   data-bs-toggle="dropdown">Configuración</a>
+                <ul class="dropdown-menu">
+                  <li>
+                    <a class="dropdown-item" href="{% url 'supplement_list' %}">Suplementos</a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="{% url 'supplement_log_add' %}">Registrar Toma</a>
+                  </li>
+                  <li>
+                    <hr class="dropdown-divider">
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="{% url 'activity_list' %}">Actividades Físicas</a>
+                  </li>
+                </ul>
               </li>
             {% endif %}
           </ul>
           <span class="navbar-text">
             {% if user.is_authenticated %}
-              Usuario: {{ user.email }} |
+              {{ user.email }} |
               <form action="{% url 'logout' %}" method="post" class="d-inline">
                 {% csrf_token %}
                 <button type="submit"
@@ -56,6 +122,19 @@
         {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}
       {% endif %}
       {% block content %}{% endblock %}
+      <!-- ===== FOOTER ===== -->
+      {% if request.resolver_match.url_name != "login" %}
+        <footer class="footer py-4 mt-5">
+          <div class="container">
+            <div class="d-flex justify-content-center">
+              <img src="{% static "imagenes/logo2.png" %}"
+                   alt="Logo egalvez"
+                   width="137"
+                   height="40">
+            </div>
+          </div>
+        </footer>
+      {% endif %}
     </div>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
             integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"

@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Actividades Físicas - Salud App{% endblock %}
+{% block content %}
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Mis Actividades Físicas</h1>
+        <a href="{% url 'activity_add' %}"
+           class="btn btn-sm btn-outline-warning">+ Añadir Actividad</a>
+    </div>
+    {% if activities %}
+        <div class="row row-cols-1 row-cols-md-3 g-3">
+            {% for act in activities %}
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ act.name }}</h5>
+                            {% if act.description %}<p class="card-text small text-muted">{{ act.description }}</p>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-secondary text-center">
+            No has configurado ninguna actividad física.
+            <a href="{% url 'activity_add' %}" class="alert-link">Añade la primera</a>.
+        </div>
+    {% endif %}
+{% endblock %}

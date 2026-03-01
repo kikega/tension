@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Suplementos - Salud App{% endblock %}
+{% block content %}
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Mi Catálogo de Suplementos</h1>
+        <a href="{% url 'supplement_add' %}"
+           class="btn btn-sm btn-outline-warning">+ Añadir Suplemento</a>
+    </div>
+    {% if supplements %}
+        <div class="row row-cols-1 row-cols-md-3 g-3">
+            {% for s in supplements %}
+                <div class="col">
+                    <div class="card h-100">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ s.name }}</h5>
+                            {% if s.manufacturer %}<h6 class="card-subtitle mb-2 text-muted">{{ s.manufacturer }}</h6>{% endif %}
+                            {% if s.description %}<p class="card-text small">{{ s.description }}</p>{% endif %}
+                        </div>
+                    </div>
+                </div>
+            {% endfor %}
+        </div>
+    {% else %}
+        <div class="alert alert-secondary text-center">
+            No has añadido ningún suplemento todavía.
+            <a href="{% url 'supplement_add' %}" class="alert-link">Añade el primero</a>.
+        </div>
+    {% endif %}
+    <div class="mt-4">
+        <a href="{% url 'supplement_log_add' %}"
+           class="btn btn-outline-secondary">Registrar Toma de Suplemento</a>
+        <a href="{% url 'supplement_log_list' %}" class="btn btn-link ms-2">Ver historial de tomas</a>
+    </div>
+{% endblock %}

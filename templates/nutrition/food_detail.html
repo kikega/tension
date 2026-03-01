@@ -1,0 +1,149 @@
+{% extends "base.html" %}
+{% block title %}{{ food.name }} - Salud App{% endblock %}
+{% block content %}
+    <div class="d-flex justify-content-between pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">{{ food.name }}</h1>
+        <a href="{% url 'food_list' %}" class="btn btn-sm btn-outline-secondary">← Volver</a>
+    </div>
+    <div class="row">
+        <div class="col-md-4">
+            <div class="card mb-3">
+                <div class="card-header">General</div>
+                <ul class="list-group list-group-flush">
+                    <li class="list-group-item">
+                        <strong>Categoría:</strong> {{ food.category }}
+                    </li>
+                    <li class="list-group-item">
+                        <strong>Estacionalidad:</strong> {{ food.get_seasonality_display }}
+                    </li>
+                    {% if food.edible_portion %}
+                        <li class="list-group-item">
+                            <strong>Porción comestible:</strong> {{ food.edible_portion }}%
+                        </li>
+                    {% endif %}
+                    {% if food.nutritional_rating %}
+                        <li class="list-group-item">
+                            <strong>Valoración:</strong> {{ food.nutritional_rating }}
+                        </li>
+                    {% endif %}
+                    {% if food.description %}
+                        <li class="list-group-item text-muted">
+                            <em>{{ food.description }}</em>
+                        </li>
+                    {% endif %}
+                </ul>
+            </div>
+        </div>
+        <div class="col-md-8">
+            <div class="card mb-3">
+                <div class="card-header">Composición Nutricional (por 100 g)</div>
+                <div class="card-body p-0">
+                    <table class="table table-sm mb-0">
+                        <tbody>
+                            <tr>
+                                <td>Energía (kcal)</td>
+                                <td class="text-end">{{ food.energy_kcal|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Proteínas (g)</td>
+                                <td class="text-end">{{ food.proteins_g|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Lípidos (g)</td>
+                                <td class="text-end">{{ food.lipids_g|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Colesterol (mg)</td>
+                                <td class="text-end">{{ food.cholesterol_mg|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>H. de carbono (g)</td>
+                                <td class="text-end">{{ food.carbohydrates_g|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Fibra (g)</td>
+                                <td class="text-end">{{ food.fiber_g|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Agua (g)</td>
+                                <td class="text-end">{{ food.water_g|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Calcio (mg)</td>
+                                <td class="text-end">{{ food.calcium_mg|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Hierro (mg)</td>
+                                <td class="text-end">{{ food.iron_mg|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Yodo (µg)</td>
+                                <td class="text-end">{{ food.iodine_ug|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Magnesio (mg)</td>
+                                <td class="text-end">{{ food.magnesium_mg|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Zinc (mg)</td>
+                                <td class="text-end">{{ food.zinc_mg|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Sodio (mg)</td>
+                                <td class="text-end">{{ food.sodium_mg|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Potasio (mg)</td>
+                                <td class="text-end">{{ food.potassium_mg|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Fósforo (mg)</td>
+                                <td class="text-end">{{ food.phosphorus_mg|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Selenio (µg)</td>
+                                <td class="text-end">{{ food.selenium_ug|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Tiamina (mg)</td>
+                                <td class="text-end">{{ food.thiamine_mg|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Riboflavina (mg)</td>
+                                <td class="text-end">{{ food.riboflavin_mg|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Vitamina B6 (mg)</td>
+                                <td class="text-end">{{ food.vitamin_b6_mg|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Folatos (µg)</td>
+                                <td class="text-end">{{ food.folate_ug|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Vitamina B12 (µg)</td>
+                                <td class="text-end">{{ food.vitamin_b12_ug|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Vitamina C (mg)</td>
+                                <td class="text-end">{{ food.vitamin_c_mg|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Vitamina A (µg)</td>
+                                <td class="text-end">{{ food.vitamin_a_ug|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Vitamina D (µg)</td>
+                                <td class="text-end">{{ food.vitamin_d_ug|default:"—" }}</td>
+                            </tr>
+                            <tr>
+                                <td>Vitamina E (mg)</td>
+                                <td class="text-end">{{ food.vitamin_e_mg|default:"—" }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock content %}

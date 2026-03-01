@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Alimentos - Salud App{% endblock %}
+{% block content %}
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2">Alimentos</h1>
+        <a href="{% url 'food_add' %}" class="btn btn-sm btn-outline-warning">+ Añadir Alimento</a>
+    </div>
+    <form class="row g-2 mb-4" method="get">
+        <div class="col-md-5">
+            <input type="text"
+                   name="q"
+                   class="form-control"
+                   placeholder="Buscar alimento..."
+                   value="{{ query }}">
+        </div>
+        <div class="col-md-4">
+            <select name="category" class="form-select">
+                <option value="">— Todas las categorías —</option>
+                {% for cat in categories %}
+                    <option value="{{ cat.pk }}"
+                            {% if selected_category == cat.pk|stringformat:"s" %}selected{% endif %}>
+                        {{ cat.name }}
+                    </option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="col-md-3">
+            <button type="submit" class="btn btn-secondary w-100">Filtrar</button>
+        </div>
+    </form>
+    <div class="table-responsive">
+        <table class="table table-sm table-hover">
+            <thead>
+                <tr>
+                    <th>Alimento</th>
+                    <th>Categoría</th>
+                    <th>Estac.</th>
+                    <th class="text-end">kcal</th>
+                    <th class="text-end">Prot. (g)</th>
+                    <th class="text-end">HC (g)</th>
+                    <th class="text-end">Lip. (g)</th>
+                    <th></th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for food in foods %}
+                    <tr>
+                        <td>{{ food.name }}</td>
+                        <td>{{ food.category }}</td>
+                        <td>{{ food.get_seasonality_display }}</td>
+                        <td class="text-end">{{ food.energy_kcal|default:"—" }}</td>
+                        <td class="text-end">{{ food.proteins_g|default:"—" }}</td>
+                        <td class="text-end">{{ food.carbohydrates_g|default:"—" }}</td>
+                        <td class="text-end">{{ food.lipids_g|default:"—" }}</td>
+                        <td>
+                            <a href="{% url 'food_detail' food.pk %}" class="btn btn-sm btn-link">Ver</a>
+                        </td>
+                    </tr>
+                {% empty %}
+                    <tr>
+                        <td colspan="8" class="text-center">No se encontraron alimentos.</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+    {% if is_paginated %}
+        <nav>
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link"
+                           href="?page={{ page_obj.previous_page_number }}&q={{ query }}&category={{ selected_category }}">Anterior</a>
+                    </li>
+                {% endif %}
+                <li class="page-item disabled">
+                    <span class="page-link">{{ page_obj.number }}/{{ page_obj.paginator.num_pages }}</span>
+                </li>
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link"
+                           href="?page={{ page_obj.next_page_number }}&q={{ query }}&category={{ selected_category }}">Siguiente</a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+    {% endif %}
+{% endblock content %}

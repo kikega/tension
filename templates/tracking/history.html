@@ -1,64 +1,232 @@
 {% extends "base.html" %}
-
-{% block title %}Historial - Tension App{% endblock %}
-
+{% block title %}Historial de Tensión - Salud App{% endblock %}
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-  <h1 class="h2">Historial de Mediciones</h1>
-  <div class="btn-toolbar mb-2 mb-md-0">
-    <div class="btn-group me-2">
-      <a href="?type=" class="btn btn-sm btn-outline-secondary {% if not request.GET.type %}active{% endif %}">Todos</a>
-      <a href="?type=intense" class="btn btn-sm btn-outline-secondary {% if request.GET.type == 'intense' %}active{% endif %}">Intensa</a>
-      <a href="?type=control" class="btn btn-sm btn-outline-secondary {% if request.GET.type == 'control' %}active{% endif %}">Control</a>
+  <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Historial de Mediciones</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+      <div class="btn-group me-2">
+        <a href="?type="
+           class="btn btn-sm btn-outline-secondary {% if not request.GET.type %}active{% endif %}">Todos</a>
+        <a href="?type=intense"
+           class="btn btn-sm btn-outline-secondary {% if request.GET.type == 'intense' %}active{% endif %}">Intensa</a>
+        <a href="?type=control"
+           class="btn btn-sm btn-outline-secondary {% if request.GET.type == 'control' %}active{% endif %}">Control</a>
+      </div>
+      <a href="{% url 'print_history' %}{% if request.GET.type %}?type={{ request.GET.type }}{% endif %}"
+         target="_blank"
+         class="btn btn-sm btn-outline-info me-2">🖨️ Imprimir</a>
+      <a href="{% url 'add_measurement' %}"
+         class="btn btn-sm btn-outline-warning">+ Nueva</a>
     </div>
   </div>
-</div>
-
-<div class="table-responsive">
-  <table class="table table-striped table-sm">
-    <thead>
-      <tr>
-        <th>Fecha</th>
-        <th>Hora</th>
-        <th>Tipo</th>
-        <th>Sys (Media)</th>
-        <th>Dia (Media)</th>
-        <th>Pulso (Media)</th>
-        <th>Estado Amino</th>
-        <th>Actividad</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for session in sessions %}
-      <tr>
-        <td>{{ session.date|date:"d/m/Y" }}</td>
-        <td>{{ session.get_time_of_day_display }}</td>
-        <td>{{ session.get_session_type_display }}</td>
-        <td>{{ session.avg_systolic|floatformat:1 }}</td>
-        <td>{{ session.avg_diastolic|floatformat:1 }}</td>
-        <td>{{ session.avg_pulse|floatformat:1 }}</td>
-        <td>{{ session.get_mood_display }}</td>
-        <td>{{ session.activity_type }}</td>
-      </tr>
-      {% empty %}
-      <tr>
-        <td colspan="8">No hay registros.</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-</div>
-{% if is_paginated %}
-<nav aria-label="Page navigation">
-  <ul class="pagination justify-content-center">
-    {% if page_obj.has_previous %}
-      <li class="page-item"><a class="page-link" href="?page={{ page_obj.previous_page_number }}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">Anterior</a></li>
-    {% endif %}
-    <li class="page-item disabled"><span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span></li>
-    {% if page_obj.has_next %}
-      <li class="page-item"><a class="page-link" href="?page={{ page_obj.next_page_number }}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">Siguiente</a></li>
-    {% endif %}
-  </ul>
-</nav>
-{% endif %}
+  <div class="table-responsive">
+    <table class="table table-hover table-bordered align-middle text-center mb-0">
+      <thead class="table-secondary">
+        <tr>
+          <th>Fecha</th>
+          <th>Med. 1</th>
+          <th>Med. 2</th>
+          <th>Med. 3</th>
+          <th>Media</th>
+          <th>Err Abs</th>
+          <th>Err Rel</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for session in sessions %}
+          <tr>
+            <td>
+              <a href="#"
+                 class="text-decoration-none fw-bold"
+                 data-bs-toggle="modal"
+                 data-bs-target="#modal-session-{{ session.pk }}">{{ session.date|date:"d/m/Y" }}</a>
+              <br>
+              <span class="badge bg-secondary">{{ session.get_time_of_day_display }}</span>
+            </td>
+            {% for reading in session.readings.all %}
+              <td>
+                <small>
+                  <span class="{% if reading.systolic > 140 %}text-danger fw-bold{% else %}text-success{% endif %}">{{ reading.systolic }}</span> /
+                  <span class="{% if reading.diastolic > 90 %}text-danger fw-bold{% else %}text-success{% endif %}">{{ reading.diastolic }}</span>
+                  <br>
+                  <span class="text-muted">({{ reading.pulse }})</span>
+                </small>
+              </td>
+            {% endfor %}
+            <!-- Fill empty cells if less than 3 readings -->
+            {% for i in "123" %}
+              {% if forloop.counter > session.readings.count %}<td>-</td>{% endif %}
+            {% endfor %}
+            <!-- Averages -->
+            <td>
+              {% if session.avg_systolic %}
+                <span class="badge {% if session.avg_systolic > 140 %}bg-danger{% else %}bg-success{% endif %}">{{ session.avg_systolic|floatformat:0 }}</span> /
+                <span class="badge {% if session.avg_diastolic > 90 %}bg-danger{% else %}bg-success{% endif %}">{{ session.avg_diastolic|floatformat:0 }}</span>
+                <br>
+                <small class="text-muted">({{ session.avg_pulse|floatformat:0 }})</small>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <!-- Error Absoluto -->
+            <td>
+              {% if session.avg_err_abs_sys %}
+                <small>
+                  S: {{ session.avg_err_abs_sys|floatformat:1 }}
+                  <br>
+                  D: {{ session.avg_err_abs_dia|floatformat:1 }}
+                </small>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <!-- Error Relativo -->
+            <td>
+              {% if session.avg_err_rel_sys %}
+                <small>
+                  S: {{ session.avg_err_rel_sys|floatformat:1 }}%
+                  <br>
+                  D: {{ session.avg_err_rel_dia|floatformat:1 }}%
+                </small>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+            <!-- Actions -->
+            <td>
+              <a href="{% url 'edit_measurement' session.pk %}"
+                 class="btn btn-sm btn-outline-primary"
+                 title="Editar medición">✏️</a>
+            </td>
+          </tr>
+        {% empty %}
+          <tr>
+            <td colspan="8">
+              <div class="alert alert-secondary mb-0">No hay registros.</div>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  <!-- Modales para Detalles de Sesión -->
+  {% for session in sessions %}
+    <div class="modal fade"
+         id="modal-session-{{ session.pk }}"
+         tabindex="-1"
+         aria-labelledby="modalLabel{{ session.pk }}"
+         aria-hidden="true">
+      <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content">
+          <div class="modal-header bg-dark">
+            <h5 class="modal-title" id="modalLabel{{ session.pk }}">
+              Detalles: {{ session.date|date:"d/m/Y" }} - {{ session.get_time_of_day_display }}
+            </h5>
+            <button type="button"
+                    class="btn-close"
+                    data-bs-dismiss="modal"
+                    aria-label="Close"></button>
+          </div>
+          <div class="modal-body p-0">
+            <div class="p-3 bg-white border-bottom">
+              <span class="badge bg-dark border">{{ session.get_session_type_display }}</span>
+              {% if session.eaten_out %}<span class="ms-1 badge bg-info text-dark">🍽 Fuera de casa</span>{% endif %}
+              {% if session.mood %}<span class="ms-2 badge bg-light text-dark">{{ session.get_mood_display }}</span>{% endif %}
+              {% if session.activity %}<span class="ms-2 badge bg-light text-dark">🏃 {{ session.activity.name }}</span>{% endif %}
+            </div>
+            <div class="table-responsive">
+              <table class="table table-sm mb-0 align-middle text-center">
+                <thead>
+                  <tr class="table-secondary">
+                    <th>#</th>
+                    <th>Sistólica</th>
+                    <th>Ea Sys</th>
+                    <th>Er Sys %</th>
+                    <th>Diastólica</th>
+                    <th>Ea Dia</th>
+                    <th>Er Dia %</th>
+                    <th>Pulsaciones</th>
+                    <th>Ea Pul</th>
+                    <th>Er Pul %</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {% for reading in session.readings.all %}
+                    <tr>
+                      <td>
+                        <strong>{{ forloop.counter }}</strong>
+                      </td>
+                      <td>{{ reading.systolic }}</td>
+                      <td>{{ reading.err_abs_sys|floatformat:1 }}</td>
+                      <td>{{ reading.err_rel_sys|floatformat:1 }}%</td>
+                      <td>{{ reading.diastolic }}</td>
+                      <td>{{ reading.err_abs_dia|floatformat:1 }}</td>
+                      <td>{{ reading.err_rel_dia|floatformat:1 }}%</td>
+                      <td>{{ reading.pulse }}</td>
+                      <td>{{ reading.err_abs_pul|floatformat:1 }}</td>
+                      <td>{{ reading.err_rel_pul|floatformat:1 }}%</td>
+                    </tr>
+                  {% endfor %}
+                  {% if session.avg_systolic %}
+                    <tr class="table-warning fw-bold">
+                      <td>Media</td>
+                      <td colspan="3">
+                        {% if session.avg_systolic > 140 %}
+                          <span class="badge bg-danger">{{ session.avg_systolic|floatformat:0 }}</span>
+                        {% else %}
+                          <span class="badge bg-success">{{ session.avg_systolic|floatformat:0 }}</span>
+                        {% endif %}
+                      </td>
+                      <td colspan="3">
+                        {% if session.avg_diastolic > 90 %}
+                          <span class="badge bg-danger">{{ session.avg_diastolic|floatformat:0 }}</span>
+                        {% else %}
+                          <span class="badge bg-success">{{ session.avg_diastolic|floatformat:0 }}</span>
+                        {% endif %}
+                      </td>
+                      <td colspan="3">{{ session.avg_pulse|floatformat:0 }}</td>
+                    </tr>
+                  {% endif %}
+                </tbody>
+              </table>
+            </div>
+            {% if session.observations %}
+              <div class="p-3 bg-light border-top">
+                <p class="mb-0 text-muted small">
+                  <strong>Observaciones:</strong> {{ session.observations }}
+                </p>
+              </div>
+            {% endif %}
+          </div>
+          <div class="modal-footer">
+            <a href="{% url 'edit_measurement' session.pk %}"
+               class="btn btn-primary">Editar Medición</a>
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  {% endfor %}
+  {% if is_paginated %}
+    <nav aria-label="Page navigation">
+      <ul class="pagination justify-content-center">
+        {% if page_obj.has_previous %}
+          <li class="page-item">
+            <a class="page-link"
+               href="?page={{ page_obj.previous_page_number }}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">Anterior</a>
+          </li>
+        {% endif %}
+        <li class="page-item disabled">
+          <span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+        </li>
+        {% if page_obj.has_next %}
+          <li class="page-item">
+            <a class="page-link"
+               href="?page={{ page_obj.next_page_number }}{% if request.GET.type %}&type={{ request.GET.type }}{% endif %}">Siguiente</a>
+          </li>
+        {% endif %}
+      </ul>
+    </nav>
+  {% endif %}
 {% endblock %}

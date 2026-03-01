@@ -48,6 +48,7 @@ INSTALLED_APPS = [
     # Local
     "accounts",
     "tracking",
+    "nutrition",
 ]
 
 MIDDLEWARE = [

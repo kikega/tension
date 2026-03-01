@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}Registrar Toma - Salud App{% endblock %}
+{% block content %}
+    <div class="row">
+        <div class="col-md-6 offset-md-3">
+            <div class="card">
+                <div class="card-header">Registrar Toma de Suplemento</div>
+                <div class="card-body">
+                    <form method="post">
+                        {% csrf_token %}
+                        <div class="mb-3">
+                            <label class="form-label">Suplemento</label>
+                            {{ form.supplement }}
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Fecha</label>
+                                {{ form.date }}
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Momento del día</label>
+                                {{ form.time_of_day }}
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Notas</label>
+                            {{ form.notes }}
+                        </div>
+                        <button type="submit" class="btn btn-warning w-100">Registrar</button>
+                    </form>
+                </div>
+            </div>
+            <a href="{% url 'supplement_log_list' %}" class="btn btn-link mt-2">← Volver al historial</a>
+        </div>
+    </div>
+{% endblock %}

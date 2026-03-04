@@ -101,7 +101,7 @@ Debe tener un formulario para la introducción de los datos de cada medición, c
 - Frontend: Bootstrap, HTML, CSS, JavaScript
 - Backend: Django
 - Librerias de gráficos: Chart.js
-- Base de datos: SQLite
+- Base de datos: SQLite para desarrollo y postgresql para produccion
 
 ## Seguridad
 

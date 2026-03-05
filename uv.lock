@@ -374,7 +374,34 @@ wheels = [
 ]
 
 [[package]]
-name = "salud"
+name = "shelve-cache"
+version = "0.0.4"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/84/b8/5615924307bf5ef331c0e60c18b429263937fbda91cdb4295d1552f8b308/shelve_cache-0.0.4.tar.gz", hash = "sha256:f139f1b85d4232a0e8ed53b9b2e42d658e0b7771cfaa960c9e08eadd8da5dce0", size = 3529, upload-time = "2024-04-14T16:35:34.355Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0d/b1/9c83ba8e1712e89efb8050546928a41c4f2617ee2f8d8821f4c9a551ba51/shelve_cache-0.0.4-py3-none-any.whl", hash = "sha256:9697abcc128c2a44fab66d6ba1ba0e6a853059a89c4d37d07edb7f89c75b91e8", size = 3855, upload-time = "2024-04-14T16:35:33.184Z" },
+]
+
+[[package]]
+name = "six"
+version = "1.17.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81", size = 34031, upload-time = "2024-12-04T17:35:28.174Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050, upload-time = "2024-12-04T17:35:26.475Z" },
+]
+
+[[package]]
+name = "sqlparse"
+version = "0.5.5"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/90/76/437d71068094df0726366574cf3432a4ed754217b436eb7429415cf2d480/sqlparse-0.5.5.tar.gz", hash = "sha256:e20d4a9b0b8585fdf63b10d30066c7c94c5d7a7ec47c889a2d83a3caa93ff28e", size = 120815, upload-time = "2025-12-19T07:17:45.073Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/49/4b/359f28a903c13438ef59ebeee215fb25da53066db67b305c125f1c6d2a25/sqlparse-0.5.5-py3-none-any.whl", hash = "sha256:12a08b3bf3eec877c519589833aed092e2444e68240a3577e8e26148acc7b1ba", size = 46138, upload-time = "2025-12-19T07:17:46.573Z" },
+]
+
+[[package]]
+name = "tension"
 version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
@@ -411,33 +438,6 @@ dev = [
     { name = "pytest-django", specifier = ">=4.12.0" },
 ]
 prod = [{ name = "psycopg2", specifier = ">=2.9.11" }]
-
-[[package]]
-name = "shelve-cache"
-version = "0.0.4"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/84/b8/5615924307bf5ef331c0e60c18b429263937fbda91cdb4295d1552f8b308/shelve_cache-0.0.4.tar.gz", hash = "sha256:f139f1b85d4232a0e8ed53b9b2e42d658e0b7771cfaa960c9e08eadd8da5dce0", size = 3529, upload-time = "2024-04-14T16:35:34.355Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/0d/b1/9c83ba8e1712e89efb8050546928a41c4f2617ee2f8d8821f4c9a551ba51/shelve_cache-0.0.4-py3-none-any.whl", hash = "sha256:9697abcc128c2a44fab66d6ba1ba0e6a853059a89c4d37d07edb7f89c75b91e8", size = 3855, upload-time = "2024-04-14T16:35:33.184Z" },
-]
-
-[[package]]
-name = "six"
-version = "1.17.0"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/94/e7/b2c673351809dca68a0e064b6af791aa332cf192da575fd474ed7d6f16a2/six-1.17.0.tar.gz", hash = "sha256:ff70335d468e7eb6ec65b95b99d3a2836546063f63acc5171de367e834932a81", size = 34031, upload-time = "2024-12-04T17:35:28.174Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/b7/ce/149a00dd41f10bc29e5921b496af8b574d8413afcd5e30dfa0ed46c2cc5e/six-1.17.0-py2.py3-none-any.whl", hash = "sha256:4721f391ed90541fddacab5acf947aa0d3dc7d27b2e1e8eda2be8970586c3274", size = 11050, upload-time = "2024-12-04T17:35:26.475Z" },
-]
-
-[[package]]
-name = "sqlparse"
-version = "0.5.5"
-source = { registry = "https://pypi.org/simple" }
-sdist = { url = "https://files.pythonhosted.org/packages/90/76/437d71068094df0726366574cf3432a4ed754217b436eb7429415cf2d480/sqlparse-0.5.5.tar.gz", hash = "sha256:e20d4a9b0b8585fdf63b10d30066c7c94c5d7a7ec47c889a2d83a3caa93ff28e", size = 120815, upload-time = "2025-12-19T07:17:45.073Z" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/49/4b/359f28a903c13438ef59ebeee215fb25da53066db67b305c125f1c6d2a25/sqlparse-0.5.5-py3-none-any.whl", hash = "sha256:12a08b3bf3eec877c519589833aed092e2444e68240a3577e8e26148acc7b1ba", size = 46138, upload-time = "2025-12-19T07:17:46.573Z" },
-]
 
 [[package]]
 name = "tqdm"

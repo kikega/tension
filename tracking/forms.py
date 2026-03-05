@@ -7,6 +7,8 @@ from .models import (
     Supplement,
     SupplementLog,
     PhysicalActivity,
+    PhysicalActivityLog,
+    FoodLog,
 )
 
 
@@ -18,22 +20,16 @@ class MeasurementSessionForm(forms.ModelForm):
         exclude = ("user", "created_at", "avg_systolic", "avg_diastolic", "avg_pulse")
         widgets = {
             "date": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
-            "time_of_day": forms.Select(attrs={"class": "form-select"}),
-            "session_type": forms.Select(attrs={"class": "form-select"}),
+            "time_of_day": forms.Select(attrs={"class": "form-control form-select"}),
+            "session_type": forms.Select(attrs={"class": "form-control form-select"}),
             "supplements": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
-            "mood": forms.Select(attrs={"class": "form-select"}),
-            "food_type": forms.TextInput(attrs={"class": "form-control"}),
-            "eaten_out": forms.CheckboxInput(attrs={"class": "form-check-input"}),
-            "activity": forms.Select(attrs={"class": "form-select"}),
+            "mood": forms.Select(attrs={"class": "form-control form-select"}),
             "observations": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
         }
 
     def __init__(self, *args, **kwargs):
         user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
-        if user:
-            self.fields["activity"].queryset = PhysicalActivity.objects.filter(user=user)
-        self.fields["activity"].empty_label = "— Sin actividad —"
 
 
 ReadingFormSet = inlineformset_factory(
@@ -107,4 +103,38 @@ class PhysicalActivityForm(forms.ModelForm):
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control"}),
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+        }
+
+
+class PhysicalActivityLogForm(forms.ModelForm):
+    """Formulario para registrar el inicio de una actividad física."""
+
+    class Meta:
+        model = PhysicalActivityLog
+        fields = ["activity", "date", "duration_minutes", "notes"]
+        widgets = {
+            "activity": forms.Select(attrs={"class": "form-control form-select"}),
+            "date": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+            "duration_minutes": forms.NumberInput(attrs={"class": "form-control"}),
+            "notes": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields["activity"].queryset = PhysicalActivity.objects.filter(user=user)
+
+
+class FoodLogForm(forms.ModelForm):
+    """Formulario para registrar una comida."""
+
+    class Meta:
+        model = FoodLog
+        fields = ["date", "meal_type", "eaten_out", "notes"]
+        widgets = {
+            "date": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+            "meal_type": forms.TextInput(attrs={"class": "form-control"}),
+            "eaten_out": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "notes": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
         }

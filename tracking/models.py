@@ -64,15 +64,6 @@ class MeasurementSession(models.Model):
     # Context Data
     supplements = models.TextField(blank=True, verbose_name=_("Suplementos y Vitaminas"))
     mood = models.CharField(max_length=50, blank=True, choices=MOOD_CHOICES, verbose_name=_("Estado de ánimo"))
-    food_type = models.CharField(max_length=100, blank=True, verbose_name=_("Tipo de comida"))
-    eaten_out = models.BooleanField(default=False, verbose_name=_("Comida fuera de casa"))
-    activity = models.ForeignKey(
-        PhysicalActivity,
-        null=True,
-        blank=True,
-        on_delete=models.SET_NULL,
-        verbose_name=_("Actividad física"),
-    )
     observations = models.TextField(blank=True, verbose_name=_("Observaciones"))
 
     # Calculated Averages
@@ -153,3 +144,35 @@ class WeightMeasurement(models.Model):
 
     def __str__(self) -> str:
         return f"{self.date} - {self.weight} kg"
+
+
+class PhysicalActivityLog(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name=_("Usuario"))
+    activity = models.ForeignKey(PhysicalActivity, on_delete=models.CASCADE, verbose_name=_("Actividad física"))
+    date = models.DateField(default=timezone.now, verbose_name=_("Fecha"))
+    duration_minutes = models.PositiveIntegerField(verbose_name=_("Duración (minutos)"))
+    notes = models.TextField(blank=True, verbose_name=_("Notas"))
+
+    class Meta:
+        ordering = ["-date"]
+        verbose_name = _("Registro de Ejercicio")
+        verbose_name_plural = _("Registros de Ejercicio")
+
+    def __str__(self) -> str:
+        return f"{self.date} - {self.activity.name} ({self.duration_minutes} min)"
+
+
+class FoodLog(models.Model):
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name=_("Usuario"))
+    date = models.DateField(default=timezone.now, verbose_name=_("Fecha"))
+    meal_type = models.CharField(max_length=100, verbose_name=_("Tipo de comida"))
+    eaten_out = models.BooleanField(default=False, verbose_name=_("Comida fuera de casa"))
+    notes = models.TextField(blank=True, verbose_name=_("Notas"))
+
+    class Meta:
+        ordering = ["-date"]
+        verbose_name = _("Registro de Alimentación")
+        verbose_name_plural = _("Registros de Alimentación")
+
+    def __str__(self) -> str:
+        return f"{self.date} - {self.meal_type}"

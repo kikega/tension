@@ -18,4 +18,11 @@ urlpatterns = [
     # Actividades Físicas
     path("activities/", views.PhysicalActivityListView.as_view(), name="activity_list"),
     path("activities/add/", views.PhysicalActivityCreateView.as_view(), name="activity_add"),
+    path("activities/log/", views.PhysicalActivityLogListView.as_view(), name="activity_log_list"),
+    path("activities/log/add/", views.PhysicalActivityLogCreateView.as_view(), name="activity_log_add"),
+    # Alimentación
+    path("food/", views.FoodLogListView.as_view(), name="food_log_list"),
+    path("food/add/", views.FoodLogCreateView.as_view(), name="food_log_add"),
+    # Análisis
+    path("analysis/", views.AnalysisView.as_view(), name="analysis"),
 ]

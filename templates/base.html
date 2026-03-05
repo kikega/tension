@@ -33,6 +33,9 @@
               <li class="nav-item">
                 <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
               </li>
+              <li class="nav-item">
+                <a class="nav-link text-info" href="{% url 'analysis' %}">Análisis Cruzado</a>
+              </li>
               <!-- Tensión -->
               <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle"
@@ -63,7 +66,22 @@
                   </li>
                 </ul>
               </li>
-              <!-- Nutrición -->
+              <!-- Ejercicio -->
+              <li class="nav-item dropdown">
+                <a class="nav-link dropdown-toggle"
+                   href="#"
+                   role="button"
+                   data-bs-toggle="dropdown">Ejercicio</a>
+                <ul class="dropdown-menu">
+                  <li>
+                    <a class="dropdown-item" href="{% url 'activity_log_add' %}">+ Registrar Ejercicio</a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="{% url 'activity_log_list' %}">Historial</a>
+                  </li>
+                </ul>
+              </li>
+              <!-- Nutrición y Diario -->
               <li class="nav-item dropdown">
                 <a class="nav-link dropdown-toggle"
                    href="#"
@@ -71,10 +89,28 @@
                    data-bs-toggle="dropdown">Nutrición</a>
                 <ul class="dropdown-menu">
                   <li>
-                    <a class="dropdown-item" href="{% url 'food_list' %}">Alimentos</a>
+                    <a class="dropdown-item" href="{% url 'food_log_add' %}">+ Registrar Comida</a>
                   </li>
                   <li>
-                    <a class="dropdown-item" href="{% url 'recipe_list' %}">Recetas</a>
+                    <a class="dropdown-item" href="{% url 'food_log_list' %}">Diario de Comidas</a>
+                  </li>
+                  <li>
+                    <hr class="dropdown-divider">
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="{% url 'supplement_log_add' %}">+ Registrar Suplemento</a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="{% url 'supplement_log_list' %}">Historial Suplementos</a>
+                  </li>
+                  <li>
+                    <hr class="dropdown-divider">
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="{% url 'food_list' %}">Catálogo de Alimentos</a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="{% url 'recipe_list' %}">Catálogo de Recetas</a>
                   </li>
                 </ul>
               </li>
@@ -86,16 +122,10 @@
                    data-bs-toggle="dropdown">Configuración</a>
                 <ul class="dropdown-menu">
                   <li>
-                    <a class="dropdown-item" href="{% url 'supplement_list' %}">Suplementos</a>
+                    <a class="dropdown-item" href="{% url 'supplement_list' %}">Catálogo de Suplementos</a>
                   </li>
                   <li>
-                    <a class="dropdown-item" href="{% url 'supplement_log_add' %}">Registrar Toma</a>
-                  </li>
-                  <li>
-                    <hr class="dropdown-divider">
-                  </li>
-                  <li>
-                    <a class="dropdown-item" href="{% url 'activity_list' %}">Actividades Físicas</a>
+                    <a class="dropdown-item" href="{% url 'activity_list' %}">Catálogo de Actividades Físicas</a>
                   </li>
                 </ul>
               </li>

@@ -4,9 +4,11 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.db import transaction
 from django.core.serializers.json import DjangoJSONEncoder
+from django.utils import timezone
+from datetime import timedelta
 import json
 
-from .models import MeasurementSession, WeightMeasurement, Supplement, SupplementLog, PhysicalActivity
+from .models import MeasurementSession, WeightMeasurement, Supplement, SupplementLog, PhysicalActivity, PhysicalActivityLog, FoodLog
 from .forms import (
     MeasurementSessionForm,
     ReadingFormSet,
@@ -14,6 +16,8 @@ from .forms import (
     SupplementForm,
     SupplementLogForm,
     PhysicalActivityForm,
+    PhysicalActivityLogForm,
+    FoodLogForm,
 )
 
 
@@ -44,6 +48,11 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         context["weight_labels"] = json.dumps(weight_dates)
         context["weight_data"] = json.dumps(weight_values)
+
+        last_activity = PhysicalActivityLog.objects.filter(user=self.request.user).order_by("-date", "-id").first()
+        context["last_session"] = sessions.first()
+        context["last_weight"] = weights.first()
+        context["last_activity"] = last_activity
 
         return context
 
@@ -305,3 +314,110 @@ class PhysicalActivityCreateView(LoginRequiredMixin, CreateView):
     def form_valid(self, form):
         form.instance.user = self.request.user
         return super().form_valid(form)
+
+
+class PhysicalActivityLogListView(LoginRequiredMixin, ListView):
+    model = PhysicalActivityLog
+    template_name = "tracking/activity_log_list.html"
+    context_object_name = "activity_logs"
+    paginate_by = 30
+
+    def get_queryset(self):
+        return PhysicalActivityLog.objects.filter(user=self.request.user).select_related("activity")
+
+
+class PhysicalActivityLogCreateView(LoginRequiredMixin, CreateView):
+    model = PhysicalActivityLog
+    form_class = PhysicalActivityLogForm
+    template_name = "tracking/activity_log_form.html"
+    success_url = reverse_lazy("activity_log_list")
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        return super().form_valid(form)
+
+
+# ── Alimentación ──────────────────────────────────────────────────────────────
+
+class FoodLogListView(LoginRequiredMixin, ListView):
+    model = FoodLog
+    template_name = "tracking/food_log_list.html"
+    context_object_name = "food_logs"
+    paginate_by = 30
+
+    def get_queryset(self):
+        return FoodLog.objects.filter(user=self.request.user).order_by("-date", "-id")
+
+
+class FoodLogCreateView(LoginRequiredMixin, CreateView):
+    model = FoodLog
+    form_class = FoodLogForm
+    template_name = "tracking/food_log_form.html"
+    success_url = reverse_lazy("food_log_list")
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        return super().form_valid(form)
+
+
+# ── Análisis y Dashboard Cruzado ──────────────────────────────────────────────
+
+class AnalysisView(LoginRequiredMixin, TemplateView):
+    template_name = "tracking/analysis.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        thirty_days_ago = timezone.now().date() - timedelta(days=30)
+
+        sessions = MeasurementSession.objects.filter(user=user, date__gte=thirty_days_ago).order_by("date")
+        weights = WeightMeasurement.objects.filter(user=user, date__gte=thirty_days_ago).order_by("date")
+        activities = PhysicalActivityLog.objects.filter(user=user, date__gte=thirty_days_ago).order_by("date")
+        foods = FoodLog.objects.filter(user=user, date__gte=thirty_days_ago).order_by("date")
+
+        # Serialize simple list of dictionaries for frontend charts
+        dates_set = set()
+        for qs in [sessions, weights, activities, foods]:
+            for obj in qs:
+                dates_set.add(obj.date)
+                
+        sorted_dates = sorted(list(dates_set))
+        
+        # Build a daily aggregation
+        daily_data = []
+        for d in sorted_dates:
+            d_sessions = [s for s in sessions if s.date == d]
+            d_weights = [w for w in weights if w.date == d]
+            d_acts = [a for a in activities if a.date == d]
+            d_foods = [f for f in foods if f.date == d]
+
+            daily_data.append({
+                "date": d,
+                "sessions": d_sessions,
+                "weight": d_weights[-1] if d_weights else None,
+                "activities": d_acts,
+                "foods": d_foods,
+                # For charts
+                "avg_sys": sum(s.avg_systolic for s in d_sessions if s.avg_systolic) / len(d_sessions) if d_sessions and any(s.avg_systolic for s in d_sessions) else None,
+                "avg_dia": sum(s.avg_diastolic for s in d_sessions if s.avg_diastolic) / len(d_sessions) if d_sessions and any(s.avg_diastolic for s in d_sessions) else None,
+            })
+
+        context["daily_data"] = daily_data
+        context["chart_labels"] = json.dumps([d["date"].strftime("%d/%m") for d in daily_data])
+        
+        # Extract arrays for chartjs
+        sys_data = [d["avg_sys"] for d in daily_data]
+        dia_data = [d["avg_dia"] for d in daily_data]
+        weight_data = [float(d["weight"].weight) if d["weight"] else None for d in daily_data]
+        
+        context["sys_data"] = json.dumps(sys_data)
+        context["dia_data"] = json.dumps(dia_data)
+        context["weight_data"] = json.dumps(weight_data)
+
+        return context
+

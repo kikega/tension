@@ -29,6 +29,8 @@ h6 {
    2. Layout & Navigation
    -------------------------------------------------------------------------- */
 .navbar-glass {
+    position: relative;
+    z-index: 1050;
     background: rgba(22, 24, 35, 0.85) !important;
     backdrop-filter: blur(12px);
     -webkit-backdrop-filter: blur(12px);

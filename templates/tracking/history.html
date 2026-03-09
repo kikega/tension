@@ -129,7 +129,7 @@
                     aria-label="Close"></button>
           </div>
           <div class="modal-body p-0">
-            <div class="p-3 bg-white border-bottom">
+            <div class="p-3 bg-dark border-bottom">
               <span class="badge bg-dark border">{{ session.get_session_type_display }}</span>
               {% if session.eaten_out %}<span class="ms-1 badge bg-info text-dark">🍽 Fuera de casa</span>{% endif %}
               {% if session.mood %}<span class="ms-2 badge bg-light text-dark">{{ session.get_mood_display }}</span>{% endif %}
@@ -192,7 +192,7 @@
               </table>
             </div>
             {% if session.observations %}
-              <div class="p-3 bg-light border-top">
+              <div class="p-3 bg-dark border-top">
                 <p class="mb-0 text-muted small">
                   <strong>Observaciones:</strong> {{ session.observations }}
                 </p>

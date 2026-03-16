@@ -20,4 +20,5 @@ dev = [
 ]
 prod = [
     "psycopg2>=2.9.11",
+    "uvicorn[standard]>=0.42.0",
 ]

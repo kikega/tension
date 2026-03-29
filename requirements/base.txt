@@ -1,0 +1,12 @@
+asgiref
+click
+colorama
+django
+django-environ
+dnspython
+packaging
+pymongo
+regex
+six
+sqlparse
+tqdm

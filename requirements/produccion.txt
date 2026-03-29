@@ -1,0 +1,7 @@
+-r base.txt
+
+# El servidor de AlmaLinux 9 no soporta Django 6.x ni requiere versiones estrictas para resolver de manera nativa.
+# Mantenemos las dependencias puras para que se resuelva la última disponible compatible con Python local.
+
+# Paquete adicional necesario solo para el despliegue
+gunicorn

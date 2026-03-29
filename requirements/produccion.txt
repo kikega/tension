@@ -5,3 +5,4 @@
 
 # Paquete adicional necesario solo para el despliegue
 gunicorn
+psycopg2

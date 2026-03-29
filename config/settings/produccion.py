@@ -41,7 +41,7 @@ LOGGING = {
         'file_errors': {
             'level': 'ERROR',
             'class': 'logging.handlers.TimedRotatingFileHandler',
-            'filename': os.path.join(BASE_DIR, 'logs/errors.log'),
+            'filename': LOGS_DIR / "errors.log",
             'when': 'midnight',
             'backupCount': 30,
             'utc': True,

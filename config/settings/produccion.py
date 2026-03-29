@@ -38,6 +38,15 @@ LOGGING = {
             "filename": LOGS_DIR / "auth.log",
             "formatter": "verbose",
         },
+        'file_errors': {
+            'level': 'ERROR',
+            'class': 'logging.handlers.TimedRotatingFileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs/errors.log'),
+            'when': 'midnight',
+            'backupCount': 30,
+            'utc': True,
+            'formatter': 'verbose',
+        },
     },
     "loggers": {
         "django.db.backends": {
@@ -55,6 +64,12 @@ LOGGING = {
             "handlers": ["console", "auth_file"],
             "level": "INFO",
             "propagate": False,
+        },
+        # Errores generales de Django (captura los 500)
+        'django.request': {
+            'handlers': ['file_errors'],
+            'level': 'ERROR',
+            'propagate': False,
         },
     },
 }

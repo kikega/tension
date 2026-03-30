@@ -171,32 +171,21 @@ def generate_insights(user):
                 "text": f"Comer fuera de casa está aumentando tu presión sistólica media en +{sys_food_coef:.1f} mmHg. ¡Vigila el exceso de sal en restaurantes!"
             })
 
-    # 6. Preparar datos para el gráfico de dispersión (Deporte vs Peso Actual)
-    scatter_data = []
-    df_scatter = df_master.filter((pl.col('sport_duration') > 0) & (pl.col('weight').is_not_null()))
+    # 6. Preparar datos para el gráfico de línea/barra mixto (Línea de tiempo: Deporte vs Peso)
+    # Se usarán las fechas como el eje X, el peso como Línea, y los minutos de deporte como Barras
+    timeline_labels = []
+    weight_data = []
+    sport_data = []
     
-    for row in df_scatter.iter_rows(named=True):
-        scatter_data.append({
-            "x": row['sport_duration'],
-            "y": row['weight']
-        })
-
-    # Calcular la línea de tendencia (Regresión Lineal simple del Scatter)
-    trendline_data = []
-    if df_scatter.height >= 2:
-        try:
-            X_sc = df_scatter.select('sport_duration').to_numpy()
-            y_sc = df_scatter.select('weight').to_numpy().ravel()
-            reg_sc = LinearRegression().fit(X_sc, y_sc)
-            
-            x_min = float(X_sc.min())
-            x_max = float(X_sc.max())
-            y_min = float(reg_sc.predict([[x_min]])[0])
-            y_max = float(reg_sc.predict([[x_max]])[0])
-            
-            trendline_data = [{"x": x_min, "y": y_min}, {"x": x_max, "y": y_max}]
-        except Exception:
-            pass
+    # Filtramos para tener datos donde haya peso disponible o al menos se haya hecho deporte
+    df_timeline = df_master.filter(pl.col('weight').is_not_null() | (pl.col('sport_duration') > 0))
+    # Nos aseguramos de que esté ordenado por fecha
+    df_timeline = df_timeline.sort('date')
+    
+    for row in df_timeline.iter_rows(named=True):
+        timeline_labels.append(row['date'].strftime('%Y-%m-%d'))
+        weight_data.append(row['weight'] if row['weight'] is not None else None)
+        sport_data.append(row['sport_duration'])
 
     # Si la lista está vacía, metemos un insight genérico motivador
     if not insights:
@@ -209,6 +198,7 @@ def generate_insights(user):
 
     return {
         "insights": insights,
-        "scatter_data": scatter_data,
-        "trendline_data": trendline_data
+        "timeline_labels": timeline_labels,
+        "weight_data": weight_data,
+        "sport_data": sport_data
     }

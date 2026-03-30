@@ -471,8 +471,9 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
         from tracking.services.ai_analysis import generate_insights
         ai_data = generate_insights(user)
         context["ai_insights"] = ai_data.get("insights", [])
-        context["scatter_data"] = json.dumps(ai_data.get("scatter_data", []))
-        context["trendline_data"] = json.dumps(ai_data.get("trendline_data", []))
+        context["timeline_labels"] = json.dumps(ai_data.get("timeline_labels", []))
+        context["ai_weight_data"] = json.dumps(ai_data.get("weight_data", []))
+        context["sport_data"] = json.dumps(ai_data.get("sport_data", []))
 
         return context
 

@@ -35,7 +35,7 @@
         </li>
         <li class="nav-item" role="presentation">
             <button class="nav-link bg-dark text-white border-secondary border-bottom-0" id="scatter-tab" data-bs-toggle="tab" data-bs-target="#scatter" type="button" role="tab" aria-controls="scatter" aria-selected="false">
-                <i class="bi bi-activity me-1"></i>Deporte vs Peso
+                <i class="bi bi-activity me-1"></i>Deporte y Peso en el Tiempo
             </button>
         </li>
         <li class="nav-item" role="presentation">
@@ -216,37 +216,37 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     const scatterCtx = document.getElementById('scatterChart')?.getContext('2d');
-    const scatterDataRaw = JSON.parse('{{ scatter_data|escapejs|default:"[]" }}');
-    const trendlineDataRaw = JSON.parse('{{ trendline_data|escapejs|default:"[]" }}');
+    const timelineLabelsRaw = JSON.parse('{{ timeline_labels|escapejs|default:"[]" }}');
+    const weightDataRaw = JSON.parse('{{ ai_weight_data|escapejs|default:"[]" }}');
+    const sportDataRaw = JSON.parse('{{ sport_data|escapejs|default:"[]" }}');
 
-    if (scatterCtx && scatterDataRaw && scatterDataRaw.length > 0) {
+    if (scatterCtx && timelineLabelsRaw && timelineLabelsRaw.length > 0) {
         
-        let datasets = [{
-            type: 'scatter',
-            label: 'Deporte vs Peso',
-            data: scatterDataRaw,
-            backgroundColor: 'rgba(25, 135, 84, 0.7)',
-            borderColor: '#198754',
-            pointRadius: 6,
-            pointHoverRadius: 8
-        }];
-
-        if (trendlineDataRaw && trendlineDataRaw.length > 0) {
-            datasets.push({
+        let datasets = [
+            {
                 type: 'line',
-                label: 'Tendencia IA',
-                data: trendlineDataRaw,
-                borderColor: 'rgba(255, 193, 7, 0.8)', // Amarillo advertencia/info
-                borderWidth: 3,
-                borderDash: [5, 5],
-                fill: false,
-                pointRadius: 0
-            });
-        }
+                label: 'Peso (kg)',
+                data: weightDataRaw,
+                borderColor: 'rgba(255, 193, 7, 0.8)', // Amarillo
+                backgroundColor: 'rgba(255, 193, 7, 0.8)',
+                yAxisID: 'y1',
+                tension: 0.3,
+                pointRadius: 4,
+                spanGaps: true
+            },
+            {
+                type: 'bar',
+                label: 'Deporte (min)',
+                data: sportDataRaw,
+                backgroundColor: 'rgba(25, 135, 84, 0.7)', // Verde
+                yAxisID: 'y',
+            }
+        ];
 
         new Chart(scatterCtx, {
-            type: 'scatter',
+            type: 'bar',
             data: {
+                labels: timelineLabelsRaw,
                 datasets: datasets
             },
             options: {
@@ -257,25 +257,30 @@ document.addEventListener("DOMContentLoaded", function() {
                         labels: { color: 'rgba(255,255,255,0.8)' }
                     },
                     tooltip: {
-                        callbacks: {
-                            label: function(context) {
-                                return `Deporte: ${context.parsed.x} min | Peso: ${context.parsed.y} kg`;
-                            }
-                        }
+                        mode: 'index',
+                        intersect: false
                     }
                 },
                 scales: {
                     x: {
+                        ticks: { color: 'rgba(255,255,255,0.7)', maxRotation: 45, minRotation: 45 },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    },
+                    y: {
                         type: 'linear',
-                        position: 'bottom',
+                        display: true,
+                        position: 'left',
                         title: { display: true, text: 'Deporte (min)', color: 'rgba(255,255,255,0.7)' },
                         ticks: { color: 'rgba(255,255,255,0.7)' },
                         grid: { color: 'rgba(255,255,255,0.1)' }
                     },
-                    y: {
+                    y1: {
+                        type: 'linear',
+                        display: true,
+                        position: 'right',
                         title: { display: true, text: 'Peso (Kg)', color: 'rgba(255,255,255,0.7)' },
                         ticks: { color: 'rgba(255,255,255,0.7)' },
-                        grid: { color: 'rgba(255,255,255,0.1)' }
+                        grid: { drawOnChartArea: false }
                     }
                 }
             }

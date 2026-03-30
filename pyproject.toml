@@ -8,6 +8,8 @@ dependencies = [
     "django>=6.0.2",
     "django-environ>=0.13.0",
     "django-extensions>=4.1",
+    "polars>=1.39.3",
+    "scikit-learn>=1.8.0",
 ]
 
 [dependency-groups]

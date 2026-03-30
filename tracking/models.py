@@ -176,3 +176,37 @@ class FoodLog(models.Model):
 
     def __str__(self) -> str:
         return f"{self.date} - {self.meal_type}"
+
+    def get_total_calories(self) -> float:
+        """Calcula las kilocalorías totales sumando los ingredientes del registro."""
+        total = 0.0
+        for item in self.items.select_related("food", "recipe").all():
+            if item.food and item.quantity_g and item.food.energy_kcal is not None:
+                # La base de datos guarda kcal por cada 100g
+                total += (float(item.food.energy_kcal) * float(item.quantity_g)) / 100.0
+            elif item.recipe and item.servings:
+                # Recupera los macros de la receta y asume que es el total
+                recipe_nutrition = item.recipe.calculate_nutrition()
+                total += float(recipe_nutrition.get('energy_kcal', 0)) * float(item.servings)
+        return total
+
+
+class FoodLogItem(models.Model):
+    """Elemento individual ingerido dentro de un registro de alimentación."""
+
+    food_log = models.ForeignKey(FoodLog, related_name="items", on_delete=models.CASCADE)
+    food = models.ForeignKey("nutrition.Food", on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Alimento"))
+    recipe = models.ForeignKey("nutrition.Recipe", on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Receta"))
+    quantity_g = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True, verbose_name=_("Cantidad (g)"))
+    servings = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name=_("Raciones (Receta)"))
+
+    class Meta:
+        verbose_name = _("Ingrediente del Registro")
+        verbose_name_plural = _("Ingredientes del Registro")
+
+    def __str__(self) -> str:
+        if self.food:
+            return f"{self.food.name} - {self.quantity_g}g"
+        elif self.recipe:
+            return f"Receta: {self.recipe.name} - {self.servings} raciones"
+        return "Ítem Desconocido"

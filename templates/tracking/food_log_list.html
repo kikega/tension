@@ -21,8 +21,9 @@
                         <tr>
                             <th>Fecha</th>
                             <th>Tipo de Comida</th>
+                            <th>Calorías Totales</th>
                             <th>¿Fuera de casa?</th>
-                            <th>Notas</th>
+                            <th></th>
                         </tr>
                     </thead>
                     <tbody>
@@ -30,6 +31,7 @@
                             <tr>
                                 <td>{{ log.date|date:"d/m/Y" }}</td>
                                 <td>{{ log.meal_type }}</td>
+                                <td><span class="badge bg-warning text-dark">{{ log.get_total_calories|floatformat:0 }} kcal</span></td>
                                 <td>
                                     {% if log.eaten_out %}
                                         <span class="badge bg-danger"><i class="bi bi-check me-1"></i>Sí</span>
@@ -37,11 +39,13 @@
                                         <span class="badge bg-secondary">No</span>
                                     {% endif %}
                                 </td>
-                                <td>{{ log.notes|truncatewords:5|default:"-" }}</td>
+                                <td class="text-end">
+                                    <a href="{% url 'food_log_edit' log.pk %}" class="btn btn-sm btn-outline-info">Editar</a>
+                                </td>
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="4" class="text-center py-4 text-muted">No se han registrado comidas todavía.</td>
+                                <td colspan="5" class="text-center py-4 text-muted">No se han registrado comidas todavía.</td>
                             </tr>
                         {% endfor %}
                     </tbody>
@@ -50,4 +54,4 @@
         </div>
     </div>
     {% include "includes/pagination.html" %}
-{% endblock %}
+{% endblock content %}

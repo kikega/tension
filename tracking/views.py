@@ -360,8 +360,56 @@ class FoodLogCreateView(LoginRequiredMixin, CreateView):
     template_name = "tracking/food_log_form.html"
     success_url = reverse_lazy("food_log_list")
 
+    def get_context_data(self, **kwargs):
+        data = super().get_context_data(**kwargs)
+        from .forms import FoodLogItemFormSet
+        if self.request.POST:
+            data['items'] = FoodLogItemFormSet(self.request.POST)
+        else:
+            data['items'] = FoodLogItemFormSet()
+        return data
+
     def form_valid(self, form):
-        form.instance.user = self.request.user
+        context = self.get_context_data()
+        items = context['items']
+        with transaction.atomic():
+            form.instance.user = self.request.user
+            self.object = form.save()
+            if items.is_valid():
+                items.instance = self.object
+                items.save()
+            else:
+                return self.form_invalid(form)
+        return super().form_valid(form)
+
+class FoodLogUpdateView(LoginRequiredMixin, UpdateView):
+    model = FoodLog
+    form_class = FoodLogForm
+    template_name = "tracking/food_log_form.html"
+    success_url = reverse_lazy("food_log_list")
+
+    def get_queryset(self):
+        return FoodLog.objects.filter(user=self.request.user)
+
+    def get_context_data(self, **kwargs):
+        data = super().get_context_data(**kwargs)
+        from .forms import FoodLogItemFormSet
+        if self.request.POST:
+            data['items'] = FoodLogItemFormSet(self.request.POST, instance=self.object)
+        else:
+            data['items'] = FoodLogItemFormSet(instance=self.object)
+        return data
+
+    def form_valid(self, form):
+        context = self.get_context_data()
+        items = context['items']
+        with transaction.atomic():
+            self.object = form.save()
+            if items.is_valid():
+                items.instance = self.object
+                items.save()
+            else:
+                return self.form_invalid(form)
         return super().form_valid(form)
 
 
@@ -418,6 +466,13 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
         context["sys_data"] = json.dumps(sys_data)
         context["dia_data"] = json.dumps(dia_data)
         context["weight_data"] = json.dumps(weight_data)
+
+        # AI Insights
+        from tracking.services.ai_analysis import generate_insights
+        ai_data = generate_insights(user)
+        context["ai_insights"] = ai_data.get("insights", [])
+        context["scatter_data"] = json.dumps(ai_data.get("scatter_data", []))
+        context["trendline_data"] = json.dumps(ai_data.get("trendline_data", []))
 
         return context
 

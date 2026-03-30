@@ -35,6 +35,42 @@
                             {{ form.notes }}
                             {% if form.notes.errors %}<div class="text-danger small mt-1">{{ form.notes.errors.0 }}</div>{% endif %}
                         </div>
+
+                        <!-- Formset for FoodLogItems -->
+                        <h5 class="mt-4 border-bottom border-secondary pb-2 text-warning"><i class="bi bi-cart me-2"></i>Alimentos Consumidos</h5>
+                        <div id="food-items-container">
+                            {{ items.management_form }}
+                            {% for form_item in items %}
+                            <div class="row food-item-form g-2 mb-3 bg-dark border border-secondary p-2 rounded align-items-end">
+                                {% for hidden in form_item.hidden_fields %}{{ hidden }}{% endfor %}
+                                <div class="col-md-5">
+                                    <label class="form-label small text-muted mb-1">Alimento</label>
+                                    {{ form_item.food }}
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small text-muted mb-1">Receta</label>
+                                    {{ form_item.recipe }}
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small text-muted mb-1">Gramos</label>
+                                    {{ form_item.quantity_g }}
+                                </div>
+                                <div class="col-md-2">
+                                    <label class="form-label small text-muted mb-1">Raciones</label>
+                                    {{ form_item.servings }}
+                                </div>
+                                {% if items.can_delete and form_item.instance.pk %}
+                                <div class="col-12 mt-2 form-check text-end">
+                                    {{ form_item.DELETE }} <label class="text-danger small" for="{{ form_item.DELETE.id_for_label }}">Borrar registro</label>
+                                </div>
+                                {% endif %}
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-info mb-4" id="add-item-btn">
+                            <i class="bi bi-plus-circle"></i> Añadir Ingrediente
+                        </button>
+
                         <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
                             <a href="{% url 'food_log_list' %}" class="btn btn-outline-secondary">Cancelar</a>
                             <button type="submit" class="btn btn-warning px-4">Guardar Registro</button>
@@ -44,4 +80,52 @@
             </div>
         </div>
     </div>
-{% endblock %}
+
+    <!-- Empty form for cloning via JS -->
+    <div id="empty-form" class="d-none">
+        <div class="row food-item-form g-2 mb-3 bg-dark border border-secondary p-2 rounded align-items-end">
+            {% for hidden in items.empty_form.hidden_fields %}{{ hidden }}{% endfor %}
+            <div class="col-md-5">
+                <label class="form-label small text-muted mb-1">Alimento</label>
+                {{ items.empty_form.food }}
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small text-muted mb-1">Receta</label>
+                {{ items.empty_form.recipe }}
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">Gramos</label>
+                {{ items.empty_form.quantity_g }}
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small text-muted mb-1">Raciones</label>
+                {{ items.empty_form.servings }}
+            </div>
+        </div>
+    </div>
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    const addButton = document.getElementById('add-item-btn');
+    const container = document.getElementById('food-items-container');
+    const totalForms = document.getElementById('id_items-TOTAL_FORMS');
+    
+    addButton.addEventListener('click', function(e) {
+        e.preventDefault();
+        const formCount = parseInt(totalForms.value);
+        const emptyFormTemplate = document.getElementById('empty-form').innerHTML;
+        
+        // Replace __prefix__ with the new incremental form count
+        const newHtml = emptyFormTemplate.replace(/__prefix__/g, formCount);
+        
+        // Append it
+        container.insertAdjacentHTML('beforeend', newHtml);
+        
+        // Update totality counter
+        totalForms.value = formCount + 1;
+    });
+});
+</script>
+{% endblock extra_js %}

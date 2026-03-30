@@ -8,77 +8,133 @@
             <p class="text-muted mb-0">Correlación de datos de los últimos 30 días</p>
         </div>
     </div>
+    <!-- Machine Learning Insights -->
+    {% if ai_insights %}
     <div class="row mb-4">
-        <div class="col-12">
-            <div class="card shadow-sm border-0 bg-dark text-white">
+        {% for insight in ai_insights %}
+        <div class="col-md-6 mb-3">
+            <div class="card shadow-sm border-{{ insight.type }} bg-dark text-white h-100">
                 <div class="card-body">
-                    <canvas id="analysisChart" height="100"></canvas>
+                    <h5 class="card-title text-{{ insight.type }}">
+                        <i class="bi {{ insight.icon }} me-2"></i>{{ insight.title }}
+                    </h5>
+                    <p class="card-text mb-0">{{ insight.text }}</p>
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% endif %}
+
+    <!-- Navegación por pestañas -->
+    <ul class="nav nav-tabs border-secondary mb-4" id="analysisTabs" role="tablist">
+        <li class="nav-item" role="presentation">
+            <button class="nav-link active bg-dark text-white border-secondary" id="linear-tab" data-bs-toggle="tab" data-bs-target="#linear" type="button" role="tab" aria-controls="linear" aria-selected="true">
+                <i class="bi bi-graph-up me-1"></i>Evolución Temporal
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link bg-dark text-white border-secondary border-bottom-0" id="scatter-tab" data-bs-toggle="tab" data-bs-target="#scatter" type="button" role="tab" aria-controls="scatter" aria-selected="false">
+                <i class="bi bi-activity me-1"></i>Deporte vs Peso
+            </button>
+        </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link bg-dark text-white border-secondary border-bottom-0" id="table-tab" data-bs-toggle="tab" data-bs-target="#table" type="button" role="tab" aria-controls="table" aria-selected="false">
+                <i class="bi bi-table me-1"></i>Resumen de Datos
+            </button>
+        </li>
+    </ul>
+
+    <!-- Contenido de las Pestañas -->
+    <div class="tab-content" id="analysisTabsContent">
+        
+        <!-- Pestaña 1: Gráfico Lineal -->
+        <div class="tab-pane fade show active" id="linear" role="tabpanel" aria-labelledby="linear-tab">
+            <div class="card shadow-sm border-0 bg-dark text-white mb-4">
+                <div class="card-body">
+                    <!-- Wrapper relativo vital para Chart.js -->
+                    <div style="position: relative; height: 60vh; width: 100%;">
+                        <canvas id="analysisChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pestaña 2: Gráfico de Dispersión (Deporte vs Peso) -->
+        <div class="tab-pane fade" id="scatter" role="tabpanel" aria-labelledby="scatter-tab">
+            <div class="card shadow-sm border-0 bg-dark text-white mb-4">
+                <div class="card-body">
+                    <!-- Wrapper relativo vital para Chart.js -->
+                    <div style="position: relative; height: 60vh; width: 100%;">
+                        <canvas id="scatterChart"></canvas>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pestaña 3: Tabla de Datos -->
+        <div class="tab-pane fade" id="table" role="tabpanel" aria-labelledby="table-tab">
+            <div class="card shadow-sm mb-4">
+                <div class="card-body bg-dark text-white p-0">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover mb-0">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Tensión Media</th>
+                                    <th>Peso (kg)</th>
+                                    <th>Actividades</th>
+                                    <th>Comidas</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for d in daily_data reversed %}
+                                    <tr>
+                                        <td>{{ d.date|date:"d/m/Y" }}</td>
+                                        <td>
+                                            {% if d.avg_sys and d.avg_dia %}
+                                                {{ d.avg_sys|floatformat:0 }} / {{ d.avg_dia|floatformat:0 }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if d.weight %}
+                                                {{ d.weight.weight }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% for a in d.activities %}
+                                                <span class="badge bg-success mb-1">{{ a.activity.name }} ({{ a.duration_minutes }}m)</span>
+                                                <br>
+                                            {% empty %}
+                                                -
+                                            {% endfor %}
+                                        </td>
+                                        <td>
+                                            {% for f in d.foods %}
+                                                <span class="badge {% if f.eaten_out %}bg-danger{% else %}bg-primary{% endif %} mb-1">{{ f.meal_type }}</span>
+                                                <br>
+                                            {% empty %}
+                                                -
+                                            {% endfor %}
+                                        </td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center py-4 text-muted">No hay datos registrados en los últimos 30 días.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
                 </div>
             </div>
         </div>
     </div>
-    <div class="card shadow-sm">
-        <div class="card-header bg-dark text-white border-secondary">
-            <h5 class="mb-0">Resumen Diario</h5>
-        </div>
-        <div class="card-body bg-dark text-white p-0">
-            <div class="table-responsive">
-                <table class="table table-dark table-hover mb-0">
-                    <thead>
-                        <tr>
-                            <th>Fecha</th>
-                            <th>Tensión Media</th>
-                            <th>Peso (kg)</th>
-                            <th>Actividades</th>
-                            <th>Comidas</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {% for d in daily_data reversed %}
-                            <tr>
-                                <td>{{ d.date|date:"d/m/Y" }}</td>
-                                <td>
-                                    {% if d.avg_sys and d.avg_dia %}
-                                        {{ d.avg_sys|floatformat:0 }} / {{ d.avg_dia|floatformat:0 }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% if d.weight %}
-                                        {{ d.weight.weight }}
-                                    {% else %}
-                                        -
-                                    {% endif %}
-                                </td>
-                                <td>
-                                    {% for a in d.activities %}
-                                        <span class="badge bg-success mb-1">{{ a.activity.name }} ({{ a.duration_minutes }}m)</span>
-                                        <br>
-                                    {% empty %}
-                                        -
-                                    {% endfor %}
-                                </td>
-                                <td>
-                                    {% for f in d.foods %}
-                                        <span class="badge {% if f.eaten_out %}bg-danger{% else %}bg-primary{% endif %} mb-1">{{ f.meal_type }}</span>
-                                        <br>
-                                    {% empty %}
-                                        -
-                                    {% endfor %}
-                                </td>
-                            </tr>
-                        {% empty %}
-                            <tr>
-                                <td colspan="5" class="text-center py-4 text-muted">No hay datos registrados en los últimos 30 días.</td>
-                            </tr>
-                        {% endfor %}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
-{% endblock %}
+{% endblock content %}
 {% block extra_js %}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>
@@ -124,6 +180,7 @@ document.addEventListener("DOMContentLoaded", function() {
         },
         options: {
             responsive: true,
+            maintainAspectRatio: false,
             interaction: {
                 mode: 'index',
                 intersect: false,
@@ -157,6 +214,73 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         }
     });
+
+    const scatterCtx = document.getElementById('scatterChart')?.getContext('2d');
+    const scatterDataRaw = JSON.parse('{{ scatter_data|escapejs|default:"[]" }}');
+    const trendlineDataRaw = JSON.parse('{{ trendline_data|escapejs|default:"[]" }}');
+
+    if (scatterCtx && scatterDataRaw && scatterDataRaw.length > 0) {
+        
+        let datasets = [{
+            type: 'scatter',
+            label: 'Deporte vs Peso',
+            data: scatterDataRaw,
+            backgroundColor: 'rgba(25, 135, 84, 0.7)',
+            borderColor: '#198754',
+            pointRadius: 6,
+            pointHoverRadius: 8
+        }];
+
+        if (trendlineDataRaw && trendlineDataRaw.length > 0) {
+            datasets.push({
+                type: 'line',
+                label: 'Tendencia IA',
+                data: trendlineDataRaw,
+                borderColor: 'rgba(255, 193, 7, 0.8)', // Amarillo advertencia/info
+                borderWidth: 3,
+                borderDash: [5, 5],
+                fill: false,
+                pointRadius: 0
+            });
+        }
+
+        new Chart(scatterCtx, {
+            type: 'scatter',
+            data: {
+                datasets: datasets
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: {
+                        labels: { color: 'rgba(255,255,255,0.8)' }
+                    },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return `Deporte: ${context.parsed.x} min | Peso: ${context.parsed.y} kg`;
+                            }
+                        }
+                    }
+                },
+                scales: {
+                    x: {
+                        type: 'linear',
+                        position: 'bottom',
+                        title: { display: true, text: 'Deporte (min)', color: 'rgba(255,255,255,0.7)' },
+                        ticks: { color: 'rgba(255,255,255,0.7)' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    },
+                    y: {
+                        title: { display: true, text: 'Peso (Kg)', color: 'rgba(255,255,255,0.7)' },
+                        ticks: { color: 'rgba(255,255,255,0.7)' },
+                        grid: { color: 'rgba(255,255,255,0.1)' }
+                    }
+                }
+            }
+        });
+    }
 });
     </script>
-{% endblock %}
+{% endblock extra_js %}

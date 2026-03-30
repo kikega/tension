@@ -9,6 +9,7 @@ from .models import (
     PhysicalActivity,
     PhysicalActivityLog,
     FoodLog,
+    FoodLogItem,
 )
 
 
@@ -138,3 +139,17 @@ class FoodLogForm(forms.ModelForm):
             "eaten_out": forms.CheckboxInput(attrs={"class": "form-check-input"}),
             "notes": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
         }
+
+FoodLogItemFormSet = inlineformset_factory(
+    FoodLog,
+    FoodLogItem,
+    fields=("food", "recipe", "quantity_g", "servings"),
+    extra=1,
+    can_delete=True,
+    widgets={
+        "food": forms.Select(attrs={"class": "form-control form-select"}),
+        "recipe": forms.Select(attrs={"class": "form-control form-select"}),
+        "quantity_g": forms.NumberInput(attrs={"class": "form-control", "placeholder": "Gramos"}),
+        "servings": forms.NumberInput(attrs={"class": "form-control", "placeholder": "Raciones"}),
+    },
+)

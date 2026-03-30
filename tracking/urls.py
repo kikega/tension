@@ -23,6 +23,7 @@ urlpatterns = [
     # Alimentación
     path("food/", views.FoodLogListView.as_view(), name="food_log_list"),
     path("food/add/", views.FoodLogCreateView.as_view(), name="food_log_add"),
+    path("food/<int:pk>/edit/", views.FoodLogUpdateView.as_view(), name="food_log_edit"),
     # Análisis
     path("analysis/", views.AnalysisView.as_view(), name="analysis"),
 ]

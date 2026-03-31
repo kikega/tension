@@ -40,7 +40,7 @@
                             <td>{{ day.totals.lipids|floatformat:1 }}</td>
                             <td>{{ day.totals.carbs|floatformat:1 }}</td>
                             <td class="text-end pe-4">
-                                <button class="btn btn-sm btn-outline-info load-day-details" data-date="{{ day.date|date:'Y-m-d' }}" data-bs-toggle="modal" data-bs-target="#dailyFoodModal">
+                                <button class="btn btn-sm btn-outline-info load-day-details" data-url="{% url 'food_daily_detail' date=day.date|date:'Y-m-d' %}" data-date="{{ day.date|date:'Y-m-d' }}" data-bs-toggle="modal" data-bs-target="#dailyFoodModal">
                                     <i class="bi bi-eye"></i> Detalles
                                 </button>
                             </td>
@@ -94,6 +94,7 @@ document.addEventListener('DOMContentLoaded', function() {
     detailButtons.forEach(button => {
         button.addEventListener('click', function() {
             const dateStr = this.getAttribute('data-date');
+            const url = this.getAttribute('data-url');
             
             // Mostrar fecha temporalmente mientras carga
             const dateParts = dateStr.split('-');
@@ -102,8 +103,8 @@ document.addEventListener('DOMContentLoaded', function() {
             // Restaurar spinner
             modalBody.innerHTML = spinnerHtml;
             
-            // Hacer la petición para traer el fragmento HTML
-            fetch(`/tracking/food/history/daily/${dateStr}/`)
+            // Hacer la petición para traer el fragmento HTML usando la URL generada por Django
+            fetch(url)
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Error en la red');

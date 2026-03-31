@@ -1,0 +1,52 @@
+{% if food_logs %}
+    <ul class="list-group list-group-flush bg-dark text-white rounded">
+        {% for log in food_logs %}
+            <li class="list-group-item bg-dark text-white border-secondary mb-3 p-3 rounded border">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="mb-0 fw-bold text-warning">{{ log.meal_type }}</h6>
+                    <span class="badge bg-warning text-dark fs-6">{{ log.get_nutritional_totals.calories|floatformat:0 }} kcal</span>
+                </div>
+                
+                <div class="d-flex text-muted small mb-3 gap-3">
+                    <span><i class="bi bi-circle-fill text-primary" style="font-size: 0.5rem; vertical-align: middle;"></i> Prot: {{ log.get_nutritional_totals.proteins|floatformat:1 }}g</span>
+                    <span><i class="bi bi-circle-fill text-danger" style="font-size: 0.5rem; vertical-align: middle;"></i> Lip: {{ log.get_nutritional_totals.lipids|floatformat:1 }}g</span>
+                    <span><i class="bi bi-circle-fill text-success" style="font-size: 0.5rem; vertical-align: middle;"></i> HC: {{ log.get_nutritional_totals.carbs|floatformat:1 }}g</span>
+                </div>
+
+                <div class="table-responsive">
+                    <table class="table table-sm table-dark table-borderless mb-0">
+                        <tbody>
+                            {% for item in log.items.all %}
+                                <tr>
+                                    <td>
+                                        <i class="bi bi-arrow-return-right text-secondary me-2"></i>
+                                        {% if item.food %}
+                                            {{ item.food.name }}
+                                        {% elif item.recipe %}
+                                            Receta: {{ item.recipe.name }}
+                                        {% else %}
+                                            Ítem desconocido
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-end text-muted pe-4">
+                                        {% if item.food %}
+                                            {{ item.quantity_g|floatformat:0 }}g
+                                        {% elif item.recipe %}
+                                            {{ item.servings|floatformat:1 }} rac.
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                            {% empty %}
+                                <tr><td colspan="2" class="text-muted fst-italic">Sin ingredientes registrados.</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </li>
+        {% endfor %}
+    </ul>
+{% else %}
+    <div class="alert alert-info text-center m-3">
+        No se encontraron registros para este día.
+    </div>
+{% endif %}

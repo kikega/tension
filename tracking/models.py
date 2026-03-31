@@ -177,18 +177,36 @@ class FoodLog(models.Model):
     def __str__(self) -> str:
         return f"{self.date} - {self.meal_type}"
 
+    def get_nutritional_totals(self) -> dict:
+        """Calcula los macros totales (calorías, proteínas, lípidos, carbohidratos) del registro."""
+        totals = {
+            "calories": 0.0,
+            "proteins": 0.0,
+            "lipids": 0.0,
+            "carbs": 0.0,
+        }
+        for item in self.items.select_related("food", "recipe").all():
+            if item.food and item.quantity_g:
+                factor = float(item.quantity_g) / 100.0
+                if item.food.energy_kcal is not None:
+                    totals["calories"] += float(item.food.energy_kcal) * factor
+                if item.food.proteins_g is not None:
+                    totals["proteins"] += float(item.food.proteins_g) * factor
+                if item.food.lipids_g is not None:
+                    totals["lipids"] += float(item.food.lipids_g) * factor
+                if item.food.carbohydrates_g is not None:
+                    totals["carbs"] += float(item.food.carbohydrates_g) * factor
+            elif item.recipe and item.servings:
+                recipe_nutrition = item.recipe.calculate_nutrition()
+                totals["calories"] += float(recipe_nutrition.get('energy_kcal', 0) or 0) * float(item.servings)
+                totals["proteins"] += float(recipe_nutrition.get('proteins_g', 0) or 0) * float(item.servings)
+                totals["lipids"] += float(recipe_nutrition.get('lipids_g', 0) or 0) * float(item.servings)
+                totals["carbs"] += float(recipe_nutrition.get('carbohydrates_g', 0) or 0) * float(item.servings)
+        return totals
+
     def get_total_calories(self) -> float:
         """Calcula las kilocalorías totales sumando los ingredientes del registro."""
-        total = 0.0
-        for item in self.items.select_related("food", "recipe").all():
-            if item.food and item.quantity_g and item.food.energy_kcal is not None:
-                # La base de datos guarda kcal por cada 100g
-                total += (float(item.food.energy_kcal) * float(item.quantity_g)) / 100.0
-            elif item.recipe and item.servings:
-                # Recupera los macros de la receta y asume que es el total
-                recipe_nutrition = item.recipe.calculate_nutrition()
-                total += float(recipe_nutrition.get('energy_kcal', 0)) * float(item.servings)
-        return total
+        return self.get_nutritional_totals()["calories"]
 
 
 class FoodLogItem(models.Model):

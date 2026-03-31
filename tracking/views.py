@@ -54,6 +54,25 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context["last_weight"] = weights.first()
         context["last_activity"] = last_activity
 
+        # --- Food Data (Last 10 Days) ---
+        food_dates = FoodLog.objects.filter(user=self.request.user).values_list("date", flat=True).distinct().order_by("-date")[:10]
+        recent_food_days = []
+        if food_dates:
+            recent_foods_qs = FoodLog.objects.filter(user=self.request.user, date__in=food_dates).prefetch_related("items__food", "items__recipe")
+            # Iterate using the ordered dates
+            for d in food_dates:
+                d_foods = [f for f in recent_foods_qs if f.date == d]
+                totals = {"calories": 0.0, "proteins": 0.0, "lipids": 0.0, "carbs": 0.0}
+                for log in d_foods:
+                    macros = log.get_nutritional_totals()
+                    for k in totals:
+                        totals[k] += macros[k]
+                recent_food_days.append({
+                    "date": d,
+                    "totals": totals
+                })
+        context["recent_food_days"] = recent_food_days
+
         return context
 
 
@@ -358,7 +377,7 @@ class FoodLogCreateView(LoginRequiredMixin, CreateView):
     model = FoodLog
     form_class = FoodLogForm
     template_name = "tracking/food_log_form.html"
-    success_url = reverse_lazy("food_log_list")
+    success_url = reverse_lazy("food_daily_history")
 
     def get_context_data(self, **kwargs):
         data = super().get_context_data(**kwargs)
@@ -386,7 +405,7 @@ class FoodLogUpdateView(LoginRequiredMixin, UpdateView):
     model = FoodLog
     form_class = FoodLogForm
     template_name = "tracking/food_log_form.html"
-    success_url = reverse_lazy("food_log_list")
+    success_url = reverse_lazy("food_daily_history")
 
     def get_queryset(self):
         return FoodLog.objects.filter(user=self.request.user)
@@ -411,6 +430,66 @@ class FoodLogUpdateView(LoginRequiredMixin, UpdateView):
             else:
                 return self.form_invalid(form)
         return super().form_valid(form)
+
+
+class DailyFoodLogHistoryView(LoginRequiredMixin, ListView):
+    template_name = "tracking/food_daily_history.html"
+    context_object_name = "daily_food_data"
+    paginate_by = 20
+
+    def get_queryset(self):
+        # Primero obtenemos las fechas distintas
+        dates = FoodLog.objects.filter(user=self.request.user).values_list('date', flat=True).distinct().order_by('-date')
+        return dates
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        paginated_dates = context.get('daily_food_data', [])
+        
+        # Recuperar todos los registros para las fechas paginadas
+        food_logs = FoodLog.objects.filter(
+            user=self.request.user, 
+            date__in=paginated_dates
+        ).prefetch_related('items__food', 'items__recipe')
+        
+        grouped_data = []
+        for d in paginated_dates:
+            logs_for_date = [log for log in food_logs if log.date == d]
+            daily_totals = {
+                "calories": 0.0,
+                "proteins": 0.0,
+                "lipids": 0.0,
+                "carbs": 0.0,
+            }
+            for log in logs_for_date:
+                macros = log.get_nutritional_totals()
+                for key in daily_totals:
+                    daily_totals[key] += macros[key]
+            
+            grouped_data.append({
+                "date": d,
+                "totals": daily_totals,
+                "log_count": len(logs_for_date)
+            })
+            
+        context['daily_food_data'] = grouped_data
+        return context
+
+
+class DailyFoodLogDetailView(LoginRequiredMixin, TemplateView):
+    template_name = "tracking/partials/daily_food_modal.html"
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        date_str = self.kwargs.get('date')
+        logs = FoodLog.objects.filter(
+            user=self.request.user,
+            date=date_str
+        ).prefetch_related('items__food', 'items__recipe').order_by('id')
+        
+        context['food_logs'] = logs
+        context['date_str'] = date_str
+        return context
 
 
 # ── Análisis y Dashboard Cruzado ──────────────────────────────────────────────

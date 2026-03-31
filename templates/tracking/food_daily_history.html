@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Historial Diario de Comidas - Salud App{% endblock title %}
+{% block content %}
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h1 class="h3 mb-0 text-white">Historial Diario de Alimentación</h1>
+    </div>
+    <div class="col-auto">
+        <a href="{% url 'food_log_add' %}" class="btn btn-warning">
+            <i class="bi bi-plus-circle me-2"></i>Registrar Comida
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-warning text-dark border-secondary">
+        <h5 class="mb-0 fw-bold"><i class="bi bi-calendar3"></i> Resumen por Día</h5>
+    </div>
+    <div class="card-body bg-dark text-white p-0">
+        <div class="table-responsive">
+            <table class="table table-dark table-hover mb-0 text-center align-middle">
+                <thead>
+                    <tr>
+                        <th class="text-start ps-4">Fecha</th>
+                        <th>Comidas</th>
+                        <th>Calorías (kcal)</th>
+                        <th>Proteínas (g)</th>
+                        <th>Lípidos (g)</th>
+                        <th>Carbohidratos (g)</th>
+                        <th></th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for day in daily_food_data %}
+                        <tr>
+                            <td class="text-start ps-4 fw-bold text-light">{{ day.date|date:"d/m/Y" }}</td>
+                            <td><span class="badge bg-secondary">{{ day.log_count }}</span></td>
+                            <td><span class="badge bg-warning text-dark fs-6">{{ day.totals.calories|floatformat:0 }}</span></td>
+                            <td>{{ day.totals.proteins|floatformat:1 }}</td>
+                            <td>{{ day.totals.lipids|floatformat:1 }}</td>
+                            <td>{{ day.totals.carbs|floatformat:1 }}</td>
+                            <td class="text-end pe-4">
+                                <button class="btn btn-sm btn-outline-info load-day-details" data-date="{{ day.date|date:'Y-m-d' }}" data-bs-toggle="modal" data-bs-target="#dailyFoodModal">
+                                    <i class="bi bi-eye"></i> Detalles
+                                </button>
+                            </td>
+                        </tr>
+                    {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-4 text-muted">No se han registrado comidas todavía.</td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+{% include "includes/pagination.html" %}
+
+<!-- Modal para detalles diarios -->
+<div class="modal fade" id="dailyFoodModal" tabindex="-1" aria-labelledby="dailyFoodModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-content bg-dark text-white border-secondary">
+      <div class="modal-header border-secondary">
+        <h5 class="modal-title" id="dailyFoodModalLabel">Cargando detalles...</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body" id="dailyFoodModalBody">
+        <div class="text-center py-4">
+            <div class="spinner-border text-warning" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+            <p class="mt-2">Obteniendo datos...</p>
+        </div>
+      </div>
+      <div class="modal-footer border-secondary">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% endblock content %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const detailButtons = document.querySelectorAll('.load-day-details');
+    const modalBody = document.getElementById('dailyFoodModalBody');
+    const modalTitle = document.getElementById('dailyFoodModalLabel');
+    const spinnerHtml = modalBody.innerHTML; // Guardamos el HTML del spinner para restaurarlo
+    
+    detailButtons.forEach(button => {
+        button.addEventListener('click', function() {
+            const dateStr = this.getAttribute('data-date');
+            
+            // Mostrar fecha temporalmente mientras carga
+            const dateParts = dateStr.split('-');
+            modalTitle.textContent = `Detalles del ${dateParts[2]}/${dateParts[1]}/${dateParts[0]}`;
+            
+            // Restaurar spinner
+            modalBody.innerHTML = spinnerHtml;
+            
+            // Hacer la petición para traer el fragmento HTML
+            fetch(`/tracking/food/history/daily/${dateStr}/`)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error('Error en la red');
+                    }
+                    return response.text();
+                })
+                .then(html => {
+                    modalBody.innerHTML = html;
+                })
+                .catch(error => {
+                    console.error('Error cargando detalles:', error);
+                    modalBody.innerHTML = `<div class="alert alert-danger">Error al cargar los datos. Inténtalo más tarde.</div>`;
+                });
+        });
+    });
+});
+</script>
+{% endblock extra_js %}

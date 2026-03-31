@@ -122,6 +122,45 @@
       </div>
     </div>
   </div>
+
+  <div class="row">
+    <div class="col-md-12">
+      <div class="card mb-4">
+        <div class="card-header bg-warning text-dark fw-bold">Últimas Ingestas (10 días)</div>
+        <div class="card-body">
+          <div class="table-responsive">
+            <table class="table table-striped table-sm text-center">
+              <thead>
+                <tr>
+                  <th>Fecha</th>
+                  <th>Calorías (kcal)</th>
+                  <th>Proteínas (g)</th>
+                  <th>Lípidos (g)</th>
+                  <th>Carbohidratos (g)</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for day_data in recent_food_days %}
+                  <tr>
+                    <td>{{ day_data.date|date:"d/m/Y" }}</td>
+                    <td><span class="badge bg-warning text-dark">{{ day_data.totals.calories|floatformat:0 }}</span></td>
+                    <td>{{ day_data.totals.proteins|floatformat:1 }}</td>
+                    <td>{{ day_data.totals.lipids|floatformat:1 }}</td>
+                    <td>{{ day_data.totals.carbs|floatformat:1 }}</td>
+                  </tr>
+                {% empty %}
+                  <tr>
+                    <td colspan="5" class="text-center">No hay registros de comidas recientes.</td>
+                  </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          <a href="{% url 'food_daily_history' %}" class="btn btn-link">Ver historial diario de comidas</a>
+        </div>
+      </div>
+    </div>
+  </div>
 {% endblock %}
 {% block extra_js %}
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>

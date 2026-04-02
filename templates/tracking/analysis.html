@@ -216,6 +216,38 @@
         </div>
     </div>
 {% endblock content %}
+
+{% block extra_modal %}
+<!-- Modal de Detalle Nutricional CDR -->
+<div class="modal fade" id="cdrDetailModal" tabindex="-1" aria-labelledby="cdrDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content bg-dark text-white border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title" id="cdrDetailModalLabel">Detalle Nutricional</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-0">
+                <table class="table table-dark table-hover mb-0 align-middle">
+                    <thead>
+                        <tr class="border-secondary">
+                            <th class="ps-3">Nutriente</th>
+                            <th class="text-end">Consumido</th>
+                            <th class="text-end text-muted">CDR</th>
+                            <th class="text-end pe-3">% CDR</th>
+                        </tr>
+                    </thead>
+                    <tbody id="cdrModalBody">
+                        <!-- Rellenado dinámicamente por JS -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="modal-footer border-secondary">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock extra_modal %}
 {% block extra_js %}
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script>

@@ -95,7 +95,22 @@
                             <tbody>
                                 {% for d in daily_data reversed %}
                                     <tr>
-                                        <td>{{ d.date|date:"d/m/Y" }}</td>
+                                        <td>
+                                            <a href="#" class="cdr-detail-btn text-info text-decoration-none fw-bold" 
+                                               data-bs-toggle="modal" data-bs-target="#cdrDetailModal"
+                                               data-date="{{ d.date|date:'d/m/Y' }}"
+                                               data-energy="{{ d.daily_nutrition.energy|stringformat:'f' }}"
+                                               data-proteins="{{ d.daily_nutrition.proteins|stringformat:'f' }}"
+                                               data-lipids="{{ d.daily_nutrition.lipids|stringformat:'f' }}"
+                                               data-carbs="{{ d.daily_nutrition.carbs|stringformat:'f' }}"
+                                               data-fiber="{{ d.daily_nutrition.fiber|stringformat:'f' }}"
+                                               data-calcium="{{ d.daily_nutrition.calcium|stringformat:'f' }}"
+                                               data-iron="{{ d.daily_nutrition.iron|stringformat:'f' }}"
+                                               data-vitamin_c="{{ d.daily_nutrition.vitamin_c|stringformat:'f' }}"
+                                               data-vitamin_d="{{ d.daily_nutrition.vitamin_d|stringformat:'f' }}">
+                                                {{ d.date|date:"d/m/Y" }}
+                                            </a>
+                                        </td>
                                         <td>
                                             {% if d.avg_sys and d.avg_dia %}
                                                 {{ d.avg_sys|floatformat:0 }} / {{ d.avg_dia|floatformat:0 }}
@@ -167,7 +182,22 @@
                             <tbody>
                                 {% for d in daily_data reversed %}
                                     <tr>
-                                        <td>{{ d.date|date:"d/m/Y" }}</td>
+                                        <td>
+                                            <a href="#" class="cdr-detail-btn text-info text-decoration-none fw-bold" 
+                                               data-bs-toggle="modal" data-bs-target="#cdrDetailModal"
+                                               data-date="{{ d.date|date:'d/m/Y' }}"
+                                               data-energy="{{ d.daily_nutrition.energy|stringformat:'f' }}"
+                                               data-proteins="{{ d.daily_nutrition.proteins|stringformat:'f' }}"
+                                               data-lipids="{{ d.daily_nutrition.lipids|stringformat:'f' }}"
+                                               data-carbs="{{ d.daily_nutrition.carbs|stringformat:'f' }}"
+                                               data-fiber="{{ d.daily_nutrition.fiber|stringformat:'f' }}"
+                                               data-calcium="{{ d.daily_nutrition.calcium|stringformat:'f' }}"
+                                               data-iron="{{ d.daily_nutrition.iron|stringformat:'f' }}"
+                                               data-vitamin_c="{{ d.daily_nutrition.vitamin_c|stringformat:'f' }}"
+                                               data-vitamin_d="{{ d.daily_nutrition.vitamin_d|stringformat:'f' }}">
+                                                {{ d.date|date:"d/m/Y" }}
+                                            </a>
+                                        </td>
                                         <td class="cdr-cell" data-target="energy" data-value="{{ d.daily_nutrition.energy|stringformat:'f' }}">{{ d.daily_nutrition.energy|floatformat:1 }}</td>
                                         <td class="cdr-cell" data-target="proteins" data-value="{{ d.daily_nutrition.proteins|stringformat:'f' }}">{{ d.daily_nutrition.proteins|floatformat:1 }}</td>
                                         <td class="cdr-cell" data-target="lipids" data-value="{{ d.daily_nutrition.lipids|stringformat:'f' }}">{{ d.daily_nutrition.lipids|floatformat:1 }}</td>
@@ -386,6 +416,64 @@ document.addEventListener("DOMContentLoaded", function() {
         cdrSelect.addEventListener('change', updateCdrTable);
         updateCdrTable(); // Initial trigger
     }
+
+    // Lógica para el Modal de Detalle
+    const cdrModalBody = document.getElementById('cdrModalBody');
+    const cdrModalTitle = document.getElementById('cdrDetailModalLabel');
+    
+    document.querySelectorAll('.cdr-detail-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            if(!cdrSelect || !cdrRefs) return;
+            const gender = cdrSelect.value;
+            const ref = cdrRefs[gender];
+            if(!ref) return;
+
+            const dateStr = this.getAttribute('data-date');
+            cdrModalTitle.innerHTML = `Detalle Nutricional <span class="text-info">${dateStr}</span>`;
+            
+            const nutrients = [
+                { key: 'energy', label: 'Energía (kcal)', icon: 'lightning-charge' },
+                { key: 'proteins', label: 'Proteínas (g)', icon: 'egg' },
+                { key: 'lipids', label: 'Lípidos (g)', icon: 'droplet' },
+                { key: 'carbs', label: 'H. Carbono (g)', icon: 'basket' },
+                { key: 'fiber', label: 'Fibra (g)', icon: 'tree' },
+                { key: 'calcium', label: 'Calcio (mg)', icon: 'capsule' },
+                { key: 'iron', label: 'Hierro (mg)', icon: 'hammer' },
+                { key: 'vitamin_c', label: 'Vitamina C (mg)', icon: 'asterisk' },
+                { key: 'vitamin_d', label: 'Vitamina D (µg)', icon: 'brightness-high' }
+            ];
+
+            let html = '';
+            nutrients.forEach(n => {
+                const consumedStr = btn.getAttribute(`data-${n.key}`);
+                const consumed = parseFloat((consumedStr || '0').replace(',', '.'));
+                const recomended = ref[n.key];
+                
+                let percentText = '-';
+                let badgeClass = 'text-muted';
+                
+                if (recomended) {
+                    const percentage = (consumed / recomended) * 100;
+                    percentText = percentage.toFixed(0) + '%';
+                    
+                    if(percentage < 50) badgeClass = 'text-danger fw-bold';
+                    else if (percentage < 80) badgeClass = 'text-warning fw-bold';
+                    else if (percentage <= 120) badgeClass = 'text-success fw-bold';
+                    else badgeClass = 'text-danger fw-bold';
+                }
+
+                html += `
+                    <tr>
+                        <td class="ps-3"><i class="bi bi-${n.icon} text-secondary me-2"></i>${n.label}</td>
+                        <td class="text-end fw-bold">${consumed.toFixed(1)}</td>
+                        <td class="text-end text-muted">${recomended ? recomended.toFixed(1) : '-'}</td>
+                        <td class="text-end pe-3 ${badgeClass}">${percentText}</td>
+                    </tr>
+                `;
+            });
+            cdrModalBody.innerHTML = html;
+        });
+    });
 });
     </script>
 {% endblock extra_js %}

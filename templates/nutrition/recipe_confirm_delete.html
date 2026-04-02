@@ -1,0 +1,27 @@
+{% extends "base.html" %}
+
+{% block title %}Eliminar Receta - Salud App{% endblock title %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow-sm border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0">Confirmar Eliminación</h4>
+            </div>
+            <div class="card-body bg-dark text-white">
+                <p>¿Estás seguro de que deseas eliminar la receta <strong>"{{ object.name }}"</strong>?</p>
+                <p class="text-muted small">Esta acción no se puede deshacer. Se eliminarán permanentemente todos los ingredientes asociados a esta receta.</p>
+                
+                <form method="post">
+                    {% csrf_token %}
+                    <div class="d-flex justify-content-end gap-2 mt-4">
+                        <a href="{% url 'recipe_detail' object.pk %}" class="btn btn-outline-secondary">Cancelar</a>
+                        <button type="submit" class="btn btn-danger">Sí, eliminar</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock content %}

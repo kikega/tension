@@ -3,8 +3,11 @@
 {% block content %}
     <div class="d-flex justify-content-between pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">{{ recipe.name }}</h1>
-        <a href="{% url 'recipe_list' %}"
-           class="btn btn-sm btn-outline-secondary">← Volver</a>
+        <div>
+            <a href="{% url 'recipe_edit' recipe.pk %}" class="btn btn-sm btn-outline-primary me-2">Editar</a>
+            <a href="{% url 'recipe_delete' recipe.pk %}" class="btn btn-sm btn-outline-danger me-2">Eliminar</a>
+            <a href="{% url 'recipe_list' %}" class="btn btn-sm btn-outline-secondary">← Volver</a>
+        </div>
     </div>
     <div class="row">
         <div class="col-md-5">

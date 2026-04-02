@@ -9,6 +9,7 @@ from datetime import timedelta
 import json
 
 from .models import MeasurementSession, WeightMeasurement, Supplement, SupplementLog, PhysicalActivity, PhysicalActivityLog, FoodLog
+from nutrition.models import NutritionalReference
 from .forms import (
     MeasurementSessionForm,
     ReadingFormSet,
@@ -523,12 +524,44 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
             d_acts = [a for a in activities if a.date == d]
             d_foods = [f for f in foods if f.date == d]
 
+            daily_nutrition = {
+                "energy": 0, "proteins": 0, "lipids": 0, "carbs": 0,
+                "fiber": 0, "calcium": 0, "iron": 0, "vitamin_c": 0, "vitamin_d": 0
+            }
+            
+            for food_log in d_foods:
+                totals = food_log.get_nutritional_totals()
+                daily_nutrition["energy"] += totals.get("calories", 0)
+                daily_nutrition["proteins"] += totals.get("proteins", 0)
+                daily_nutrition["lipids"] += totals.get("lipids", 0)
+                daily_nutrition["carbs"] += totals.get("carbs", 0)
+                
+                # Fetch detailed macros from items if possible, or assume get_nutritional_totals covers them.
+                # Currently get_nutritional_totals only returns dict with keys: calories, proteins, lipids, carbs.
+                # Let's iterate items here if we need micronutrients:
+                for item in food_log.items.all():
+                    factor = float(item.quantity_g) / 100.0 if item.food else item.quantity_g
+                    if item.food:
+                        daily_nutrition["fiber"] += float(item.food.fiber_g or 0) * factor
+                        daily_nutrition["calcium"] += float(item.food.calcium_mg or 0) * factor
+                        daily_nutrition["iron"] += float(item.food.iron_mg or 0) * factor
+                        daily_nutrition["vitamin_c"] += float(item.food.vitamin_c_mg or 0) * factor
+                        daily_nutrition["vitamin_d"] += float(item.food.vitamin_d_ug or 0) * factor
+                    elif item.recipe:
+                        rec_nut = item.recipe.calculate_nutrition()
+                        daily_nutrition["fiber"] += float(rec_nut.get("fiber_g", 0)) * factor
+                        daily_nutrition["calcium"] += float(rec_nut.get("calcium_mg", 0)) * factor
+                        daily_nutrition["iron"] += float(rec_nut.get("iron_mg", 0)) * factor
+                        daily_nutrition["vitamin_c"] += float(rec_nut.get("vitamin_c_mg", 0)) * factor
+                        daily_nutrition["vitamin_d"] += float(rec_nut.get("vitamin_d_ug", 0)) * factor
+
             daily_data.append({
                 "date": d,
                 "sessions": d_sessions,
                 "weight": d_weights[-1] if d_weights else None,
                 "activities": d_acts,
                 "foods": d_foods,
+                "daily_nutrition": daily_nutrition,
                 # For charts
                 "avg_sys": sum(s.avg_systolic for s in d_sessions if s.avg_systolic) / len(d_sessions) if d_sessions and any(s.avg_systolic for s in d_sessions) else None,
                 "avg_dia": sum(s.avg_diastolic for s in d_sessions if s.avg_diastolic) / len(d_sessions) if d_sessions and any(s.avg_diastolic for s in d_sessions) else None,
@@ -545,6 +578,23 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
         context["sys_data"] = json.dumps(sys_data)
         context["dia_data"] = json.dumps(dia_data)
         context["weight_data"] = json.dumps(weight_data)
+        
+        # Generar referencias nutricionales serializadas
+        nut_refs = NutritionalReference.objects.all()
+        ref_dict = {}
+        for r in nut_refs:
+            ref_dict[r.gender] = {
+                "energy": float(r.energy_kcal or 0),
+                "proteins": float(r.proteins_g or 0),
+                "lipids": float(r.lipids_g or 0),
+                "carbs": float(r.carbohydrates_g or 0),
+                "fiber": float(r.fiber_g or 0),
+                "calcium": float(r.calcium_mg or 0),
+                "iron": float(r.iron_mg or 0),
+                "vitamin_c": float(r.vitamin_c_mg or 0),
+                "vitamin_d": float(r.vitamin_d_ug or 0)
+            }
+        context["nutritional_references"] = json.dumps(ref_dict)
 
         # AI Insights
         from tracking.services.ai_analysis import generate_insights

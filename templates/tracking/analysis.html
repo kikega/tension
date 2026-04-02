@@ -43,6 +43,11 @@
                 <i class="bi bi-table me-1"></i>Resumen de Datos
             </button>
         </li>
+        <li class="nav-item" role="presentation">
+            <button class="nav-link bg-dark text-info border-secondary border-bottom-0" id="cdr-tab" data-bs-toggle="tab" data-bs-target="#cdr" type="button" role="tab" aria-controls="cdr" aria-selected="false">
+                <i class="bi bi-bullseye me-1"></i>Ingestas vs CDR
+            </button>
+        </li>
     </ul>
 
     <!-- Contenido de las Pestañas -->
@@ -125,6 +130,52 @@
                                 {% empty %}
                                     <tr>
                                         <td colspan="5" class="text-center py-4 text-muted">No hay datos registrados en los últimos 30 días.</td>
+                                    </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Pestaña 4: Ingestas vs CDR -->
+        <div class="tab-pane fade" id="cdr" role="tabpanel" aria-labelledby="cdr-tab">
+            <div class="card shadow-sm mb-4 bg-dark text-white border-0">
+                <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
+                    <h5 class="mb-0">Cantidades Diarias Recomendadas (CDR)</h5>
+                    <div class="d-flex align-items-center mt-2 mt-md-0">
+                        <label for="cdrGenderSelect" class="form-label mb-0 me-2 text-info">Perfil Base:</label>
+                        <select id="cdrGenderSelect" class="form-select form-select-sm bg-dark text-white border-secondary w-auto">
+                            <option value="male">Hombre</option>
+                            <option value="female">Mujer</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-dark table-hover mb-0" id="cdrTable">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Energía (kcal)</th>
+                                    <th>Proteínas (g)</th>
+                                    <th>Lípidos (g)</th>
+                                    <th>Carbohidratos (g)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for d in daily_data reversed %}
+                                    <tr>
+                                        <td>{{ d.date|date:"d/m/Y" }}</td>
+                                        <td class="cdr-cell" data-target="energy" data-value="{{ d.daily_nutrition.energy|stringformat:'f' }}">{{ d.daily_nutrition.energy|floatformat:1 }}</td>
+                                        <td class="cdr-cell" data-target="proteins" data-value="{{ d.daily_nutrition.proteins|stringformat:'f' }}">{{ d.daily_nutrition.proteins|floatformat:1 }}</td>
+                                        <td class="cdr-cell" data-target="lipids" data-value="{{ d.daily_nutrition.lipids|stringformat:'f' }}">{{ d.daily_nutrition.lipids|floatformat:1 }}</td>
+                                        <td class="cdr-cell" data-target="carbs" data-value="{{ d.daily_nutrition.carbs|stringformat:'f' }}">{{ d.daily_nutrition.carbs|floatformat:1 }}</td>
+                                    </tr>
+                                {% empty %}
+                                    <tr>
+                                        <td colspan="5" class="text-center py-4 text-muted">No hay datos de alimentación.</td>
                                     </tr>
                                 {% endfor %}
                             </tbody>
@@ -285,6 +336,55 @@ document.addEventListener("DOMContentLoaded", function() {
                 }
             }
         });
+    }
+    // Lógica para CDR Nutricional
+    const cdrRefs = JSON.parse('{{ nutritional_references|escapejs|default:"{}" }}');
+    const cdrSelect = document.getElementById('cdrGenderSelect');
+    
+    function updateCdrTable() {
+        if(!cdrSelect || !cdrRefs) return;
+        const gender = cdrSelect.value;
+        const ref = cdrRefs[gender];
+        if(!ref) return;
+
+        const cells = document.querySelectorAll('.cdr-cell');
+        cells.forEach(cell => {
+            const targetKey = cell.getAttribute('data-target');
+            const valStr = cell.getAttribute('data-value');
+            if(!valStr) return;
+            
+            // Replace comma to dot if localized, then parse
+            const consumed = parseFloat(valStr.replace(',', '.')); 
+            const recomended = ref[targetKey];
+            
+            if(recomended) {
+                const percentage = (consumed / recomended) * 100;
+                let badgeClass = 'bg-secondary';
+                
+                // Lógica orientativa: < 50% malo (rojo), 50-80 (amarillo), 80-120 (verde), > 120 (naranja/rojo excesivo)
+                if(percentage < 50) badgeClass = 'bg-danger';
+                else if (percentage < 80) badgeClass = 'bg-warning text-dark';
+                else if (percentage <= 120) badgeClass = 'bg-success';
+                else badgeClass = 'bg-danger';
+
+                cell.innerHTML = `
+                    <div class="d-flex flex-column">
+                        <span>${consumed.toFixed(1)} / <small class="text-muted">${recomended.toFixed(1)}</small></span>
+                        <div class="progress mt-1" style="height: 4px;">
+                            <div class="progress-bar ${badgeClass}" role="progressbar" style="width: ${Math.min(percentage, 100)}%"></div>
+                        </div>
+                        <small class="${badgeClass.includes('text-dark') ? 'text-warning' : badgeClass.replace('bg-', 'text-')}">${percentage.toFixed(0)}%</small>
+                    </div>
+                `;
+            } else {
+                cell.innerHTML = consumed.toFixed(1);
+            }
+        });
+    }
+
+    if(cdrSelect) {
+        cdrSelect.addEventListener('change', updateCdrTable);
+        updateCdrTable(); // Initial trigger
     }
 });
     </script>

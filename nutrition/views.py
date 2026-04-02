@@ -1,5 +1,5 @@
 from django.shortcuts import render, get_object_or_404
-from django.views.generic import ListView, CreateView, DetailView
+from django.views.generic import ListView, CreateView, DetailView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django import forms as dj_forms
@@ -45,6 +45,21 @@ class FoodDetailView(LoginRequiredMixin, DetailView):
     context_object_name = "food"
 
 
+class FoodUpdateView(LoginRequiredMixin, UpdateView):
+    model = Food
+    form_class = FoodForm
+    template_name = "nutrition/food_form.html"
+    
+    def get_success_url(self):
+        return reverse_lazy("food_detail", kwargs={"pk": self.object.pk})
+
+
+class FoodDeleteView(LoginRequiredMixin, DeleteView):
+    model = Food
+    template_name = "nutrition/food_confirm_delete.html"
+    success_url = reverse_lazy("food_list")
+
+
 class RecipeListView(LoginRequiredMixin, ListView):
     model = Recipe
     template_name = "nutrition/recipe_list.html"
@@ -71,3 +86,18 @@ class RecipeDetailView(LoginRequiredMixin, DetailView):
         context = super().get_context_data(**kwargs)
         context["nutrition"] = self.object.calculate_nutrition()
         return context
+
+
+class RecipeUpdateView(LoginRequiredMixin, UpdateView):
+    model = Recipe
+    form_class = RecipeForm
+    template_name = "nutrition/recipe_form.html"
+
+    def get_success_url(self):
+        return reverse_lazy("recipe_detail", kwargs={"pk": self.object.pk})
+
+
+class RecipeDeleteView(LoginRequiredMixin, DeleteView):
+    model = Recipe
+    template_name = "nutrition/recipe_confirm_delete.html"
+    success_url = reverse_lazy("recipe_list")

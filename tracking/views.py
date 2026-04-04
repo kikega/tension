@@ -540,20 +540,21 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
                 # Currently get_nutritional_totals only returns dict with keys: calories, proteins, lipids, carbs.
                 # Let's iterate items here if we need micronutrients:
                 for item in food_log.items.all():
-                    factor = float(item.quantity_g) / 100.0 if item.food else item.quantity_g
-                    if item.food:
+                    if item.food and item.quantity_g is not None:
+                        factor = float(item.quantity_g) / 100.0
                         daily_nutrition["fiber"] += float(item.food.fiber_g or 0) * factor
                         daily_nutrition["calcium"] += float(item.food.calcium_mg or 0) * factor
                         daily_nutrition["iron"] += float(item.food.iron_mg or 0) * factor
                         daily_nutrition["vitamin_c"] += float(item.food.vitamin_c_mg or 0) * factor
                         daily_nutrition["vitamin_d"] += float(item.food.vitamin_d_ug or 0) * factor
-                    elif item.recipe:
+                    elif item.recipe and item.servings is not None:
+                        factor = float(item.servings)
                         rec_nut = item.recipe.calculate_nutrition()
-                        daily_nutrition["fiber"] += float(rec_nut.get("fiber_g", 0)) * factor
-                        daily_nutrition["calcium"] += float(rec_nut.get("calcium_mg", 0)) * factor
-                        daily_nutrition["iron"] += float(rec_nut.get("iron_mg", 0)) * factor
-                        daily_nutrition["vitamin_c"] += float(rec_nut.get("vitamin_c_mg", 0)) * factor
-                        daily_nutrition["vitamin_d"] += float(rec_nut.get("vitamin_d_ug", 0)) * factor
+                        daily_nutrition["fiber"] += float(rec_nut.get("fiber_g", 0) or 0) * factor
+                        daily_nutrition["calcium"] += float(rec_nut.get("calcium_mg", 0) or 0) * factor
+                        daily_nutrition["iron"] += float(rec_nut.get("iron_mg", 0) or 0) * factor
+                        daily_nutrition["vitamin_c"] += float(rec_nut.get("vitamin_c_mg", 0) or 0) * factor
+                        daily_nutrition["vitamin_d"] += float(rec_nut.get("vitamin_d_ug", 0) or 0) * factor
 
             daily_data.append({
                 "date": d,

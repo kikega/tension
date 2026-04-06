@@ -99,15 +99,30 @@
                                             <a href="#" class="cdr-detail-btn text-info text-decoration-none fw-bold" 
                                                data-bs-toggle="modal" data-bs-target="#cdrDetailModal"
                                                data-date="{{ d.date|date:'d/m/Y' }}"
-                                               data-energy="{{ d.daily_nutrition.energy|stringformat:'f' }}"
-                                               data-proteins="{{ d.daily_nutrition.proteins|stringformat:'f' }}"
-                                               data-lipids="{{ d.daily_nutrition.lipids|stringformat:'f' }}"
-                                               data-carbs="{{ d.daily_nutrition.carbs|stringformat:'f' }}"
-                                               data-fiber="{{ d.daily_nutrition.fiber|stringformat:'f' }}"
-                                               data-calcium="{{ d.daily_nutrition.calcium|stringformat:'f' }}"
-                                               data-iron="{{ d.daily_nutrition.iron|stringformat:'f' }}"
-                                               data-vitamin_c="{{ d.daily_nutrition.vitamin_c|stringformat:'f' }}"
-                                               data-vitamin_d="{{ d.daily_nutrition.vitamin_d|stringformat:'f' }}">
+                                               data-energy_kcal="{{ d.daily_nutrition.energy_kcal|stringformat:'f' }}"
+                                               data-proteins_g="{{ d.daily_nutrition.proteins_g|stringformat:'f' }}"
+                                               data-lipids_g="{{ d.daily_nutrition.lipids_g|stringformat:'f' }}"
+                                               data-cholesterol_mg="{{ d.daily_nutrition.cholesterol_mg|stringformat:'f' }}"
+                                               data-carbohydrates_g="{{ d.daily_nutrition.carbohydrates_g|stringformat:'f' }}"
+                                               data-fiber_g="{{ d.daily_nutrition.fiber_g|stringformat:'f' }}"
+                                               data-calcium_mg="{{ d.daily_nutrition.calcium_mg|stringformat:'f' }}"
+                                               data-iron_mg="{{ d.daily_nutrition.iron_mg|stringformat:'f' }}"
+                                               data-iodine_ug="{{ d.daily_nutrition.iodine_ug|stringformat:'f' }}"
+                                               data-magnesium_mg="{{ d.daily_nutrition.magnesium_mg|stringformat:'f' }}"
+                                               data-zinc_mg="{{ d.daily_nutrition.zinc_mg|stringformat:'f' }}"
+                                               data-sodium_mg="{{ d.daily_nutrition.sodium_mg|stringformat:'f' }}"
+                                               data-potassium_mg="{{ d.daily_nutrition.potassium_mg|stringformat:'f' }}"
+                                               data-phosphorus_mg="{{ d.daily_nutrition.phosphorus_mg|stringformat:'f' }}"
+                                               data-selenium_ug="{{ d.daily_nutrition.selenium_ug|stringformat:'f' }}"
+                                               data-thiamine_mg="{{ d.daily_nutrition.thiamine_mg|stringformat:'f' }}"
+                                               data-riboflavin_mg="{{ d.daily_nutrition.riboflavin_mg|stringformat:'f' }}"
+                                               data-vitamin_b6_mg="{{ d.daily_nutrition.vitamin_b6_mg|stringformat:'f' }}"
+                                               data-folate_ug="{{ d.daily_nutrition.folate_ug|stringformat:'f' }}"
+                                               data-vitamin_b12_ug="{{ d.daily_nutrition.vitamin_b12_ug|stringformat:'f' }}"
+                                               data-vitamin_c_mg="{{ d.daily_nutrition.vitamin_c_mg|stringformat:'f' }}"
+                                               data-vitamin_a_ug="{{ d.daily_nutrition.vitamin_a_ug|stringformat:'f' }}"
+                                               data-vitamin_d_ug="{{ d.daily_nutrition.vitamin_d_ug|stringformat:'f' }}"
+                                               data-vitamin_e_mg="{{ d.daily_nutrition.vitamin_e_mg|stringformat:'f' }}">
                                                 {{ d.date|date:"d/m/Y" }}
                                             </a>
                                         </td>
@@ -186,22 +201,37 @@
                                             <a href="#" class="cdr-detail-btn text-info text-decoration-none fw-bold" 
                                                data-bs-toggle="modal" data-bs-target="#cdrDetailModal"
                                                data-date="{{ d.date|date:'d/m/Y' }}"
-                                               data-energy="{{ d.daily_nutrition.energy|stringformat:'f' }}"
-                                               data-proteins="{{ d.daily_nutrition.proteins|stringformat:'f' }}"
-                                               data-lipids="{{ d.daily_nutrition.lipids|stringformat:'f' }}"
-                                               data-carbs="{{ d.daily_nutrition.carbs|stringformat:'f' }}"
-                                               data-fiber="{{ d.daily_nutrition.fiber|stringformat:'f' }}"
-                                               data-calcium="{{ d.daily_nutrition.calcium|stringformat:'f' }}"
-                                               data-iron="{{ d.daily_nutrition.iron|stringformat:'f' }}"
-                                               data-vitamin_c="{{ d.daily_nutrition.vitamin_c|stringformat:'f' }}"
-                                               data-vitamin_d="{{ d.daily_nutrition.vitamin_d|stringformat:'f' }}">
+                                               data-energy_kcal="{{ d.daily_nutrition.energy_kcal|stringformat:'f' }}"
+                                               data-proteins_g="{{ d.daily_nutrition.proteins_g|stringformat:'f' }}"
+                                               data-lipids_g="{{ d.daily_nutrition.lipids_g|stringformat:'f' }}"
+                                               data-cholesterol_mg="{{ d.daily_nutrition.cholesterol_mg|stringformat:'f' }}"
+                                               data-carbohydrates_g="{{ d.daily_nutrition.carbohydrates_g|stringformat:'f' }}"
+                                               data-fiber_g="{{ d.daily_nutrition.fiber_g|stringformat:'f' }}"
+                                               data-calcium_mg="{{ d.daily_nutrition.calcium_mg|stringformat:'f' }}"
+                                               data-iron_mg="{{ d.daily_nutrition.iron_mg|stringformat:'f' }}"
+                                               data-iodine_ug="{{ d.daily_nutrition.iodine_ug|stringformat:'f' }}"
+                                               data-magnesium_mg="{{ d.daily_nutrition.magnesium_mg|stringformat:'f' }}"
+                                               data-zinc_mg="{{ d.daily_nutrition.zinc_mg|stringformat:'f' }}"
+                                               data-sodium_mg="{{ d.daily_nutrition.sodium_mg|stringformat:'f' }}"
+                                               data-potassium_mg="{{ d.daily_nutrition.potassium_mg|stringformat:'f' }}"
+                                               data-phosphorus_mg="{{ d.daily_nutrition.phosphorus_mg|stringformat:'f' }}"
+                                               data-selenium_ug="{{ d.daily_nutrition.selenium_ug|stringformat:'f' }}"
+                                               data-thiamine_mg="{{ d.daily_nutrition.thiamine_mg|stringformat:'f' }}"
+                                               data-riboflavin_mg="{{ d.daily_nutrition.riboflavin_mg|stringformat:'f' }}"
+                                               data-vitamin_b6_mg="{{ d.daily_nutrition.vitamin_b6_mg|stringformat:'f' }}"
+                                               data-folate_ug="{{ d.daily_nutrition.folate_ug|stringformat:'f' }}"
+                                               data-vitamin_b12_ug="{{ d.daily_nutrition.vitamin_b12_ug|stringformat:'f' }}"
+                                               data-vitamin_c_mg="{{ d.daily_nutrition.vitamin_c_mg|stringformat:'f' }}"
+                                               data-vitamin_a_ug="{{ d.daily_nutrition.vitamin_a_ug|stringformat:'f' }}"
+                                               data-vitamin_d_ug="{{ d.daily_nutrition.vitamin_d_ug|stringformat:'f' }}"
+                                               data-vitamin_e_mg="{{ d.daily_nutrition.vitamin_e_mg|stringformat:'f' }}">
                                                 {{ d.date|date:"d/m/Y" }}
                                             </a>
                                         </td>
-                                        <td class="cdr-cell" data-target="energy" data-value="{{ d.daily_nutrition.energy|stringformat:'f' }}">{{ d.daily_nutrition.energy|floatformat:1 }}</td>
-                                        <td class="cdr-cell" data-target="proteins" data-value="{{ d.daily_nutrition.proteins|stringformat:'f' }}">{{ d.daily_nutrition.proteins|floatformat:1 }}</td>
-                                        <td class="cdr-cell" data-target="lipids" data-value="{{ d.daily_nutrition.lipids|stringformat:'f' }}">{{ d.daily_nutrition.lipids|floatformat:1 }}</td>
-                                        <td class="cdr-cell" data-target="carbs" data-value="{{ d.daily_nutrition.carbs|stringformat:'f' }}">{{ d.daily_nutrition.carbs|floatformat:1 }}</td>
+                                        <td class="cdr-cell" data-target="energy_kcal" data-value="{{ d.daily_nutrition.energy_kcal|stringformat:'f' }}">{{ d.daily_nutrition.energy_kcal|floatformat:1 }}</td>
+                                        <td class="cdr-cell" data-target="proteins_g" data-value="{{ d.daily_nutrition.proteins_g|stringformat:'f' }}">{{ d.daily_nutrition.proteins_g|floatformat:1 }}</td>
+                                        <td class="cdr-cell" data-target="lipids_g" data-value="{{ d.daily_nutrition.lipids_g|stringformat:'f' }}">{{ d.daily_nutrition.lipids_g|floatformat:1 }}</td>
+                                        <td class="cdr-cell" data-target="carbohydrates_g" data-value="{{ d.daily_nutrition.carbohydrates_g|stringformat:'f' }}">{{ d.daily_nutrition.carbohydrates_g|floatformat:1 }}</td>
                                     </tr>
                                 {% empty %}
                                     <tr>
@@ -464,15 +494,30 @@ document.addEventListener("DOMContentLoaded", function() {
             cdrModalTitle.innerHTML = `Detalle Nutricional <span class="text-info">${dateStr}</span>`;
             
             const nutrients = [
-                { key: 'energy', label: 'Energía (kcal)', icon: 'lightning-charge' },
-                { key: 'proteins', label: 'Proteínas (g)', icon: 'egg' },
-                { key: 'lipids', label: 'Lípidos (g)', icon: 'droplet' },
-                { key: 'carbs', label: 'H. Carbono (g)', icon: 'basket' },
-                { key: 'fiber', label: 'Fibra (g)', icon: 'tree' },
-                { key: 'calcium', label: 'Calcio (mg)', icon: 'capsule' },
-                { key: 'iron', label: 'Hierro (mg)', icon: 'hammer' },
-                { key: 'vitamin_c', label: 'Vitamina C (mg)', icon: 'asterisk' },
-                { key: 'vitamin_d', label: 'Vitamina D (µg)', icon: 'brightness-high' }
+                { key: 'energy_kcal', label: 'Energía (kcal)', icon: 'lightning-charge' },
+                { key: 'proteins_g', label: 'Proteínas (g)', icon: 'egg' },
+                { key: 'lipids_g', label: 'Lípidos (g)', icon: 'droplet' },
+                { key: 'cholesterol_mg', label: 'Colesterol (mg)', icon: 'egg-fried' },
+                { key: 'carbohydrates_g', label: 'Carbohidratos (g)', icon: 'basket' },
+                { key: 'fiber_g', label: 'Fibra (g)', icon: 'tree' },
+                { key: 'calcium_mg', label: 'Calcio (mg)', icon: 'capsule' },
+                { key: 'iron_mg', label: 'Hierro (mg)', icon: 'hammer' },
+                { key: 'iodine_ug', label: 'Yodo (µg)', icon: 'activity' },
+                { key: 'magnesium_mg', label: 'Magnesio (mg)', icon: 'asterisk' },
+                { key: 'zinc_mg', label: 'Zinc (mg)', icon: 'nut' },
+                { key: 'sodium_mg', label: 'Sodio (mg)', icon: 'moisture' },
+                { key: 'potassium_mg', label: 'Potasio (mg)', icon: 'flower1' },
+                { key: 'phosphorus_mg', label: 'Fósforo (mg)', icon: 'record-circle' },
+                { key: 'selenium_ug', label: 'Selenio (µg)', icon: 'shield-plus' },
+                { key: 'thiamine_mg', label: 'Tiamina (B1) (mg)', icon: 'plus-circle' },
+                { key: 'riboflavin_mg', label: 'Riboflavina (B2) (mg)', icon: 'plus-circle' },
+                { key: 'vitamin_b6_mg', label: 'Vitamina B6 (mg)', icon: 'plus-circle' },
+                { key: 'folate_ug', label: 'Folatos (B9) (µg)', icon: 'plus-circle' },
+                { key: 'vitamin_b12_ug', label: 'Vitamina B12 (µg)', icon: 'plus-circle' },
+                { key: 'vitamin_c_mg', label: 'Vitamina C (mg)', icon: 'sun' },
+                { key: 'vitamin_a_ug', label: 'Vitamina A (µg)', icon: 'eye' },
+                { key: 'vitamin_d_ug', label: 'Vitamina D (µg)', icon: 'brightness-high' },
+                { key: 'vitamin_e_mg', label: 'Vitamina E (mg)', icon: 'heart-pulse' }
             ];
 
             let html = '';

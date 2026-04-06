@@ -524,37 +524,33 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
             d_acts = [a for a in activities if a.date == d]
             d_foods = [f for f in foods if f.date == d]
 
-            daily_nutrition = {
-                "energy": 0, "proteins": 0, "lipids": 0, "carbs": 0,
-                "fiber": 0, "calcium": 0, "iron": 0, "vitamin_c": 0, "vitamin_d": 0
-            }
+            daily_nutrition = {field: 0.0 for field in [
+                "energy_kcal", "proteins_g", "lipids_g", "cholesterol_mg", "carbohydrates_g",
+                "fiber_g", "calcium_mg", "iron_mg", "iodine_ug", "magnesium_mg", "zinc_mg",
+                "sodium_mg", "potassium_mg", "phosphorus_mg", "selenium_ug", "thiamine_mg",
+                "riboflavin_mg", "vitamin_b6_mg", "folate_ug", "vitamin_b12_ug", "vitamin_c_mg",
+                "vitamin_a_ug", "vitamin_d_ug", "vitamin_e_mg"
+            ]}
             
             for food_log in d_foods:
                 totals = food_log.get_nutritional_totals()
-                daily_nutrition["energy"] += totals.get("calories", 0)
-                daily_nutrition["proteins"] += totals.get("proteins", 0)
-                daily_nutrition["lipids"] += totals.get("lipids", 0)
-                daily_nutrition["carbs"] += totals.get("carbs", 0)
+                daily_nutrition["energy_kcal"] += totals.get("calories", 0)
+                daily_nutrition["proteins_g"] += totals.get("proteins", 0)
+                daily_nutrition["lipids_g"] += totals.get("lipids", 0)
+                daily_nutrition["carbohydrates_g"] += totals.get("carbs", 0)
                 
-                # Fetch detailed macros from items if possible, or assume get_nutritional_totals covers them.
-                # Currently get_nutritional_totals only returns dict with keys: calories, proteins, lipids, carbs.
-                # Let's iterate items here if we need micronutrients:
                 for item in food_log.items.all():
                     if item.food and item.quantity_g is not None:
                         factor = float(item.quantity_g) / 100.0
-                        daily_nutrition["fiber"] += float(item.food.fiber_g or 0) * factor
-                        daily_nutrition["calcium"] += float(item.food.calcium_mg or 0) * factor
-                        daily_nutrition["iron"] += float(item.food.iron_mg or 0) * factor
-                        daily_nutrition["vitamin_c"] += float(item.food.vitamin_c_mg or 0) * factor
-                        daily_nutrition["vitamin_d"] += float(item.food.vitamin_d_ug or 0) * factor
+                        for field in daily_nutrition.keys():
+                            if field not in ["energy_kcal", "proteins_g", "lipids_g", "carbohydrates_g"]:
+                                daily_nutrition[field] += float(getattr(item.food, field) or 0) * factor
                     elif item.recipe and item.servings is not None:
                         factor = float(item.servings) / float(item.recipe.servings) if item.recipe.servings else float(item.servings)
                         rec_nut = item.recipe.calculate_nutrition()
-                        daily_nutrition["fiber"] += float(rec_nut.get("fiber_g", 0) or 0) * factor
-                        daily_nutrition["calcium"] += float(rec_nut.get("calcium_mg", 0) or 0) * factor
-                        daily_nutrition["iron"] += float(rec_nut.get("iron_mg", 0) or 0) * factor
-                        daily_nutrition["vitamin_c"] += float(rec_nut.get("vitamin_c_mg", 0) or 0) * factor
-                        daily_nutrition["vitamin_d"] += float(rec_nut.get("vitamin_d_ug", 0) or 0) * factor
+                        for field in daily_nutrition.keys():
+                            if field not in ["energy_kcal", "proteins_g", "lipids_g", "carbohydrates_g"]:
+                                daily_nutrition[field] += float(rec_nut.get(field, 0) or 0) * factor
 
             daily_data.append({
                 "date": d,
@@ -585,15 +581,14 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
         ref_dict = {}
         for r in nut_refs:
             ref_dict[r.gender] = {
-                "energy": float(r.energy_kcal or 0),
-                "proteins": float(r.proteins_g or 0),
-                "lipids": float(r.lipids_g or 0),
-                "carbs": float(r.carbohydrates_g or 0),
-                "fiber": float(r.fiber_g or 0),
-                "calcium": float(r.calcium_mg or 0),
-                "iron": float(r.iron_mg or 0),
-                "vitamin_c": float(r.vitamin_c_mg or 0),
-                "vitamin_d": float(r.vitamin_d_ug or 0)
+                field: float(getattr(r, field) or 0)
+                for field in [
+                    "energy_kcal", "proteins_g", "lipids_g", "cholesterol_mg", "carbohydrates_g",
+                    "fiber_g", "calcium_mg", "iron_mg", "iodine_ug", "magnesium_mg", "zinc_mg",
+                    "sodium_mg", "potassium_mg", "phosphorus_mg", "selenium_ug", "thiamine_mg",
+                    "riboflavin_mg", "vitamin_b6_mg", "folate_ug", "vitamin_b12_ug", "vitamin_c_mg",
+                    "vitamin_a_ug", "vitamin_d_ug", "vitamin_e_mg"
+                ]
             }
         context["nutritional_references"] = json.dumps(ref_dict)
 

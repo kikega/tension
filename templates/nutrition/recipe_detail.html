@@ -50,42 +50,42 @@
                                 <tr>
                                     <td>Energía (kcal)</td>
                                     <td class="text-end">{{ nutrition.energy_kcal|floatformat:1 }}</td>
-                                    <td class="text-end">{{ nutrition.energy_kcal|floatformat:1 }}</td>
+                                    <td class="text-end">{{ nutrition_per_serving.energy_kcal|floatformat:1 }}</td>
                                 </tr>
                                 <tr>
                                     <td>Proteínas (g)</td>
                                     <td class="text-end">{{ nutrition.proteins_g|floatformat:2 }}</td>
-                                    <td class="text-end">{{ nutrition.proteins_g|floatformat:2 }}</td>
+                                    <td class="text-end">{{ nutrition_per_serving.proteins_g|floatformat:2 }}</td>
                                 </tr>
                                 <tr>
                                     <td>Lípidos (g)</td>
                                     <td class="text-end">{{ nutrition.lipids_g|floatformat:2 }}</td>
-                                    <td class="text-end">{{ nutrition.lipids_g|floatformat:2 }}</td>
+                                    <td class="text-end">{{ nutrition_per_serving.lipids_g|floatformat:2 }}</td>
                                 </tr>
                                 <tr>
                                     <td>H. de carbono (g)</td>
                                     <td class="text-end">{{ nutrition.carbohydrates_g|floatformat:2 }}</td>
-                                    <td class="text-end">{{ nutrition.carbohydrates_g|floatformat:2 }}</td>
+                                    <td class="text-end">{{ nutrition_per_serving.carbohydrates_g|floatformat:2 }}</td>
                                 </tr>
                                 <tr>
                                     <td>Fibra (g)</td>
                                     <td class="text-end">{{ nutrition.fiber_g|floatformat:2 }}</td>
-                                    <td class="text-end">{{ nutrition.fiber_g|floatformat:2 }}</td>
+                                    <td class="text-end">{{ nutrition_per_serving.fiber_g|floatformat:2 }}</td>
                                 </tr>
                                 <tr>
                                     <td>Calcio (mg)</td>
                                     <td class="text-end">{{ nutrition.calcium_mg|floatformat:1 }}</td>
-                                    <td class="text-end">{{ nutrition.calcium_mg|floatformat:1 }}</td>
+                                    <td class="text-end">{{ nutrition_per_serving.calcium_mg|floatformat:1 }}</td>
                                 </tr>
                                 <tr>
                                     <td>Hierro (mg)</td>
                                     <td class="text-end">{{ nutrition.iron_mg|floatformat:2 }}</td>
-                                    <td class="text-end">{{ nutrition.iron_mg|floatformat:2 }}</td>
+                                    <td class="text-end">{{ nutrition_per_serving.iron_mg|floatformat:2 }}</td>
                                 </tr>
                                 <tr>
                                     <td>Vitamina C (mg)</td>
                                     <td class="text-end">{{ nutrition.vitamin_c_mg|floatformat:1 }}</td>
-                                    <td class="text-end">{{ nutrition.vitamin_c_mg|floatformat:1 }}</td>
+                                    <td class="text-end">{{ nutrition_per_serving.vitamin_c_mg|floatformat:1 }}</td>
                                 </tr>
                             {% endwith %}
                         </tbody>

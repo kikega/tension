@@ -548,7 +548,7 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
                         daily_nutrition["vitamin_c"] += float(item.food.vitamin_c_mg or 0) * factor
                         daily_nutrition["vitamin_d"] += float(item.food.vitamin_d_ug or 0) * factor
                     elif item.recipe and item.servings is not None:
-                        factor = float(item.servings)
+                        factor = float(item.servings) / float(item.recipe.servings) if item.recipe.servings else float(item.servings)
                         rec_nut = item.recipe.calculate_nutrition()
                         daily_nutrition["fiber"] += float(rec_nut.get("fiber_g", 0) or 0) * factor
                         daily_nutrition["calcium"] += float(rec_nut.get("calcium_mg", 0) or 0) * factor

@@ -84,7 +84,14 @@ class RecipeDetailView(LoginRequiredMixin, DetailView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["nutrition"] = self.object.calculate_nutrition()
+        nutrition = self.object.calculate_nutrition()
+        servings = self.object.servings or 1
+        nutrition_per_serving = {
+            k: (v / servings) if v is not None else None
+            for k, v in nutrition.items()
+        }
+        context["nutrition"] = nutrition
+        context["nutrition_per_serving"] = nutrition_per_serving
         return context
 
 

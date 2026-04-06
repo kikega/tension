@@ -198,10 +198,11 @@ class FoodLog(models.Model):
                     totals["carbs"] += float(item.food.carbohydrates_g) * factor
             elif item.recipe and item.servings:
                 recipe_nutrition = item.recipe.calculate_nutrition()
-                totals["calories"] += float(recipe_nutrition.get('energy_kcal', 0) or 0) * float(item.servings)
-                totals["proteins"] += float(recipe_nutrition.get('proteins_g', 0) or 0) * float(item.servings)
-                totals["lipids"] += float(recipe_nutrition.get('lipids_g', 0) or 0) * float(item.servings)
-                totals["carbs"] += float(recipe_nutrition.get('carbohydrates_g', 0) or 0) * float(item.servings)
+                factor = float(item.servings) / float(item.recipe.servings) if item.recipe.servings else float(item.servings)
+                totals["calories"] += float(recipe_nutrition.get('energy_kcal', 0) or 0) * factor
+                totals["proteins"] += float(recipe_nutrition.get('proteins_g', 0) or 0) * factor
+                totals["lipids"] += float(recipe_nutrition.get('lipids_g', 0) or 0) * factor
+                totals["carbs"] += float(recipe_nutrition.get('carbohydrates_g', 0) or 0) * factor
         return totals
 
     def get_total_calories(self) -> float:

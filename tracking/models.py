@@ -229,3 +229,30 @@ class FoodLogItem(models.Model):
         elif self.recipe:
             return f"Receta: {self.recipe.name} - {self.servings} raciones"
         return "Ítem Desconocido"
+
+    def get_nutritional_totals(self) -> dict:
+        """Calcula los macros totales de este ítem (alimento o receta)."""
+        totals = {
+            "calories": 0.0,
+            "proteins": 0.0,
+            "lipids": 0.0,
+            "carbs": 0.0,
+        }
+        if self.food and self.quantity_g:
+            factor = float(self.quantity_g) / 100.0
+            if self.food.energy_kcal is not None:
+                totals["calories"] = float(self.food.energy_kcal) * factor
+            if self.food.proteins_g is not None:
+                totals["proteins"] = float(self.food.proteins_g) * factor
+            if self.food.lipids_g is not None:
+                totals["lipids"] = float(self.food.lipids_g) * factor
+            if self.food.carbohydrates_g is not None:
+                totals["carbs"] = float(self.food.carbohydrates_g) * factor
+        elif self.recipe and self.servings:
+            recipe_nutrition = self.recipe.calculate_nutrition()
+            factor = float(self.servings) / float(self.recipe.servings) if self.recipe.servings else float(self.servings)
+            totals["calories"] = float(recipe_nutrition.get('energy_kcal', 0) or 0) * factor
+            totals["proteins"] = float(recipe_nutrition.get('proteins_g', 0) or 0) * factor
+            totals["lipids"] = float(recipe_nutrition.get('lipids_g', 0) or 0) * factor
+            totals["carbs"] = float(recipe_nutrition.get('carbohydrates_g', 0) or 0) * factor
+        return totals

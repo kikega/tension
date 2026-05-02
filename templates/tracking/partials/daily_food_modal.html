@@ -19,16 +19,26 @@
                             {% for item in log.items.all %}
                                 <tr>
                                     <td>
-                                        <i class="bi bi-arrow-return-right text-secondary me-2"></i>
-                                        {% if item.food %}
-                                            {{ item.food.name }}
-                                        {% elif item.recipe %}
-                                            Receta: {{ item.recipe.name }}
-                                        {% else %}
-                                            Ítem desconocido
-                                        {% endif %}
+                                        <div class="d-flex flex-column">
+                                            <div>
+                                                <i class="bi bi-arrow-return-right text-secondary me-2"></i>
+                                                {% if item.food %}
+                                                    {{ item.food.name }}
+                                                {% elif item.recipe %}
+                                                    Receta: {{ item.recipe.name }}
+                                                {% else %}
+                                                    Ítem desconocido
+                                                {% endif %}
+                                            </div>
+                                            <div class="small text-muted mt-1 ps-4" style="font-size: 0.75rem;">
+                                                <span class="text-warning">{{ item.get_nutritional_totals.calories|floatformat:0 }} kcal</span>
+                                                <span class="mx-1">|</span> P: {{ item.get_nutritional_totals.proteins|floatformat:1 }}g 
+                                                <span class="mx-1">|</span> L: {{ item.get_nutritional_totals.lipids|floatformat:1 }}g 
+                                                <span class="mx-1">|</span> HC: {{ item.get_nutritional_totals.carbs|floatformat:1 }}g
+                                            </div>
+                                        </div>
                                     </td>
-                                    <td class="text-end text-muted pe-4">
+                                    <td class="text-end text-muted pe-4 align-top">
                                         {% if item.food %}
                                             {{ item.quantity_g|floatformat:0 }}g
                                         {% elif item.recipe %}

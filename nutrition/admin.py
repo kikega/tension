@@ -15,7 +15,7 @@ class FoodCategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Food)
 class FoodAdmin(admin.ModelAdmin):
-    list_display = ("name", "category", "seasonality", "energy_kcal", "proteins_g", "carbohydrates_g", "lipids_g")
+    list_display = ("name", "category", "seasonality", "glycemic_index", "energy_kcal", "proteins_g", "carbohydrates_g", "lipids_g")
     list_filter = ("category", "seasonality")
     search_fields = ("name",)
     fieldsets = (
@@ -23,7 +23,7 @@ class FoodAdmin(admin.ModelAdmin):
             "fields": ("category", "name", "description", "seasonality", "edible_portion", "nutritional_rating")
         }),
         ("Macronutrientes", {
-            "fields": ("energy_kcal", "proteins_g", "lipids_g", "cholesterol_mg", "carbohydrates_g", "fiber_g", "water_g")
+            "fields": ("energy_kcal", "proteins_g", "lipids_g", "cholesterol_mg", "carbohydrates_g", "glycemic_index", "fiber_g", "water_g")
         }),
         ("Minerales", {
             "fields": ("calcium_mg", "iron_mg", "iodine_ug", "magnesium_mg", "zinc_mg", "sodium_mg", "potassium_mg", "phosphorus_mg", "selenium_ug")

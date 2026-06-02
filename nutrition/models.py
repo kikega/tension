@@ -61,6 +61,7 @@ class Food(models.Model):
     vitamin_a_ug = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True, verbose_name=_("Vitamina A (µg)"))
     vitamin_d_ug = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True, verbose_name=_("Vitamina D (µg)"))
     vitamin_e_mg = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True, verbose_name=_("Vitamina E (mg)"))
+    glycemic_index = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name=_("Índice glucémico"))
 
     class Meta:
         ordering = ["name"]
@@ -145,6 +146,29 @@ class Recipe(models.Model):
                 if value is not None:
                     totals[field] += float(value) * factor
         return totals
+
+    def calculate_glycemic_load(self) -> dict:
+        """
+        Calcula la carga glucémica (CG) total de la receta en base a sus ingredientes.
+        Retorna un diccionario con:
+          - 'total_cg': la suma de las CG de los ingredientes
+          - 'has_missing_ig': indica si algún ingrediente con carbohidratos carece de IG
+        """
+        total_cg = 0.0
+        has_missing_ig = False
+        for ingredient in self.ingredients.select_related("food").all():
+            food = ingredient.food
+            carbs = float(food.carbohydrates_g or 0)
+            if carbs > 0:
+                if food.glycemic_index is not None:
+                    portion_carbs = carbs * (float(ingredient.quantity_g) / 100.0)
+                    total_cg += (float(food.glycemic_index) * portion_carbs) / 100.0
+                else:
+                    has_missing_ig = True
+        return {
+            "total_cg": round(total_cg, 2),
+            "has_missing_ig": has_missing_ig
+        }
 
 
 class RecipeIngredient(models.Model):

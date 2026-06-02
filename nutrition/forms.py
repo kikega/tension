@@ -9,7 +9,7 @@ class FoodForm(forms.ModelForm):
         model = Food
         fields = [
             "category", "name", "description", "seasonality",
-            "edible_portion", "nutritional_rating",
+            "edible_portion", "nutritional_rating", "glycemic_index",
             "energy_kcal", "proteins_g", "lipids_g", "cholesterol_mg",
             "carbohydrates_g", "fiber_g", "water_g",
             "calcium_mg", "iron_mg", "iodine_ug", "magnesium_mg",
@@ -29,7 +29,7 @@ class FoodForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         nutrient_fields = [
-            "energy_kcal", "proteins_g", "lipids_g", "cholesterol_mg",
+            "glycemic_index", "energy_kcal", "proteins_g", "lipids_g", "cholesterol_mg",
             "carbohydrates_g", "fiber_g", "water_g",
             "calcium_mg", "iron_mg", "iodine_ug", "magnesium_mg",
             "zinc_mg", "sodium_mg", "potassium_mg", "phosphorus_mg", "selenium_ug",

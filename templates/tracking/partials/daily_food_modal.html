@@ -4,13 +4,31 @@
             <li class="list-group-item bg-dark text-white border-secondary mb-3 p-3 rounded border">
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h6 class="mb-0 fw-bold text-warning">{{ log.meal_type }}</h6>
-                    <span class="badge bg-warning text-dark fs-6">{{ log.get_nutritional_totals.calories|floatformat:0 }} kcal</span>
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge bg-warning text-dark fs-6">{{ log.get_nutritional_totals.calories|floatformat:0 }} kcal</span>
+                        {% with cg_data=log.get_glycemic_load %}
+                            {% if cg_data.cg > 20 %}
+                                <span class="badge bg-danger fs-6" title="Carga Glucémica Alta">CG: {{ cg_data.cg|floatformat:1 }}</span>
+                            {% elif cg_data.cg >= 10 %}
+                                <span class="badge bg-warning text-dark fs-6" title="Carga Glucémica Media">CG: {{ cg_data.cg|floatformat:1 }}</span>
+                            {% else %}
+                                <span class="badge bg-success fs-6" title="Carga Glucémica Baja">CG: {{ cg_data.cg|floatformat:1 }}</span>
+                            {% endif %}
+                        {% endwith %}
+                    </div>
                 </div>
                 
-                <div class="d-flex text-muted small mb-3 gap-3">
-                    <span><i class="bi bi-circle-fill text-primary" style="font-size: 0.5rem; vertical-align: middle;"></i> Prot: {{ log.get_nutritional_totals.proteins|floatformat:1 }}g</span>
-                    <span><i class="bi bi-circle-fill text-danger" style="font-size: 0.5rem; vertical-align: middle;"></i> Lip: {{ log.get_nutritional_totals.lipids|floatformat:1 }}g</span>
-                    <span><i class="bi bi-circle-fill text-success" style="font-size: 0.5rem; vertical-align: middle;"></i> HC: {{ log.get_nutritional_totals.carbs|floatformat:1 }}g</span>
+                <div class="d-flex text-muted small mb-3 gap-3 justify-content-between align-items-center flex-wrap">
+                    <div class="d-flex gap-3">
+                        <span><i class="bi bi-circle-fill text-primary" style="font-size: 0.5rem; vertical-align: middle;"></i> Prot: {{ log.get_nutritional_totals.proteins|floatformat:1 }}g</span>
+                        <span><i class="bi bi-circle-fill text-danger" style="font-size: 0.5rem; vertical-align: middle;"></i> Lip: {{ log.get_nutritional_totals.lipids|floatformat:1 }}g</span>
+                        <span><i class="bi bi-circle-fill text-success" style="font-size: 0.5rem; vertical-align: middle;"></i> HC: {{ log.get_nutritional_totals.carbs|floatformat:1 }}g</span>
+                    </div>
+                    {% with cg_data=log.get_glycemic_load %}
+                        {% if cg_data.has_missing_ig %}
+                            <span class="text-warning-emphasis small" style="font-size: 0.75rem;" title="Faltan datos de IG en algunos alimentos con carbohidratos"><i class="bi bi-exclamation-triangle-fill text-warning me-1"></i>Faltan IGs en esta ingesta</span>
+                        {% endif %}
+                    {% endwith %}
                 </div>
 
                 <div class="table-responsive">
@@ -35,6 +53,20 @@
                                                 <span class="mx-1">|</span> P: {{ item.get_nutritional_totals.proteins|floatformat:1 }}g 
                                                 <span class="mx-1">|</span> L: {{ item.get_nutritional_totals.lipids|floatformat:1 }}g 
                                                 <span class="mx-1">|</span> HC: {{ item.get_nutritional_totals.carbs|floatformat:1 }}g
+                                                {% with item_cg_data=item.get_glycemic_load %}
+                                                    <span class="mx-1">|</span>
+                                                    {% if item_cg_data.has_missing_ig %}
+                                                        <span class="text-secondary" title="Falta el Índice Glucémico para calcular la CG"><i class="bi bi-question-circle me-1"></i>CG: N/D</span>
+                                                    {% else %}
+                                                        {% if item_cg_data.cg > 20 %}
+                                                            <span class="text-danger fw-bold">CG: {{ item_cg_data.cg|floatformat:1 }} (Alta)</span>
+                                                        {% elif item_cg_data.cg >= 10 %}
+                                                            <span class="text-warning fw-bold">CG: {{ item_cg_data.cg|floatformat:1 }} (Media)</span>
+                                                        {% else %}
+                                                            <span class="text-success fw-bold">CG: {{ item_cg_data.cg|floatformat:1 }} (Baja)</span>
+                                                        {% endif %}
+                                                    {% endif %}
+                                                {% endwith %}
                                             </div>
                                         </div>
                                     </td>

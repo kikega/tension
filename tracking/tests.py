@@ -93,3 +93,108 @@ class TestWeightViews:
         assert response.status_code == 200
         assert 'weight_data' in response.context
         assert 'weight_labels' in response.context
+
+
+@pytest.mark.django_db
+class TestGlycemicCalculations:
+    def test_glycemic_load_calculations(self, test_user):
+        from nutrition.models import Food, Recipe, RecipeIngredient
+        from tracking.models import FoodLog, FoodLogItem
+        
+        # 1. Create foods with various IGs and carbs
+        food_low = Food.objects.create(
+            name="Manzana",
+            carbohydrates_g=Decimal("12.00"),
+            glycemic_index=Decimal("35.00")
+        )
+        food_high = Food.objects.create(
+            name="Pan Blanco",
+            carbohydrates_g=Decimal("50.00"),
+            glycemic_index=Decimal("75.00")
+        )
+        food_no_ig = Food.objects.create(
+            name="Alimento Misterioso",
+            carbohydrates_g=Decimal("20.00"),
+            glycemic_index=None
+        )
+        food_no_carbs = Food.objects.create(
+            name="Filete",
+            carbohydrates_g=Decimal("0.00"),
+            glycemic_index=None
+        )
+
+        # 2. Create food log
+        log = FoodLog.objects.create(
+            user=test_user,
+            date=timezone.localdate(),
+            meal_type="Almuerzo"
+        )
+
+        # 3. Test Low IG portion: 150g manzana
+        # Carbs: 12g * 1.5 = 18g
+        # CG: (35 * 18) / 100 = 6.3
+        item1 = FoodLogItem.objects.create(
+            food_log=log,
+            food=food_low,
+            quantity_g=Decimal("150.00")
+        )
+        cg_data1 = item1.get_glycemic_load()
+        assert cg_data1["cg"] == 6.3
+        assert not cg_data1["has_missing_ig"]
+
+        # 4. Test High IG portion: 80g pan blanco
+        # Carbs: 50g * 0.8 = 40g
+        # CG: (75 * 40) / 100 = 30.0
+        item2 = FoodLogItem.objects.create(
+            food_log=log,
+            food=food_high,
+            quantity_g=Decimal("80.00")
+        )
+        cg_data2 = item2.get_glycemic_load()
+        assert cg_data2["cg"] == 30.0
+        assert not cg_data2["has_missing_ig"]
+
+        # 5. Test food with carbs but no IG
+        item3 = FoodLogItem.objects.create(
+            food_log=log,
+            food=food_no_ig,
+            quantity_g=Decimal("100.00")
+        )
+        cg_data3 = item3.get_glycemic_load()
+        assert cg_data3["cg"] == 0.0
+        assert cg_data3["has_missing_ig"]
+
+        # 6. Test food with 0 carbs and no IG
+        item4 = FoodLogItem.objects.create(
+            food_log=log,
+            food=food_no_carbs,
+            quantity_g=Decimal("200.00")
+        )
+        cg_data4 = item4.get_glycemic_load()
+        assert cg_data4["cg"] == 0.0
+        assert not cg_data4["has_missing_ig"]
+
+        # 7. Test Recipe
+        recipe = Recipe.objects.create(name="Ensalada y Pan", servings=2)
+        RecipeIngredient.objects.create(recipe=recipe, food=food_low, quantity_g=Decimal("100.00")) # Carbs: 12g, CG: (35 * 12)/100 = 4.2
+        RecipeIngredient.objects.create(recipe=recipe, food=food_high, quantity_g=Decimal("40.00")) # Carbs: 20g, CG: (75 * 20)/100 = 15.0
+        # Recipe Total CG: 4.2 + 15.0 = 19.2
+        # Servings = 2, so CG per serving = 9.6
+        
+        # Consumed item: 1.5 servings of recipe -> CG: 9.6 * 1.5 = 14.4
+        item_recipe = FoodLogItem.objects.create(
+            food_log=log,
+            recipe=recipe,
+            servings=Decimal("1.5")
+        )
+        cg_data_recipe = item_recipe.get_glycemic_load()
+        assert cg_data_recipe["cg"] == 14.4
+        assert not cg_data_recipe["has_missing_ig"]
+
+        # 8. Test overall FoodLog CG
+        # Total CG: 6.3 + 30.0 + 0.0 + 0.0 + 14.4 = 50.7
+        # has_missing_ig: True (because of item3)
+        log_cg_data = log.get_glycemic_load()
+        assert log_cg_data["cg"] == 50.7
+        assert log_cg_data["has_missing_ig"]
+

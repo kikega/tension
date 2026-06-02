@@ -209,6 +209,25 @@ class FoodLog(models.Model):
         """Calcula las kilocalorías totales sumando los ingredientes del registro."""
         return self.get_nutritional_totals()["calories"]
 
+    def get_glycemic_load(self) -> dict:
+        """
+        Calcula la carga glucémica (CG) total acumulada de la ingesta de comida.
+        Retorna un diccionario con:
+          - 'cg': valor total de la carga glucémica de la ingesta (float)
+          - 'has_missing_ig': si algún ítem contiene alimentos con carbohidratos que no tienen IG
+        """
+        total_cg = 0.0
+        has_missing_ig = False
+        for item in self.items.all():
+            item_cg_data = item.get_glycemic_load()
+            total_cg += item_cg_data["cg"]
+            if item_cg_data["has_missing_ig"]:
+                has_missing_ig = True
+        return {
+            "cg": round(total_cg, 2),
+            "has_missing_ig": has_missing_ig
+        }
+
 
 class FoodLogItem(models.Model):
     """Elemento individual ingerido dentro de un registro de alimentación."""
@@ -256,3 +275,31 @@ class FoodLogItem(models.Model):
             totals["lipids"] = float(recipe_nutrition.get('lipids_g', 0) or 0) * factor
             totals["carbs"] = float(recipe_nutrition.get('carbohydrates_g', 0) or 0) * factor
         return totals
+
+    def get_glycemic_load(self) -> dict:
+        """
+        Calcula la carga glucémica (CG) de este ítem (alimento o receta).
+        Retorna un diccionario con:
+          - 'cg': valor de la CG (float)
+          - 'has_missing_ig': si falta algún IG en el alimento o receta
+        """
+        cg = 0.0
+        has_missing_ig = False
+        if self.food:
+            carbs = float(self.food.carbohydrates_g or 0)
+            if carbs > 0:
+                if self.food.glycemic_index is not None:
+                    portion_carbs = carbs * (float(self.quantity_g or 0) / 100.0)
+                    cg = (float(self.food.glycemic_index) * portion_carbs) / 100.0
+                else:
+                    has_missing_ig = True
+        elif self.recipe and self.servings:
+            recipe_cg_data = self.recipe.calculate_glycemic_load()
+            total_recipe_servings = float(self.recipe.servings or 1)
+            factor = float(self.servings) / total_recipe_servings
+            cg = recipe_cg_data["total_cg"] * factor
+            has_missing_ig = recipe_cg_data["has_missing_ig"]
+        return {
+            "cg": round(cg, 2),
+            "has_missing_ig": has_missing_ig
+        }

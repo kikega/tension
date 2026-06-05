@@ -20,6 +20,10 @@ urlpatterns = [
     path("activities/add/", views.PhysicalActivityCreateView.as_view(), name="activity_add"),
     path("activities/log/", views.PhysicalActivityLogListView.as_view(), name="activity_log_list"),
     path("activities/log/add/", views.PhysicalActivityLogCreateView.as_view(), name="activity_log_add"),
+    # Actividad Diaria (Apple Watch)
+    path("daily-activity/", views.DailyActivityLogListView.as_view(), name="daily_activity_list"),
+    path("daily-activity/add/", views.DailyActivityLogCreateView.as_view(), name="daily_activity_add"),
+    path("daily-activity/<int:pk>/edit/", views.DailyActivityLogUpdateView.as_view(), name="daily_activity_edit"),
     # Alimentación
     path("food/", views.FoodLogListView.as_view(), name="food_log_list"),
     path("food/add/", views.FoodLogCreateView.as_view(), name="food_log_add"),

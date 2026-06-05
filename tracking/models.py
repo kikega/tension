@@ -12,6 +12,18 @@ class PhysicalActivity(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name=_("Usuario"))
     name = models.CharField(max_length=100, verbose_name=_("Nombre"))
     description = models.TextField(blank=True, verbose_name=_("Descripción"))
+    met_value = models.DecimalField(
+        max_digits=3,
+        decimal_places=1,
+        default=Decimal("3.0"),
+        null=True,
+        blank=True,
+        verbose_name=_("Valor MET")
+    )
+    default_not_tracked_by_watch = models.BooleanField(
+        default=False,
+        verbose_name=_("No registrada por reloj por defecto")
+    )
 
     class Meta:
         ordering = ["name"]
@@ -152,6 +164,8 @@ class PhysicalActivityLog(models.Model):
     date = models.DateField(default=timezone.now, verbose_name=_("Fecha"))
     duration_minutes = models.PositiveIntegerField(verbose_name=_("Duración (minutos)"))
     notes = models.TextField(blank=True, verbose_name=_("Notas"))
+    estimated_calories = models.PositiveIntegerField(null=True, blank=True, verbose_name=_("Calorías estimadas (kcal)"))
+    not_tracked_by_watch = models.BooleanField(default=False, verbose_name=_("No registrada por reloj"))
 
     class Meta:
         ordering = ["-date"]
@@ -160,6 +174,42 @@ class PhysicalActivityLog(models.Model):
 
     def __str__(self) -> str:
         return f"{self.date} - {self.activity.name} ({self.duration_minutes} min)"
+
+    def calculate_estimated_calories(self) -> int:
+        """Calcula las calorías estimadas de la actividad basadas en el peso del usuario y el MET."""
+        if not self.activity or not self.activity.met_value:
+            return 0
+        
+        # Buscar el peso más cercano a la fecha de la actividad
+        weight_measurement = WeightMeasurement.objects.filter(
+            user=self.user,
+            date__lte=self.date
+        ).order_by("-date", "-created_at").first()
+        
+        # Si no hay peso antes de la fecha, buscar el primero disponible
+        if not weight_measurement:
+            weight_measurement = WeightMeasurement.objects.filter(
+                user=self.user
+            ).order_by("date", "created_at").first()
+            
+        weight = float(weight_measurement.weight) if weight_measurement else 70.0  # fallback a 70kg
+        
+        met = float(self.activity.met_value)
+        duration_hours = self.duration_minutes / 60.0
+        
+        # Fórmula: MET * peso (kg) * duración (horas)
+        return int(met * weight * duration_hours)
+
+    def save(self, *args, **kwargs):
+        # Si no se ha especificado not_tracked_by_watch al crear, heredar del tipo de actividad
+        if self.pk is None and self.activity:
+            self.not_tracked_by_watch = self.activity.default_not_tracked_by_watch
+            
+        # Calcular calorías si no se han establecido
+        if self.estimated_calories is None or self.estimated_calories == 0:
+            self.estimated_calories = self.calculate_estimated_calories()
+            
+        super().save(*args, **kwargs)
 
 
 class FoodLog(models.Model):
@@ -303,3 +353,46 @@ class FoodLogItem(models.Model):
             "cg": round(cg, 2),
             "has_missing_ig": has_missing_ig
         }
+
+
+class DailyActivityLog(models.Model):
+    """Registro de actividad diaria (pasos, calorías activas/pasivas del Apple Watch, etc.)."""
+    user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name=_("Usuario"))
+    date = models.DateField(default=timezone.now, verbose_name=_("Fecha"))
+    active_calories = models.PositiveIntegerField(default=0, verbose_name=_("Calorías Activas (kcal)"))
+    resting_calories = models.PositiveIntegerField(default=0, verbose_name=_("Calorías en Reposo (kcal)"))
+    steps = models.PositiveIntegerField(default=0, verbose_name=_("Pasos"))
+    distance_km = models.DecimalField(max_digits=5, decimal_places=2, default=Decimal("0.00"), verbose_name=_("Distancia (km)"))
+    notes = models.TextField(blank=True, verbose_name=_("Notas"))
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-date"]
+        unique_together = ("user", "date")
+        verbose_name = _("Actividad Diaria")
+        verbose_name_plural = _("Actividades Diarias")
+
+    def __str__(self) -> str:
+        return f"{self.date} — {self.user.email} (Pasos: {self.steps})"
+
+    @property
+    def extra_exercise_calories(self) -> int:
+        """Calorías de ejercicios no registrados por el reloj (Karate, etc.)."""
+        exercises = PhysicalActivityLog.objects.filter(
+            user=self.user,
+            date=self.date,
+            not_tracked_by_watch=True
+        )
+        return sum(log.estimated_calories or 0 for log in exercises)
+
+    def get_total_calories_burned(self) -> int:
+        """Gasto calórico total = calorías activas + calorías pasivas + ejercicios no registrados por el reloj."""
+        return self.active_calories + self.resting_calories + self.extra_exercise_calories
+
+    def get_caloric_balance(self) -> float:
+        """Balance calórico = Calorías consumidas - Gasto calórico total."""
+        # Calorías ingeridas de ese día
+        food_logs = FoodLog.objects.filter(user=self.user, date=self.date)
+        total_intake = sum(log.get_total_calories() for log in food_logs)
+        return float(total_intake) - float(self.get_total_calories_burned())

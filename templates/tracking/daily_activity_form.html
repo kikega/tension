@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}{% if object %}Editar{% else %}Registrar{% endif %} Actividad Diaria — Salud App{% endblock %}
+{% block content %}
+    <div class="row justify-content-center">
+        <div class="col-md-6">
+            <div class="card shadow-sm mt-4">
+                <div class="card-header bg-warning text-dark">
+                    <h4 class="mb-0">{% if object %}Editar{% else %}Registrar{% endif %} Actividad Diaria (Apple Watch)</h4>
+                </div>
+                <div class="card-body">
+                    <p class="text-muted small mb-4">
+                        Introduce los datos consolidados de tu Apple Watch para la fecha seleccionada. Si dejas las Calorías en Reposo en blanco, se calcularán de forma automática con base en tu perfil de salud.
+                    </p>
+                    <form method="post">
+                        {% csrf_token %}
+                        {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
+                        {% for field in form %}
+                            <div class="mb-3">
+                                <label for="{{ field.id_for_label }}" class="form-label fw-bold">{{ field.label }}</label>
+                                {{ field }}
+                                {% if field.help_text %}<div class="form-text text-muted">{{ field.help_text }}</div>{% endif %}
+                                {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors }}</div>{% endif %}
+                            </div>
+                        {% endfor %}
+                        <div class="d-grid mt-4">
+                            <button type="submit" class="btn btn-warning">Guardar Actividad</button>
+                        </div>
+                    </form>
+                </div>
+                <div class="card-footer bg-light text-center">
+                    <a href="{% url 'daily_activity_list' %}" class="btn btn-link">Ver Historial</a>
+                    <a href="{% url 'dashboard' %}" class="btn btn-link">Volver al Dashboard</a>
+                </div>
+            </div>
+        </div>
+    </div>
+{% endblock %}

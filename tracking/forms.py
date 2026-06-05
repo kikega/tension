@@ -100,10 +100,12 @@ class PhysicalActivityForm(forms.ModelForm):
 
     class Meta:
         model = PhysicalActivity
-        fields = ["name", "description"]
+        fields = ["name", "description", "met_value", "default_not_tracked_by_watch"]
         widgets = {
             "name": forms.TextInput(attrs={"class": "form-control"}),
             "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "met_value": forms.NumberInput(attrs={"class": "form-control", "step": "0.1", "placeholder": "Ej. 8.0"}),
+            "default_not_tracked_by_watch": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
 
 
@@ -112,11 +114,30 @@ class PhysicalActivityLogForm(forms.ModelForm):
 
     class Meta:
         model = PhysicalActivityLog
-        fields = ["activity", "date", "duration_minutes", "notes"]
+        fields = ["activity", "date", "duration_minutes", "not_tracked_by_watch", "notes"]
         widgets = {
             "activity": forms.Select(attrs={"class": "form-control form-select"}),
             "date": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
             "duration_minutes": forms.NumberInput(attrs={"class": "form-control"}),
+            "not_tracked_by_watch": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "notes": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
+        }
+
+
+from .models import DailyActivityLog
+
+class DailyActivityLogForm(forms.ModelForm):
+    """Formulario para registrar la actividad diaria del Apple Watch."""
+
+    class Meta:
+        model = DailyActivityLog
+        fields = ["date", "active_calories", "resting_calories", "steps", "distance_km", "notes"]
+        widgets = {
+            "date": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
+            "active_calories": forms.NumberInput(attrs={"class": "form-control", "placeholder": "Ej. 400"}),
+            "resting_calories": forms.NumberInput(attrs={"class": "form-control", "placeholder": "Ej. 1800"}),
+            "steps": forms.NumberInput(attrs={"class": "form-control", "placeholder": "Ej. 10000"}),
+            "distance_km": forms.NumberInput(attrs={"class": "form-control", "step": "0.01", "placeholder": "Ej. 6.5"}),
             "notes": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
         }
 

@@ -198,3 +198,99 @@ class TestGlycemicCalculations:
         assert log_cg_data["cg"] == 50.7
         assert log_cg_data["has_missing_ig"]
 
+
+@pytest.mark.django_db
+class TestAppleWatchAndKarateEstimation:
+    def test_bmr_calculation(self, test_user):
+        """Test Mifflin-St Jeor BMR calculation."""
+        # 1. Without profile data: defaults
+        assert test_user.calculate_bmr(80.0) == 1400 # female/no gender default is 1400
+
+        # Set profile
+        test_user.gender = "male"
+        test_user.height_cm = 180
+        from datetime import date
+        test_user.birth_date = date(1990, 6, 5) # 36 years old in 2026
+        test_user.save()
+
+        # BMR male: 10 * 80 + 6.25 * 180 - 5 * 36 + 5 = 800 + 1125 - 180 + 5 = 1750
+        assert test_user.calculate_bmr(80.0) == 1750
+
+    def test_karate_calories_estimation(self, test_user):
+        """Test MET active exercise estimation for Karate."""
+        from tracking.models import PhysicalActivity, PhysicalActivityLog
+        
+        # Create weight
+        WeightMeasurement.objects.create(
+            user=test_user,
+            weight=Decimal('80.0'),
+            date=timezone.localdate()
+        )
+
+        activity_karate = PhysicalActivity.objects.create(
+            user=test_user,
+            name="Karate",
+            met_value=Decimal('8.0'),
+            default_not_tracked_by_watch=True
+        )
+
+        # Log Karate workout: 60 minutes
+        log = PhysicalActivityLog.objects.create(
+            user=test_user,
+            activity=activity_karate,
+            duration_minutes=60,
+            date=timezone.localdate()
+        )
+
+        # Calories: MET (8) * weight (80) * duration (1.0 hour) = 640 kcal
+        assert log.estimated_calories == 640
+        assert log.not_tracked_by_watch is True
+
+    def test_daily_activity_summary_and_balance(self, test_user):
+        """Test DailyActivityLog energy expenditure and caloric balance."""
+        from tracking.models import DailyActivityLog, FoodLog, FoodLogItem, PhysicalActivity, PhysicalActivityLog
+        from nutrition.models import Food
+
+        # Create weight
+        WeightMeasurement.objects.create(
+            user=test_user,
+            weight=Decimal('80.0'),
+            date=timezone.localdate()
+        )
+
+        # Log Karate workout (estimated: 640 kcal)
+        activity_karate = PhysicalActivity.objects.create(
+            user=test_user,
+            name="Karate",
+            met_value=Decimal('8.0'),
+            default_not_tracked_by_watch=True
+        )
+        PhysicalActivityLog.objects.create(
+            user=test_user,
+            activity=activity_karate,
+            duration_minutes=60,
+            date=timezone.localdate()
+        )
+
+        # Daily log: active 300, resting 1800, steps 10000, distance 8.0
+        daily_log = DailyActivityLog.objects.create(
+            user=test_user,
+            date=timezone.localdate(),
+            active_calories=300,
+            resting_calories=1800,
+            steps=10000,
+            distance_km=Decimal("8.00")
+        )
+
+        # Total burned: resting (1800) + active (300) + extra exercise (Karate: 640) = 2740 kcal
+        assert daily_log.extra_exercise_calories == 640
+        assert daily_log.get_total_calories_burned() == 2740
+
+        # Food log: 2000 kcal
+        food = Food.objects.create(name="Super comida", energy_kcal=Decimal("1000.0"))
+        food_log = FoodLog.objects.create(user=test_user, date=timezone.localdate(), meal_type="Cena")
+        FoodLogItem.objects.create(food_log=food_log, food=food, quantity_g=Decimal("200.0")) # 2 * 1000 = 2000 kcal
+
+        # Balance: 2000 - 2740 = -740 kcal
+        assert daily_log.get_caloric_balance() == -740.0
+

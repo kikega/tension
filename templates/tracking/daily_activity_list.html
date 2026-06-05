@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% block title %}Historial de Actividad Diaria — Salud App{% endblock %}
+{% block content %}
+  <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Historial de Actividad Diaria (Apple Watch)</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+      <a href="{% url 'daily_activity_add' %}" class="btn btn-sm btn-outline-warning">+ Registrar Actividad</a>
+    </div>
+  </div>
+
+  <div class="card shadow-sm mt-3">
+    <div class="card-header bg-dark text-white fw-bold">Registros de Actividad</div>
+    <div class="card-body">
+      <div class="table-responsive">
+        <table class="table table-striped table-sm text-center align-middle">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Pasos</th>
+              <th>Distancia</th>
+              <th>Cal. Activas</th>
+              <th>Cal. Reposo</th>
+              <th>Cal. Ejercicio Extra</th>
+              <th>Total Quemado</th>
+              <th>Balance Calórico</th>
+              <th>Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for log in daily_activities %}
+              <tr>
+                <td>{{ log.date|date:"d/m/Y" }}</td>
+                <td><span class="fw-bold text-success">{{ log.steps|default:"0" }}</span></td>
+                <td>{{ log.distance_km|default:"0.00" }} km</td>
+                <td>{{ log.active_calories|default:"0" }} kcal</td>
+                <td>{{ log.resting_calories|default:"0" }} kcal</td>
+                <td>
+                  {% if log.extra_exercise_calories > 0 %}
+                    <span class="badge bg-warning text-dark">+{{ log.extra_exercise_calories }} kcal</span>
+                  {% else %}
+                    <span class="text-muted">—</span>
+                  {% endif %}
+                </td>
+                <td><span class="badge bg-danger">{{ log.get_total_calories_burned }} kcal</span></td>
+                <td>
+                  {% with log.get_caloric_balance as balance %}
+                    <span class="badge {% if balance < 0 %}bg-success{% else %}bg-danger{% endif %} fw-bold">
+                      {% if balance > 0 %}+{% endif %}{{ balance|floatformat:0 }} kcal
+                    </span>
+                  {% endwith %}
+                </td>
+                <td>
+                  <a href="{% url 'daily_activity_edit' log.pk %}" class="btn btn-sm btn-outline-primary py-0">Editar</a>
+                </td>
+              </tr>
+            {% empty %}
+              <tr>
+                <td colspan="9" class="text-center py-4 text-muted">No se han registrado datos de actividad todavía.</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      
+      <!-- Paginación -->
+      {% if is_paginated %}
+        <nav aria-label="Page navigation" class="mt-4">
+          <ul class="pagination justify-content-center">
+            {% if page_obj.has_previous %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">Anterior</a>
+              </li>
+            {% endif %}
+            <li class="page-item disabled">
+              <span class="page-link">Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}</span>
+            </li>
+            {% if page_obj.has_next %}
+              <li class="page-item">
+                <a class="page-link" href="?page={{ page_obj.next_page_number }}">Siguiente</a>
+              </li>
+            {% endif %}
+          </ul>
+        </nav>
+      {% endif %}
+    </div>
+  </div>
+{% endblock %}

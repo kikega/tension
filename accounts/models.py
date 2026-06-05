@@ -30,6 +30,20 @@ class CustomUserManager(BaseUserManager):
 class CustomUser(AbstractUser):
     username = None
     email = models.EmailField(_('email address'), unique=True)
+    
+    GENDER_CHOICES = [
+        ("male", _("Hombre")),
+        ("female", _("Mujer")),
+    ]
+    gender = models.CharField(_("Género"), max_length=6, choices=GENDER_CHOICES, blank=True)
+    birth_date = models.DateField(_("Fecha de nacimiento"), null=True, blank=True)
+    height_cm = models.PositiveIntegerField(_("Altura (cm)"), null=True, blank=True)
+    target_weekly_loss_kg = models.DecimalField(
+        _("Objetivo de pérdida semanal (kg)"),
+        max_digits=3,
+        decimal_places=2,
+        default=0.50
+    )
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = []
@@ -38,3 +52,23 @@ class CustomUser(AbstractUser):
 
     def __str__(self):
         return self.email
+
+    def calculate_bmr(self, current_weight=70.0) -> int:
+        """Calcula la Tasa Metabólica Basal (BMR) usando la fórmula de Mifflin-St Jeor."""
+        if not self.height_cm or not self.birth_date or not self.gender:
+            return 1800 if self.gender == "male" else 1400  # defaults
+        
+        # Calcular edad
+        from datetime import date
+        today = date.today()
+        age = today.year - self.birth_date.year - ((today.month, today.day) < (self.birth_date.month, self.birth_date.day))
+        
+        weight = float(current_weight)
+        height = float(self.height_cm)
+        
+        if self.gender == "male":
+            bmr = 10 * weight + 6.25 * height - 5 * age + 5
+        else:
+            bmr = 10 * weight + 6.25 * height - 5 * age - 161
+            
+        return int(bmr)

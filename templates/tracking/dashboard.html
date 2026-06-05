@@ -3,18 +3,20 @@
 {% block content %}
   <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Dashboard</h1>
-    <div class="btn-toolbar mb-2 mb-md-0">
+    <div class="btn-toolbar mb-2 mb-md-0 gap-2">
+      <a href="{% url 'daily_activity_add' %}"
+         class="btn btn-sm btn-outline-success">+ Actividad Watch</a>
       <a href="{% url 'add_measurement' %}"
          class="btn btn-sm btn-outline-warning">+ Nueva Medición</a>
     </div>
   </div>
-  <!-- Summary Cards -->
+  <!-- Summary Cards Row 1 -->
   <div class="row mb-4">
     <!-- Tensión -->
     <div class="col-md-4 mb-3 mb-md-0">
       <div class="card h-100 text-center border-info mb-0">
         <div class="card-header bg-info text-dark fw-bold">Última Tensión</div>
-        <div class="card-body d-flex flex-column justify-content-center">
+        <div class="card-body d-flex flex-column justify-content-center py-3">
           {% if last_session %}
             <h3 class="card-title text-info mb-0">
               {{ last_session.avg_systolic|floatformat:0 }} / {{ last_session.avg_diastolic|floatformat:0 }}
@@ -32,7 +34,7 @@
     <div class="col-md-4 mb-3 mb-md-0">
       <div class="card h-100 text-center border-success mb-0">
         <div class="card-header bg-success text-white fw-bold">Último Peso</div>
-        <div class="card-body d-flex flex-column justify-content-center">
+        <div class="card-body d-flex flex-column justify-content-center py-3">
           {% if last_weight %}
             <h3 class="card-title text-success mb-0">{{ last_weight.weight }} kg</h3>
             <p class="text-muted small mt-1 mb-0">{{ last_weight.date|date:"d/m/Y" }}</p>
@@ -42,11 +44,31 @@
         </div>
       </div>
     </div>
-    <!-- Ejercicio -->
+    <!-- Balance Calórico -->
     <div class="col-md-4">
+      <div class="card h-100 text-center {% if today_balance < 0 %}border-success{% else %}border-danger{% endif %} mb-0">
+        <div class="card-header {% if today_balance < 0 %}bg-success text-white{% else %}bg-danger text-white{% endif %} fw-bold">
+          Balance Calórico de Hoy
+        </div>
+        <div class="card-body d-flex flex-column justify-content-center py-3">
+          <h3 class="card-title {% if today_balance < 0 %}text-success{% else %}text-danger{% endif %} mb-0">
+            {% if today_balance > 0 %}+{% endif %}{{ today_balance|floatformat:0 }} kcal
+          </h3>
+          <p class="text-muted small mt-1 mb-0">
+            Comido: {{ today_intake|floatformat:0 }} | Quemado: {{ today_burned|floatformat:0 }}
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Summary Cards Row 2 -->
+  <div class="row mb-4">
+    <!-- Ejercicio -->
+    <div class="col-md-4 mb-3 mb-md-0">
       <div class="card h-100 text-center border-warning mb-0">
         <div class="card-header bg-warning text-dark fw-bold">Último Ejercicio</div>
-        <div class="card-body d-flex flex-column justify-content-center">
+        <div class="card-body d-flex flex-column justify-content-center py-3">
           {% if last_activity %}
             <h3 class="card-title text-warning mb-0 fs-4">{{ last_activity.activity.name }}</h3>
             <p class="text-muted small mt-1 mb-0">
@@ -55,6 +77,30 @@
           {% else %}
             <p class="text-muted mb-0">Sin datos</p>
           {% endif %}
+        </div>
+      </div>
+    </div>
+    <!-- Pasos -->
+    <div class="col-md-4 mb-3 mb-md-0">
+      <div class="card h-100 text-center border-info mb-0">
+        <div class="card-header bg-info text-dark fw-bold">Pasos de Hoy</div>
+        <div class="card-body d-flex flex-column justify-content-center py-3">
+          <h3 class="card-title text-info mb-0">{{ today_steps }} / 10.000</h3>
+          <div class="progress mt-2 mx-auto" style="width: 80%; height: 8px;">
+            <div class="progress-bar bg-info" role="progressbar" style="width: {% widthratio today_steps 100 1 %}%" aria-valuenow="{{ today_steps }}" aria-valuemin="0" aria-valuemax="10000"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <!-- Distancia -->
+    <div class="col-md-4">
+      <div class="card h-100 text-center border-primary mb-0">
+        <div class="card-header bg-primary text-white fw-bold">Distancia de Hoy</div>
+        <div class="card-body d-flex flex-column justify-content-center py-3">
+          <h3 class="card-title text-primary mb-0">{{ today_distance|floatformat:2 }} km</h3>
+          <p class="text-muted small mt-1 mb-0">
+            Activas: {{ today_active_calories }} kcal | BMR: {{ today_resting_calories }} kcal
+          </p>
         </div>
       </div>
     </div>

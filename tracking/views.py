@@ -8,7 +8,16 @@ from django.utils import timezone
 from datetime import timedelta
 import json
 
-from .models import MeasurementSession, WeightMeasurement, Supplement, SupplementLog, PhysicalActivity, PhysicalActivityLog, FoodLog
+from .models import (
+    MeasurementSession,
+    WeightMeasurement,
+    Supplement,
+    SupplementLog,
+    PhysicalActivity,
+    PhysicalActivityLog,
+    FoodLog,
+    DailyActivityLog,
+)
 from nutrition.models import NutritionalReference
 from .forms import (
     MeasurementSessionForm,
@@ -19,6 +28,7 @@ from .forms import (
     PhysicalActivityForm,
     PhysicalActivityLogForm,
     FoodLogForm,
+    DailyActivityLogForm,
 )
 
 
@@ -54,6 +64,51 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context["last_session"] = sessions.first()
         context["last_weight"] = weights.first()
         context["last_activity"] = last_activity
+
+        # --- Today's Caloric Balance & Activity (Apple Watch + Karate) ---
+        today = timezone.now().date()
+        daily_log = DailyActivityLog.objects.filter(user=self.request.user, date=today).first()
+        
+        # Último peso para calcular el BMR si falta
+        last_w = weights.first()
+        weight_val = float(last_w.weight) if last_w else 70.0
+        
+        # Calcular BMR/TMB
+        bmr = self.request.user.calculate_bmr(weight_val)
+        
+        # Ejercicios extras de hoy (Karate, etc. no monitorizados por el reloj)
+        exercises_today = PhysicalActivityLog.objects.filter(
+            user=self.request.user,
+            date=today,
+            not_tracked_by_watch=True
+        )
+        extra_cal = sum(log.estimated_calories or 0 for log in exercises_today)
+        
+        if not daily_log:
+            total_burned_today = bmr + extra_cal
+            active_cal = 0
+            steps_today = 0
+            dist_today = 0.0
+        else:
+            total_burned_today = daily_log.get_total_calories_burned()
+            active_cal = daily_log.active_calories
+            bmr = daily_log.resting_calories
+            steps_today = daily_log.steps
+            dist_today = float(daily_log.distance_km)
+
+        # Ingesta de hoy
+        food_logs_today = FoodLog.objects.filter(user=self.request.user, date=today)
+        total_intake_today = sum(log.get_total_calories() for log in food_logs_today)
+        
+        context["today_intake"] = total_intake_today
+        context["today_burned"] = total_burned_today
+        context["today_balance"] = total_intake_today - total_burned_today
+        context["today_steps"] = steps_today
+        context["today_distance"] = dist_today
+        context["today_active_calories"] = active_cal
+        context["today_resting_calories"] = bmr
+        context["today_extra_calories"] = extra_cal
+        context["has_daily_log_today"] = (daily_log is not None)
 
         # --- Food Data (Last 10 Days) ---
         food_dates = FoodLog.objects.filter(user=self.request.user).values_list("date", flat=True).distinct().order_by("-date")[:10]
@@ -507,10 +562,11 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
         weights = WeightMeasurement.objects.filter(user=user, date__gte=thirty_days_ago).order_by("date")
         activities = PhysicalActivityLog.objects.filter(user=user, date__gte=thirty_days_ago).order_by("date")
         foods = FoodLog.objects.filter(user=user, date__gte=thirty_days_ago).order_by("date")
+        daily_activities = DailyActivityLog.objects.filter(user=user, date__gte=thirty_days_ago).order_by("date")
 
         # Serialize simple list of dictionaries for frontend charts
         dates_set = set()
-        for qs in [sessions, weights, activities, foods]:
+        for qs in [sessions, weights, activities, foods, daily_activities]:
             for obj in qs:
                 dates_set.add(obj.date)
                 
@@ -523,6 +579,7 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
             d_weights = [w for w in weights if w.date == d]
             d_acts = [a for a in activities if a.date == d]
             d_foods = [f for f in foods if f.date == d]
+            d_daily_acts = [da for da in daily_activities if da.date == d]
 
             daily_nutrition = {field: 0.0 for field in [
                 "energy_kcal", "proteins_g", "lipids_g", "cholesterol_mg", "carbohydrates_g",
@@ -552,6 +609,33 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
                             if field not in ["energy_kcal", "proteins_g", "lipids_g", "carbohydrates_g"]:
                                 daily_nutrition[field] += float(rec_nut.get(field, 0) or 0) * factor
 
+            # Gasto energético
+            if d_daily_acts:
+                resting_c = d_daily_acts[0].resting_calories
+                active_c = d_daily_acts[0].active_calories
+                steps_c = d_daily_acts[0].steps
+                dist_c = float(d_daily_acts[0].distance_km)
+                extra_exercise_c = d_daily_acts[0].extra_exercise_calories
+                total_burned = d_daily_acts[0].get_total_calories_burned()
+            else:
+                # Estimación fallback si no se subieron datos del Apple Watch
+                w_val = 70.0
+                w_meas = [w for w in weights if w.date <= d]
+                if w_meas:
+                    w_val = float(w_meas[-1].weight)
+                elif weights.exists():
+                    w_val = float(weights[0].weight)
+                
+                resting_c = user.calculate_bmr(w_val)
+                active_c = 0
+                steps_c = 0
+                dist_c = 0.0
+                extra_exercise_c = sum(log.estimated_calories or 0 for log in d_acts if log.not_tracked_by_watch)
+                total_burned = resting_c + active_c + extra_exercise_c
+
+            total_intake = daily_nutrition["energy_kcal"]
+            caloric_balance = total_intake - total_burned
+
             daily_data.append({
                 "date": d,
                 "sessions": d_sessions,
@@ -559,7 +643,11 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
                 "activities": d_acts,
                 "foods": d_foods,
                 "daily_nutrition": daily_nutrition,
-                # For charts
+                "steps": steps_c,
+                "balance": caloric_balance,
+                "intake": total_intake,
+                "expenditure": total_burned,
+                # For BP charts
                 "avg_sys": sum(s.avg_systolic for s in d_sessions if s.avg_systolic) / len(d_sessions) if d_sessions and any(s.avg_systolic for s in d_sessions) else None,
                 "avg_dia": sum(s.avg_diastolic for s in d_sessions if s.avg_diastolic) / len(d_sessions) if d_sessions and any(s.avg_diastolic for s in d_sessions) else None,
             })
@@ -572,9 +660,18 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
         dia_data = [d["avg_dia"] for d in daily_data]
         weight_data = [float(d["weight"].weight) if d["weight"] else None for d in daily_data]
         
+        steps_data = [d["steps"] for d in daily_data]
+        balance_data = [d["balance"] for d in daily_data]
+        intake_data = [d["intake"] for d in daily_data]
+        expenditure_data = [d["expenditure"] for d in daily_data]
+
         context["sys_data"] = json.dumps(sys_data)
         context["dia_data"] = json.dumps(dia_data)
         context["weight_data"] = json.dumps(weight_data)
+        context["steps_data"] = json.dumps(steps_data)
+        context["balance_data"] = json.dumps(balance_data)
+        context["intake_data"] = json.dumps(intake_data)
+        context["expenditure_data"] = json.dumps(expenditure_data)
         
         # Generar referencias nutricionales serializadas
         nut_refs = NutritionalReference.objects.all()
@@ -601,4 +698,69 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
         context["sport_data"] = json.dumps(ai_data.get("sport_data", []))
 
         return context
+
+
+# ── Actividad Diaria (Apple Watch) ───────────────────────────────────────────
+
+class DailyActivityLogListView(LoginRequiredMixin, ListView):
+    model = DailyActivityLog
+    template_name = "tracking/daily_activity_list.html"
+    context_object_name = "daily_activities"
+    paginate_by = 30
+
+    def get_queryset(self):
+        return DailyActivityLog.objects.filter(user=self.request.user).order_by("-date")
+
+
+class DailyActivityLogCreateView(LoginRequiredMixin, CreateView):
+    model = DailyActivityLog
+    form_class = DailyActivityLogForm
+    template_name = "tracking/daily_activity_form.html"
+    success_url = reverse_lazy("daily_activity_list")
+
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        
+        # Si no se introduce resting_calories, calcular basándonos en TMB (BMR) del usuario
+        if not form.instance.resting_calories or form.instance.resting_calories == 0:
+            last_weight_measurement = WeightMeasurement.objects.filter(
+                user=self.request.user,
+                date__lte=form.instance.date
+            ).order_by("-date", "-created_at").first()
+            if not last_weight_measurement:
+                last_weight_measurement = WeightMeasurement.objects.filter(
+                    user=self.request.user
+                ).order_by("date", "created_at").first()
+            
+            weight = float(last_weight_measurement.weight) if last_weight_measurement else 70.0
+            form.instance.resting_calories = self.request.user.calculate_bmr(weight)
+            
+        return super().form_valid(form)
+
+
+class DailyActivityLogUpdateView(LoginRequiredMixin, UpdateView):
+    model = DailyActivityLog
+    form_class = DailyActivityLogForm
+    template_name = "tracking/daily_activity_form.html"
+    success_url = reverse_lazy("daily_activity_list")
+
+    def get_queryset(self):
+        return DailyActivityLog.objects.filter(user=self.request.user)
+
+    def form_valid(self, form):
+        # Si no se introduce resting_calories, calcular basándonos en TMB (BMR) del usuario
+        if not form.instance.resting_calories or form.instance.resting_calories == 0:
+            last_weight_measurement = WeightMeasurement.objects.filter(
+                user=self.request.user,
+                date__lte=form.instance.date
+            ).order_by("-date", "-created_at").first()
+            if not last_weight_measurement:
+                last_weight_measurement = WeightMeasurement.objects.filter(
+                    user=self.request.user
+                ).order_by("date", "created_at").first()
+            
+            weight = float(last_weight_measurement.weight) if last_weight_measurement else 70.0
+            form.instance.resting_calories = self.request.user.calculate_bmr(weight)
+            
+        return super().form_valid(form)
 

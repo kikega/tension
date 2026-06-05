@@ -72,13 +72,22 @@
                 <a class="nav-link dropdown-toggle"
                    href="#"
                    role="button"
-                   data-bs-toggle="dropdown">Ejercicio</a>
+                   data-bs-toggle="dropdown">Ejercicio / Actividad</a>
                 <ul class="dropdown-menu">
                   <li>
-                    <a class="dropdown-item" href="{% url 'activity_log_add' %}">+ Registrar Ejercicio</a>
+                    <a class="dropdown-item" href="{% url 'activity_log_add' %}">+ Registrar Ejercicio (Karate, etc.)</a>
                   </li>
                   <li>
-                    <a class="dropdown-item" href="{% url 'activity_log_list' %}">Historial</a>
+                    <a class="dropdown-item" href="{% url 'activity_log_list' %}">Historial de Ejercicio</a>
+                  </li>
+                  <li>
+                    <hr class="dropdown-divider">
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="{% url 'daily_activity_add' %}">+ Registrar Actividad Watch</a>
+                  </li>
+                  <li>
+                    <a class="dropdown-item" href="{% url 'daily_activity_list' %}">Diario de Actividad Watch</a>
                   </li>
                 </ul>
               </li>
@@ -122,6 +131,12 @@
                    role="button"
                    data-bs-toggle="dropdown">Configuración</a>
                 <ul class="dropdown-menu">
+                  <li>
+                    <a class="dropdown-item" href="{% url 'user_profile' %}">Mi Perfil de Salud</a>
+                  </li>
+                  <li>
+                    <hr class="dropdown-divider">
+                  </li>
                   <li>
                     <a class="dropdown-item" href="{% url 'supplement_list' %}">Catálogo de Suplementos</a>
                   </li>

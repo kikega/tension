@@ -17,9 +17,11 @@ Including another URLconf
 
 from django.contrib import admin
 from django.urls import path, include
+from accounts.views import UserProfileUpdateView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("accounts/profile/", UserProfileUpdateView.as_view(), name="user_profile"),
     path("accounts/", include("django.contrib.auth.urls")),
     path("", include("tracking.urls")),
     path("nutrition/", include("nutrition.urls")),

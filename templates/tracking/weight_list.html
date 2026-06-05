@@ -10,11 +10,12 @@
         </div>
     </div>
     <div class="row mb-4">
+        <!-- Peso Actual -->
         <div class="col-md-4 mb-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-body text-center">
-                    <h5 class="card-title text-muted">Peso Actual</h5>
-                    <h2 class="display-5 mb-0">
+            <div class="card h-100 text-center border-success mb-0 shadow-sm">
+                <div class="card-header bg-success text-white fw-bold">Peso Actual</div>
+                <div class="card-body d-flex flex-column justify-content-center py-3">
+                    <h2 class="display-6 mb-0">
                         {% if last_weight > 0 %}
                             <span class="text-white"><i class="fas fa-arrow-down"></i> {{ last_weight|floatformat:1 }} kg</span>
                         {% else %}
@@ -24,11 +25,12 @@
                 </div>
             </div>
         </div>
+        <!-- Aumento/Pérdida Total -->
         <div class="col-md-4 mb-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-body text-center">
-                    <h5 class="card-title text-muted">Aumento/Pérdida Total</h5>
-                    <h2 class="display-5 mb-0">
+            <div class="card h-100 text-center border-success mb-0 shadow-sm">
+                <div class="card-header bg-success text-white fw-bold">Aumento/Pérdida Total</div>
+                <div class="card-body d-flex flex-column justify-content-center py-3">
+                    <h2 class="display-6 mb-0">
                         {% if total_weight_diff > 0 %}
                             <span class="text-success"><i class="fas fa-arrow-down"></i> -{{ total_weight_diff|floatformat:1 }} kg</span>
                         {% elif total_weight_diff < 0 %}
@@ -40,11 +42,12 @@
                 </div>
             </div>
         </div>
+        <!-- Aumento/Pérdida (%) -->
         <div class="col-md-4 mb-3">
-            <div class="card shadow-sm h-100">
-                <div class="card-body text-center">
-                    <h5 class="card-title text-muted">Aumento/Pérdida (%)</h5>
-                    <h2 class="display-5 mb-0">
+            <div class="card h-100 text-center border-success mb-0 shadow-sm">
+                <div class="card-header bg-success text-white fw-bold">Aumento/Pérdida (%)</div>
+                <div class="card-body d-flex flex-column justify-content-center py-3">
+                    <h2 class="display-6 mb-0">
                         {% if total_weight_diff_pct > 0 %}
                             <span class="text-success">-{{ total_weight_diff_pct|floatformat:1 }}%</span>
                         {% elif total_weight_diff_pct < 0 %}

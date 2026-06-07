@@ -1,5 +1,6 @@
 from django.db import models
 from django.utils.translation import gettext_lazy as _
+from django.conf import settings
 
 
 class FoodCategory(models.Model):
@@ -114,6 +115,13 @@ class NutritionalReference(models.Model):
 class Recipe(models.Model):
     """Receta de cocina con cálculo nutricional basado en ingredientes."""
 
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name=_("Usuario")
+    )
     name = models.CharField(max_length=200, verbose_name=_("Nombre"))
     description = models.TextField(blank=True, verbose_name=_("Descripción"))
     instructions = models.TextField(blank=True, verbose_name=_("Preparación"))

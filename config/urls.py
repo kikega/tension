@@ -21,6 +21,7 @@ from accounts.views import UserProfileUpdateView
 
 urlpatterns = [
     path("admin/", admin.site.urls),
+    path("accounts/", include("accounts.urls")),
     path("accounts/profile/", UserProfileUpdateView.as_view(), name="user_profile"),
     path("accounts/", include("django.contrib.auth.urls")),
     path("", include("tracking.urls")),

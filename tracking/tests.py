@@ -294,3 +294,101 @@ class TestAppleWatchAndKarateEstimation:
         # Balance: 2000 - 2740 = -740 kcal
         assert daily_log.get_caloric_balance() == -740.0
 
+
+@pytest.mark.django_db
+class TestUserRegistration:
+    def test_signup_view_get(self, client):
+        url = reverse("signup")
+        response = client.get(url)
+        assert response.status_code == 200
+        assert "Crear Cuenta" in response.content.decode("utf-8")
+
+    def test_signup_view_post_success(self, client):
+        url = reverse("signup")
+        data = {
+            "email": "registered@example.com",
+            "first_name": "Juan",
+            "last_name": "Pérez",
+            "gender": "male",
+            "birth_date": "1990-01-01",
+            "height_cm": 180,
+            "target_weekly_loss_kg": "0.75",
+            "password1": "SecurePass123!",
+            "password2": "SecurePass123!",
+        }
+        response = client.post(url, data)
+        # Should redirect to login
+        assert response.status_code == 302
+        assert response.url == reverse("login")
+        
+        # Verify user creation
+        new_user = User.objects.get(email="registered@example.com")
+        assert new_user.first_name == "Juan"
+        assert new_user.last_name == "Pérez"
+        assert new_user.gender == "male"
+        assert str(new_user.birth_date) == "1990-01-01"
+        assert new_user.height_cm == 180
+        assert new_user.target_weekly_loss_kg == Decimal("0.75")
+        assert new_user.check_password("SecurePass123!")
+
+
+@pytest.mark.django_db
+class TestRecipeMultiUser:
+    def test_recipe_scoping(self, client, test_user):
+        from nutrition.models import Recipe
+        other_user = User.objects.create_user(email="other@example.com", password="password")
+        
+        # Create global recipe (no user)
+        recipe_global = Recipe.objects.create(name="Receta Global", servings=2)
+        # Create user's recipe
+        recipe_user = Recipe.objects.create(name="Mi Receta", user=test_user, servings=1)
+        # Create other user's recipe
+        recipe_other = Recipe.objects.create(name="Receta Ajena", user=other_user, servings=3)
+        
+        client.force_login(test_user)
+        
+        # 1. Test List View
+        url = reverse("recipe_list")
+        response = client.get(url)
+        assert response.status_code == 200
+        recipes_context = list(response.context["recipes"])
+        # Should contain global and user's own, but NOT other user's
+        assert recipe_global in recipes_context
+        assert recipe_user in recipes_context
+        assert recipe_other not in recipes_context
+        
+        # 2. Test Detail View access
+        # Can see own recipe
+        url_own = reverse("recipe_detail", kwargs={"pk": recipe_user.pk})
+        response_own = client.get(url_own)
+        assert response_own.status_code == 200
+        
+        # Can see global recipe
+        url_global = reverse("recipe_detail", kwargs={"pk": recipe_global.pk})
+        response_global = client.get(url_global)
+        assert response_global.status_code == 200
+        
+        # Cannot see other user's recipe (should return 404)
+        url_other = reverse("recipe_detail", kwargs={"pk": recipe_other.pk})
+        response_other = client.get(url_other)
+        assert response_other.status_code == 404
+
+    def test_recipe_ownership_mutations(self, client, test_user):
+        from nutrition.models import Recipe
+        other_user = User.objects.create_user(email="other@example.com", password="password")
+        
+        # Create other user's recipe
+        recipe_other = Recipe.objects.create(name="Receta Ajena", user=other_user, servings=3)
+        
+        client.force_login(test_user)
+        
+        # Cannot edit other user's recipe (should return 404)
+        url_edit = reverse("recipe_edit", kwargs={"pk": recipe_other.pk})
+        response_edit = client.post(url_edit, {"name": "Hackeado", "servings": 4})
+        assert response_edit.status_code == 404
+        
+        # Cannot delete other user's recipe (should return 404)
+        url_delete = reverse("recipe_delete", kwargs={"pk": recipe_other.pk})
+        response_delete = client.post(url_delete)
+        assert response_delete.status_code == 404
+

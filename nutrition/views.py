@@ -67,7 +67,8 @@ class RecipeListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        return Recipe.objects.all()
+        from django.db.models import Q
+        return Recipe.objects.filter(Q(user__isnull=True) | Q(user=self.request.user))
 
 
 class RecipeCreateView(LoginRequiredMixin, CreateView):
@@ -76,11 +77,19 @@ class RecipeCreateView(LoginRequiredMixin, CreateView):
     template_name = "nutrition/recipe_form.html"
     success_url = reverse_lazy("recipe_list")
 
+    def form_valid(self, form):
+        form.instance.user = self.request.user
+        return super().form_valid(form)
+
 
 class RecipeDetailView(LoginRequiredMixin, DetailView):
     model = Recipe
     template_name = "nutrition/recipe_detail.html"
     context_object_name = "recipe"
+
+    def get_queryset(self):
+        from django.db.models import Q
+        return Recipe.objects.filter(Q(user__isnull=True) | Q(user=self.request.user))
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -100,6 +109,9 @@ class RecipeUpdateView(LoginRequiredMixin, UpdateView):
     form_class = RecipeForm
     template_name = "nutrition/recipe_form.html"
 
+    def get_queryset(self):
+        return Recipe.objects.filter(user=self.request.user)
+
     def get_success_url(self):
         return reverse_lazy("recipe_detail", kwargs={"pk": self.object.pk})
 
@@ -108,3 +120,6 @@ class RecipeDeleteView(LoginRequiredMixin, DeleteView):
     model = Recipe
     template_name = "nutrition/recipe_confirm_delete.html"
     success_url = reverse_lazy("recipe_list")
+
+    def get_queryset(self):
+        return Recipe.objects.filter(user=self.request.user)

@@ -123,6 +123,12 @@ class PhysicalActivityLogForm(forms.ModelForm):
             "notes": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
         }
 
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+        if user:
+            self.fields["activity"].queryset = PhysicalActivity.objects.filter(user=user)
+
 
 from .models import DailyActivityLog
 
@@ -142,10 +148,8 @@ class DailyActivityLogForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        user = kwargs.pop("user", None)
+        kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
-        if user:
-            self.fields["activity"].queryset = PhysicalActivity.objects.filter(user=user)
 
 
 class FoodLogForm(forms.ModelForm):
@@ -161,16 +165,31 @@ class FoodLogForm(forms.ModelForm):
             "notes": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
         }
 
+class FoodLogItemForm(forms.ModelForm):
+    class Meta:
+        model = FoodLogItem
+        fields = ("food", "recipe", "quantity_g", "servings")
+        widgets = {
+            "food": forms.Select(attrs={"class": "form-control form-select"}),
+            "recipe": forms.Select(attrs={"class": "form-control form-select"}),
+            "quantity_g": forms.NumberInput(attrs={"class": "form-control", "placeholder": "Gramos"}),
+            "servings": forms.NumberInput(attrs={"class": "form-control", "placeholder": "Raciones"}),
+        }
+
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+        from nutrition.models import Recipe
+        from django.db.models import Q
+        if user:
+            self.fields["recipe"].queryset = Recipe.objects.filter(Q(user__isnull=True) | Q(user=user))
+        else:
+            self.fields["recipe"].queryset = Recipe.objects.filter(user__isnull=True)
+
 FoodLogItemFormSet = inlineformset_factory(
     FoodLog,
     FoodLogItem,
-    fields=("food", "recipe", "quantity_g", "servings"),
+    form=FoodLogItemForm,
     extra=1,
     can_delete=True,
-    widgets={
-        "food": forms.Select(attrs={"class": "form-control form-select"}),
-        "recipe": forms.Select(attrs={"class": "form-control form-select"}),
-        "quantity_g": forms.NumberInput(attrs={"class": "form-control", "placeholder": "Gramos"}),
-        "servings": forms.NumberInput(attrs={"class": "form-control", "placeholder": "Raciones"}),
-    },
 )

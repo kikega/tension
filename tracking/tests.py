@@ -23,7 +23,59 @@ class TestWeightMeasurementModel:
         )
         assert measurement.user == test_user
         assert measurement.weight == Decimal('80.5')
+        assert measurement.lean_mass_kg is None
+        assert measurement.fat_mass_kg is None
         assert str(measurement) == f"{measurement.date} - 80.5 kg"
+
+    def test_create_weight_measurement_with_body_composition(self, test_user):
+        """Test creating a weight measurement with optional body composition fields"""
+        measurement = WeightMeasurement.objects.create(
+            user=test_user,
+            weight=Decimal('80.5'),
+            lean_mass_kg=Decimal('62.5'),
+            fat_mass_kg=Decimal('18.0'),
+            date=timezone.localdate()
+        )
+        assert measurement.weight == Decimal('80.5')
+        assert measurement.lean_mass_kg == Decimal('62.5')
+        assert measurement.fat_mass_kg == Decimal('18.0')
+
+    def test_imc_calculations(self, test_user):
+        """Test BMI calculations and classifications"""
+        # User has no height defined
+        measurement = WeightMeasurement.objects.create(
+            user=test_user,
+            weight=Decimal('80.0'),
+            date=timezone.localdate()
+        )
+        assert measurement.imc is None
+        assert measurement.imc_classification is None
+
+        # Set user height
+        test_user.height_cm = 180
+        test_user.save()
+
+        # Weight: 80.0. height: 180cm. IMC: 80.0 / 1.8**2 = 24.69 -> Normal
+        assert measurement.imc == 24.69
+        assert measurement.imc_classification == "Normal"
+
+        # Weight: 55.0 -> Bajo peso
+        measurement.weight = Decimal('55.0')
+        measurement.save()
+        assert measurement.imc == 16.98
+        assert measurement.imc_classification == "Bajo peso"
+
+        # Weight: 90.0 -> Sobrepeso
+        measurement.weight = Decimal('90.0')
+        measurement.save()
+        assert measurement.imc == 27.78
+        assert measurement.imc_classification == "Sobrepeso"
+
+        # Weight: 100.0 -> Obesidad
+        measurement.weight = Decimal('100.0')
+        measurement.save()
+        assert measurement.imc == 30.86
+        assert measurement.imc_classification == "Obesidad"
 
 @pytest.mark.django_db
 class TestWeightMeasurementForm:
@@ -45,10 +97,17 @@ class TestWeightViews:
         url = reverse('add_weight')
         response = client.post(url, {
             'date': timezone.localdate().strftime('%Y-%m-%d'),
-            'weight': '80.5'
+            'weight': '80.5',
+            'lean_mass_kg': '62.0',
+            'fat_mass_kg': '18.5'
         })
         assert response.status_code == 302 # Redirects on success
-        assert WeightMeasurement.objects.filter(user=test_user, weight=Decimal('80.5')).exists()
+        assert WeightMeasurement.objects.filter(
+            user=test_user,
+            weight=Decimal('80.5'),
+            lean_mass_kg=Decimal('62.0'),
+            fat_mass_kg=Decimal('18.5')
+        ).exists()
 
     def test_weight_list_view_calculations(self, client, test_user):
         client.force_login(test_user)

@@ -149,6 +149,22 @@ class WeightMeasurement(models.Model):
         verbose_name=_("Peso (kg)"),
         validators=[MinValueValidator(Decimal("0.0"))],
     )
+    lean_mass_kg = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name=_("Masa magra (kg)"),
+        validators=[MinValueValidator(Decimal("0.0"))],
+    )
+    fat_mass_kg = models.DecimalField(
+        max_digits=5,
+        decimal_places=2,
+        null=True,
+        blank=True,
+        verbose_name=_("Masa grasa (kg)"),
+        validators=[MinValueValidator(Decimal("0.0"))],
+    )
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -156,6 +172,30 @@ class WeightMeasurement(models.Model):
 
     def __str__(self) -> str:
         return f"{self.date} - {self.weight} kg"
+
+    @property
+    def imc(self) -> float | None:
+        """Calcula el Índice de Masa Corporal (IMC)."""
+        if self.user and self.user.height_cm and self.weight:
+            height_m = float(self.user.height_cm) / 100.0
+            if height_m > 0:
+                return round(float(self.weight) / (height_m * height_m), 2)
+        return None
+
+    @property
+    def imc_classification(self) -> str | None:
+        """Clasifica el IMC para el análisis de obesidad."""
+        val = self.imc
+        if val is None:
+            return None
+        if val < 18.5:
+            return "Bajo peso"
+        elif val < 25.0:
+            return "Normal"
+        elif val < 30.0:
+            return "Sobrepeso"
+        else:
+            return "Obesidad"
 
 
 class PhysicalActivityLog(models.Model):

@@ -68,8 +68,11 @@
                         <tr>
                             <th>Fecha</th>
                             <th>Peso (kg)</th>
+                            <th>Masa Magra (kg)</th>
+                            <th>Masa Grasa (kg)</th>
                             <th>Diferencia (kg)</th>
                             <th>Diferencia (%)</th>
+                            <th>IMC (Análisis Obesidad)</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -79,6 +82,8 @@
                                 <td>
                                     <strong>{{ measurement.weight }}</strong>
                                 </td>
+                                <td>{{ measurement.lean_mass_kg|default:"—" }}</td>
+                                <td>{{ measurement.fat_mass_kg|default:"—" }}</td>
                                 <!-- Variación de Peso -->
                                 <td>
                                     {% if measurement.peso_perdido > 0 %}
@@ -104,10 +109,27 @@
                                         <span class="text-muted">-</span>
                                     {% endif %}
                                 </td>
+                                <!-- IMC -->
+                                <td>
+                                    {% if measurement.imc %}
+                                        <strong>{{ measurement.imc }}</strong>
+                                        {% if measurement.imc_classification == "Bajo peso" %}
+                                            <span class="badge rounded-pill bg-info text-dark ms-1">Bajo peso</span>
+                                        {% elif measurement.imc_classification == "Normal" %}
+                                            <span class="badge rounded-pill bg-success ms-1">Normal</span>
+                                        {% elif measurement.imc_classification == "Sobrepeso" %}
+                                            <span class="badge rounded-pill bg-warning text-dark ms-1">Sobrepeso</span>
+                                        {% elif measurement.imc_classification == "Obesidad" %}
+                                            <span class="badge rounded-pill bg-danger ms-1">Obesidad</span>
+                                        {% endif %}
+                                    {% else %}
+                                        <span class="text-muted">—</span>
+                                    {% endif %}
+                                </td>
                             </tr>
                         {% empty %}
                             <tr>
-                                <td colspan="4" class="text-center py-4">No hay registros de peso todavía.</td>
+                                <td colspan="7" class="text-center py-4">No hay registros de peso todavía.</td>
                             </tr>
                         {% endfor %}
                     </tbody>

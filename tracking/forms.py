@@ -55,10 +55,12 @@ class WeightMeasurementForm(forms.ModelForm):
 
     class Meta:
         model = WeightMeasurement
-        fields = ["date", "weight"]
+        fields = ["date", "weight", "lean_mass_kg", "fat_mass_kg"]
         widgets = {
             "date": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
             "weight": forms.NumberInput(attrs={"class": "form-control", "step": "0.1", "placeholder": "Ej. 80.5"}),
+            "lean_mass_kg": forms.NumberInput(attrs={"class": "form-control", "step": "0.1", "placeholder": "Ej. 62.0 (Opcional)"}),
+            "fat_mass_kg": forms.NumberInput(attrs={"class": "form-control", "step": "0.1", "placeholder": "Ej. 18.5 (Opcional)"}),
         }
 
 

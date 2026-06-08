@@ -1,212 +1,194 @@
 <!DOCTYPE html>
 <html lang="es" data-bs-theme="dark">
-  <head>
-    <meta charset="utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>
-      {% block title %}Salud App{% endblock %}
-    </title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css"
-          rel="stylesheet"
-          integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN"
-          crossorigin="anonymous">
-    {% load static %}
-    <link rel="icon" type="image/x-icon" href="{% static 'imagenes/logo.ico' %}">
-    <link rel="stylesheet" href="{% static 'css/tension.css' %}?v=1.1">
-    {% block extra_css %}{% endblock %}
-  </head>
-  <body class="{% block body_class %}{% endblock %}">
-    <nav class="navbar navbar-expand-lg navbar-dark navbar-glass mb-4">
-      <div class="container">
-        <a class="navbar-brand" href="/">Salud App</a>
-        <button class="navbar-toggler"
-                type="button"
-                data-bs-toggle="collapse"
-                data-bs-target="#navbarText"
-                aria-controls="navbarText"
-                aria-expanded="false"
-                aria-label="Toggle navigation">
-          <span class="navbar-toggler-icon"></span>
-        </button>
-        <div class="collapse navbar-collapse" id="navbarText">
-          <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-            {% if user.is_authenticated %}
-              <li class="nav-item">
-                <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link text-info" href="{% url 'analysis' %}">Análisis Cruzado</a>
-              </li>
-              <!-- Tensión -->
-              <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle"
-                   href="#"
-                   role="button"
-                   data-bs-toggle="dropdown">Tensión</a>
-                <ul class="dropdown-menu">
-                  <li>
-                    <a class="dropdown-item" href="{% url 'add_measurement' %}">+ Nueva Medición</a>
-                  </li>
-                  <li>
-                    <a class="dropdown-item" href="{% url 'history' %}">Historial</a>
-                  </li>
-                </ul>
-              </li>
-              <!-- Peso -->
-              <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle"
-                   href="#"
-                   role="button"
-                   data-bs-toggle="dropdown">Peso</a>
-                <ul class="dropdown-menu">
-                  <li>
-                    <a class="dropdown-item" href="{% url 'add_weight' %}">+ Nueva Medición</a>
-                  </li>
-                  <li>
-                    <a class="dropdown-item" href="{% url 'weight_history' %}">Historial</a>
-                  </li>
-                </ul>
-              </li>
-              <!-- Ejercicio -->
-              <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle"
-                   href="#"
-                   role="button"
-                   data-bs-toggle="dropdown">Ejercicio / Actividad</a>
-                <ul class="dropdown-menu">
-                  <li>
-                    <a class="dropdown-item" href="{% url 'activity_log_add' %}">+ Registrar Ejercicio (Karate, etc.)</a>
-                  </li>
-                  <li>
-                    <a class="dropdown-item" href="{% url 'activity_log_list' %}">Historial de Ejercicio</a>
-                  </li>
-                  <li>
-                    <hr class="dropdown-divider">
-                  </li>
-                  <li>
-                    <a class="dropdown-item" href="{% url 'daily_activity_add' %}">+ Registrar Actividad Watch</a>
-                  </li>
-                  <li>
-                    <a class="dropdown-item" href="{% url 'daily_activity_list' %}">Diario de Actividad Watch</a>
-                  </li>
-                </ul>
-              </li>
-              <!-- Nutrición y Diario -->
-              <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle"
-                   href="#"
-                   role="button"
-                   data-bs-toggle="dropdown">Nutrición</a>
-                <ul class="dropdown-menu">
-                  <li>
-                    <a class="dropdown-item" href="{% url 'food_log_add' %}">+ Registrar Comida</a>
-                  </li>
-                  <li>
-                    <a class="dropdown-item" href="{% url 'food_daily_history' %}">Diario de Comidas</a>
-                  </li>
-                  <li>
-                    <hr class="dropdown-divider">
-                  </li>
-                  <li>
-                    <a class="dropdown-item" href="{% url 'supplement_log_add' %}">+ Registrar Suplemento</a>
-                  </li>
-                  <li>
-                    <a class="dropdown-item" href="{% url 'supplement_log_list' %}">Historial Suplementos</a>
-                  </li>
-                  <li>
-                    <hr class="dropdown-divider">
-                  </li>
-                  <li>
-                    <a class="dropdown-item" href="{% url 'food_list' %}">Catálogo de Alimentos</a>
-                  </li>
-                  <li>
-                    <a class="dropdown-item" href="{% url 'recipe_list' %}">Catálogo de Recetas</a>
-                  </li>
-                </ul>
-              </li>
-              <!-- Config -->
-              <li class="nav-item dropdown">
-                <a class="nav-link dropdown-toggle"
-                   href="#"
-                   role="button"
-                   data-bs-toggle="dropdown">Configuración</a>
-                <ul class="dropdown-menu">
-                  <li>
-                    <a class="dropdown-item" href="{% url 'user_profile' %}">Mi Perfil de Salud</a>
-                  </li>
-                  <li>
-                    <hr class="dropdown-divider">
-                  </li>
-                  <li>
-                    <a class="dropdown-item" href="{% url 'supplement_list' %}">Catálogo de Suplementos</a>
-                  </li>
-                  <li>
-                    <a class="dropdown-item" href="{% url 'activity_list' %}">Catálogo de Actividades Físicas</a>
-                  </li>
-                </ul>
-              </li>
-              {% if user.is_staff %}
-              <li class="nav-item">
-                <a class="nav-link text-warning d-flex align-items-center" href="{% url 'access_requests_list' %}">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-people-fill align-text-bottom me-1" viewBox="0 0 16 16">
-                    <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-5.784 6A2.24 2.24 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.3 6.3 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1zM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5"/>
-                  </svg>Solicitudes
-                  {% if pending_requests_count > 0 %}
-                    <span class="badge rounded-pill bg-danger ms-1" title="Solicitudes pendientes">{{ pending_requests_count }}</span>
-                  {% endif %}
-                </a>
-              </li>
-              <li class="nav-item">
-                <a class="nav-link text-warning" href="{% url 'admin:index' %}">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-shield-lock-fill align-text-bottom me-1" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd" d="M8 0c-.69 0-1.843.265-2.928.56-1.11.3-2.229.655-2.887.87a1.54 1.54 0 0 0-1.044 1.262c-.596 4.477.787 7.795 2.465 9.99a11.8 11.8 0 0 0 2.517 2.453c.386.273.744.482 1.048.625.28.132.581.24.829.24s.548-.108.829-.24a7 7 0 0 0 1.048-.625 11.8 11.8 0 0 0 2.517-2.453c1.678-2.195 3.061-5.513 2.465-9.99a1.54 1.54 0 0 0-1.044-1.263 63 63 0 0 0-2.887-.87C9.843.266 8.69 0 8 0m0 5a1.5 1.5 0 0 1 .5 2.915l.385 1.99a.5.5 0 0 1-.491.595h-.788a.5.5 0 0 1-.49-.595l.384-1.99A1.5 1.5 0 0 1 8 5"/>
-                  </svg>Panel Admin
-                </a>
-              </li>
-              {% endif %}
-            {% endif %}
-          </ul>
-          <span class="navbar-text">
-            {% if user.is_authenticated %}
-              {{ user.email }} |
-              <form action="{% url 'logout' %}" method="post" class="d-inline">
-                {% csrf_token %}
-                <button type="submit"
-                        class="btn btn-link nav-link d-inline p-0"
-                        style="color: rgba(255,255,255,.55)">Logout</button>
-              </form>
-            {% else %}
-              <a href="{% url 'login' %}" class="nav-link">Login</a>
-            {% endif %}
-          </span>
-        </div>
-      </div>
-    </nav>
-    <div class="container">
-      {% if messages %}
-        {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}
-      {% endif %}
-      {% block content %}{% endblock %}
-    </div>
-    {% block extra_modal %}{% endblock %}
-    <!-- ===== FOOTER ===== -->
-    {% if request.resolver_match.url_name != "login" %}
-      <footer class="footer py-4 mt-5">
-        <div class="container">
-          <div class="d-flex justify-content-center">
-            <img src="{% static "imagenes/logo2.png" %}"
-                 alt="Logo egalvez"
-                 width="137"
-                 height="40">
-          </div>
-        </div>
-      </footer>
-    {% endif %}
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
-            integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
-            crossorigin="anonymous"></script>
-    {% block extra_js %}
-    {% endblock %}
-  </body>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>
+    {% block title %}Salud App{% endblock %}
+  </title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+    integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+  {% load static %}
+  <link rel="icon" type="image/x-icon" href="{% static 'imagenes/logo.ico' %}">
+  <link rel="stylesheet" href="{% static 'css/tension.css' %}?v=1.1">
+  {% block extra_css %}{% endblock %}
+</head>
+
+<body class="{% block body_class %}{% endblock %}">
+  <nav class="navbar navbar-expand-lg navbar-dark navbar-glass mb-4">
+    <div class="container">
+      <a class="navbar-brand" href="/">Salud App</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarText"
+        aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+      <div class="collapse navbar-collapse" id="navbarText">
+        <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+          {% if user.is_authenticated %}
+          <li class="nav-item">
+            <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-info" href="{% url 'analysis' %}">Análisis</a>
+          </li>
+          <!-- Tensión -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Tensión</a>
+            <ul class="dropdown-menu">
+              <li>
+                <a class="dropdown-item" href="{% url 'add_measurement' %}">+ Nueva Medición</a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="{% url 'history' %}">Historial</a>
+              </li>
+            </ul>
+          </li>
+          <!-- Peso -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Peso</a>
+            <ul class="dropdown-menu">
+              <li>
+                <a class="dropdown-item" href="{% url 'add_weight' %}">+ Nueva Medición</a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="{% url 'weight_history' %}">Historial</a>
+              </li>
+            </ul>
+          </li>
+          <!-- Ejercicio -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Ejercicio</a>
+            <ul class="dropdown-menu">
+              <li>
+                <a class="dropdown-item" href="{% url 'activity_log_add' %}">+ Registrar Ejercicio</a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="{% url 'activity_log_list' %}">Historial de Ejercicio</a>
+              </li>
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              <li>
+                <a class="dropdown-item" href="{% url 'daily_activity_add' %}">+ Registrar Actividad Watch</a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="{% url 'daily_activity_list' %}">Diario de Actividad Watch</a>
+              </li>
+            </ul>
+          </li>
+          <!-- Nutrición y Diario -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Nutrición</a>
+            <ul class="dropdown-menu">
+              <li>
+                <a class="dropdown-item" href="{% url 'food_log_add' %}">+ Registrar Comida</a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="{% url 'food_daily_history' %}">Diario de Comidas</a>
+              </li>
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              <li>
+                <a class="dropdown-item" href="{% url 'supplement_log_add' %}">+ Registrar Suplemento</a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="{% url 'supplement_log_list' %}">Historial Suplementos</a>
+              </li>
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              <li>
+                <a class="dropdown-item" href="{% url 'food_list' %}">Catálogo de Alimentos</a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="{% url 'recipe_list' %}">Catálogo de Recetas</a>
+              </li>
+            </ul>
+          </li>
+          <!-- Config -->
+          <li class="nav-item dropdown">
+            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Configuración</a>
+            <ul class="dropdown-menu">
+              <li>
+                <a class="dropdown-item" href="{% url 'user_profile' %}">Mi Perfil de Salud</a>
+              </li>
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              <li>
+                <a class="dropdown-item" href="{% url 'supplement_list' %}">Catálogo de Suplementos</a>
+              </li>
+              <li>
+                <a class="dropdown-item" href="{% url 'activity_list' %}">Catálogo de Actividades Físicas</a>
+              </li>
+            </ul>
+          </li>
+          {% if user.is_staff %}
+          <li class="nav-item">
+            <a class="nav-link text-warning d-flex align-items-center" href="{% url 'access_requests_list' %}">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                class="bi bi-people-fill align-text-bottom me-1" viewBox="0 0 16 16">
+                <path
+                  d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-5.784 6A2.24 2.24 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.3 6.3 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1zM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5" />
+              </svg>Solicitudes
+              {% if pending_requests_count > 0 %}
+              <span class="badge rounded-pill bg-danger ms-1" title="Solicitudes pendientes">{{ pending_requests_count
+                }}</span>
+              {% endif %}
+            </a>
+          </li>
+          <li class="nav-item">
+            <a class="nav-link text-warning" href="{% url 'admin:index' %}">
+              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
+                class="bi bi-shield-lock-fill align-text-bottom me-1" viewBox="0 0 16 16">
+                <path fill-rule="evenodd"
+                  d="M8 0c-.69 0-1.843.265-2.928.56-1.11.3-2.229.655-2.887.87a1.54 1.54 0 0 0-1.044 1.262c-.596 4.477.787 7.795 2.465 9.99a11.8 11.8 0 0 0 2.517 2.453c.386.273.744.482 1.048.625.28.132.581.24.829.24s.548-.108.829-.24a7 7 0 0 0 1.048-.625 11.8 11.8 0 0 0 2.517-2.453c1.678-2.195 3.061-5.513 2.465-9.99a1.54 1.54 0 0 0-1.044-1.263 63 63 0 0 0-2.887-.87C9.843.266 8.69 0 8 0m0 5a1.5 1.5 0 0 1 .5 2.915l.385 1.99a.5.5 0 0 1-.491.595h-.788a.5.5 0 0 1-.49-.595l.384-1.99A1.5 1.5 0 0 1 8 5" />
+              </svg>Panel Admin
+            </a>
+          </li>
+          {% endif %}
+          {% endif %}
+        </ul>
+        <span class="navbar-text">
+          {% if user.is_authenticated %}
+          {{ user.email }} |
+          <form action="{% url 'logout' %}" method="post" class="d-inline">
+            {% csrf_token %}
+            <button type="submit" class="btn btn-link nav-link d-inline p-0"
+              style="color: rgba(255,255,255,.55)">Logout</button>
+          </form>
+          {% else %}
+          <a href="{% url 'login' %}" class="nav-link">Login</a>
+          {% endif %}
+        </span>
+      </div>
+    </div>
+  </nav>
+  <div class="container">
+    {% if messages %}
+    {% for message in messages %}<div class="alert alert-{{ message.tags }}">{{ message }}</div>{% endfor %}
+    {% endif %}
+    {% block content %}{% endblock %}
+  </div>
+  {% block extra_modal %}{% endblock %}
+  <!-- ===== FOOTER ===== -->
+  {% if request.resolver_match.url_name != "login" %}
+  <footer class="footer py-4 mt-5">
+    <div class="container">
+      <div class="d-flex justify-content-center">
+        <img src="{% static " imagenes/logo2.png" %}" alt="Logo egalvez" width="137" height="40">
+      </div>
+    </div>
+  </footer>
+  {% endif %}
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+    integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL"
+    crossorigin="anonymous"></script>
+  {% block extra_js %}
+  {% endblock %}
+</body>
+
 </html>

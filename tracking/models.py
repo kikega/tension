@@ -4,6 +4,7 @@ from django.utils import timezone
 from django.utils.translation import gettext_lazy as _
 from django.core.validators import MinValueValidator
 from decimal import Decimal
+from typing import Optional
 
 
 class PhysicalActivity(models.Model):
@@ -174,7 +175,7 @@ class WeightMeasurement(models.Model):
         return f"{self.date} - {self.weight} kg"
 
     @property
-    def imc(self) -> float | None:
+    def imc(self) -> Optional[float]:
         """Calcula el Índice de Masa Corporal (IMC)."""
         if self.user and self.user.height_cm and self.weight:
             height_m = float(self.user.height_cm) / 100.0
@@ -183,7 +184,7 @@ class WeightMeasurement(models.Model):
         return None
 
     @property
-    def imc_classification(self) -> str | None:
+    def imc_classification(self) -> Optional[str]:
         """Clasifica el IMC para el análisis de obesidad."""
         val = self.imc
         if val is None:

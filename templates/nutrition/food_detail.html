@@ -4,8 +4,10 @@
     <div class="d-flex justify-content-between pt-3 pb-2 mb-3 border-bottom">
         <h1 class="h2">{{ food.name }}</h1>
         <div>
-            <a href="{% url 'food_edit' food.pk %}" class="btn btn-sm btn-outline-primary me-2">Editar</a>
-            <a href="{% url 'food_delete' food.pk %}" class="btn btn-sm btn-outline-danger me-2">Eliminar</a>
+            {% if user.is_staff %}
+                <a href="{% url 'food_edit' food.pk %}" class="btn btn-sm btn-outline-primary me-2">Editar</a>
+                <a href="{% url 'food_delete' food.pk %}" class="btn btn-sm btn-outline-danger me-2">Eliminar</a>
+            {% endif %}
             <a href="{% url 'food_list' %}" class="btn btn-sm btn-outline-secondary">← Volver</a>
         </div>
     </div>

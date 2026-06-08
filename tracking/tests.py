@@ -317,12 +317,13 @@ class TestUserRegistration:
             "password2": "SecurePass123!",
         }
         response = client.post(url, data)
-        # Should redirect to login
+        # Should redirect to signup pending
         assert response.status_code == 302
-        assert response.url == reverse("login")
+        assert response.url == reverse("signup_pending")
         
         # Verify user creation
         new_user = User.objects.get(email="registered@example.com")
+        assert not new_user.is_active
         assert new_user.first_name == "Juan"
         assert new_user.last_name == "Pérez"
         assert new_user.gender == "male"

@@ -1,6 +1,6 @@
 from django.shortcuts import render, get_object_or_404
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, DeleteView
-from django.contrib.auth.mixins import LoginRequiredMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.urls import reverse_lazy
 from django import forms as dj_forms
 
@@ -32,11 +32,14 @@ class FoodListView(LoginRequiredMixin, ListView):
         return context
 
 
-class FoodCreateView(LoginRequiredMixin, CreateView):
+class FoodCreateView(LoginRequiredMixin, UserPassesTestMixin, CreateView):
     model = Food
     form_class = FoodForm
     template_name = "nutrition/food_form.html"
     success_url = reverse_lazy("food_list")
+
+    def test_func(self):
+        return self.request.user.is_staff
 
 
 class FoodDetailView(LoginRequiredMixin, DetailView):
@@ -45,19 +48,25 @@ class FoodDetailView(LoginRequiredMixin, DetailView):
     context_object_name = "food"
 
 
-class FoodUpdateView(LoginRequiredMixin, UpdateView):
+class FoodUpdateView(LoginRequiredMixin, UserPassesTestMixin, UpdateView):
     model = Food
     form_class = FoodForm
     template_name = "nutrition/food_form.html"
+    
+    def test_func(self):
+        return self.request.user.is_staff
     
     def get_success_url(self):
         return reverse_lazy("food_detail", kwargs={"pk": self.object.pk})
 
 
-class FoodDeleteView(LoginRequiredMixin, DeleteView):
+class FoodDeleteView(LoginRequiredMixin, UserPassesTestMixin, DeleteView):
     model = Food
     template_name = "nutrition/food_confirm_delete.html"
     success_url = reverse_lazy("food_list")
+
+    def test_func(self):
+        return self.request.user.is_staff
 
 
 class RecipeListView(LoginRequiredMixin, ListView):

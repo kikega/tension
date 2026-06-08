@@ -175,6 +175,9 @@ class MeasurementSessionUpdateView(LoginRequiredMixin, UpdateView):
     template_name = "tracking/edit_measurement.html"
     success_url = reverse_lazy("history")
 
+    def get_queryset(self):
+        return MeasurementSession.objects.filter(user=self.request.user)
+
     def get_form_kwargs(self):
         kwargs = super().get_form_kwargs()
         kwargs["user"] = self.request.user

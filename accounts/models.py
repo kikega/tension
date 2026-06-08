@@ -72,3 +72,36 @@ class CustomUser(AbstractUser):
             bmr = 10 * weight + 6.25 * height - 5 * age - 161
             
         return int(bmr)
+
+
+class AccessRequest(models.Model):
+    STATUS_CHOICES = [
+        ('pending', 'Pendiente'),
+        ('approved', 'Aprobado'),
+        ('rejected', 'Rechazado'),
+    ]
+    user = models.OneToOneField(CustomUser, on_delete=models.CASCADE, related_name='access_request')
+    status = models.CharField(max_length=10, choices=STATUS_CHOICES, default='pending')
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ["-created_at"]
+        verbose_name = "Solicitud de Acceso"
+        verbose_name_plural = "Solicitudes de Acceso"
+
+    def approve(self):
+        self.status = 'approved'
+        self.user.is_active = True
+        self.user.save()
+        self.save()
+
+    def reject(self):
+        self.status = 'rejected'
+        self.user.is_active = False
+        self.user.save()
+        self.save()
+
+    def __str__(self):
+        return f"Solicitud de {self.user.email} - {self.get_status_display()}"
+

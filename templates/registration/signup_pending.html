@@ -1,0 +1,29 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Solicitud de Acceso Pendiente - Tension App{% endblock %}
+{% block body_class %}login-page{% endblock %}
+{% block content %}
+  <div class="login-wrapper py-5">
+    <div class="glass-card text-center" style="max-width: 550px;">
+      <img src="{% static 'imagenes/logo2.png' %}"
+           alt="Logo Tension App"
+           class="login-logo mb-4">
+      <h1 class="mb-4 text-white fw-bold">Tension App</h1>
+      <h3 class="mb-3 text-warning fw-bold">Solicitud Enviada</h3>
+      
+      <div class="my-4 py-3 px-4 rounded-3 text-start" style="background: rgba(255, 193, 7, 0.1); border: 1px solid rgba(255, 193, 7, 0.25);">
+        <p class="text-white mb-2 fw-semibold">Tu solicitud de acceso está pendiente de aprobación.</p>
+        <p class="text-white-50 small mb-0">
+          Un administrador del sistema ha recibido tu solicitud de registro y validará tus datos para darte de alta. 
+          Recibirás una notificación por correo electrónico una vez que tu cuenta sea aprobada y activada.
+        </p>
+      </div>
+      
+      <p class="text-white-50 small mb-4">
+        Gracias por registrarte en nuestra plataforma de salud y seguimiento físico.
+      </p>
+      
+      <a href="{% url 'login' %}" class="btn btn-accent w-100 py-3">Volver al Inicio</a>
+    </div>
+  </div>
+{% endblock %}

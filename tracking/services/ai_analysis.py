@@ -286,6 +286,56 @@ def generate_insights(user):
                 "text": f"Comer fuera de casa está aumentando tu presión sistólica media en +{sys_food_coef:.1f} mmHg. ¡Vigila el exceso de sal en restaurantes!"
             })
 
+    # 6b. Impacto de comer fuera en el peso y calorías
+    df_ml_eatout = df_master.drop_nulls(subset=['eat_out_count', 'weight_diff_next'])
+    has_eaten_out_recently = 'eat_out_count' in df_master.columns and df_master.filter(pl.col('eat_out_count') > 0).height > 0
+    
+    if df_ml_eatout.height >= 5:
+        # Calcular promedio de calorías en días de comer fuera vs en casa
+        days_eatout = df_ml_eatout.filter(pl.col('eat_out_count') > 0)
+        days_home = df_ml_eatout.filter(pl.col('eat_out_count') == 0)
+        
+        avg_cal_eo = days_eatout.select('daily_calories').mean().item() if days_eatout.height > 0 else 0.0
+        avg_cal_home = days_home.select('daily_calories').mean().item() if days_home.height > 0 else 0.0
+        
+        # Regresión para estimar impacto directo del número de comidas fuera en la variación de peso
+        X_eo = df_ml_eatout.select('eat_out_count').to_numpy()
+        y_eo = df_ml_eatout.select('weight_diff_next').to_numpy().ravel()
+        
+        reg_eo = LinearRegression()
+        reg_eo.fit(X_eo, y_eo)
+        coef_eo = reg_eo.coef_[0]
+        
+        if coef_eo > 0.0:
+            gramos_por_comida_fuera = coef_eo * 1000
+            diff_cal = avg_cal_eo - avg_cal_home if avg_cal_home > 0 else 0
+            
+            text_insight = f"Comer fuera de casa se asocia con un incremento estimado de {gramos_por_comida_fuera:.0f}g en tu peso al día siguiente."
+            if diff_cal > 0:
+                text_insight += f" En promedio, consumes {diff_cal:.0f} kcal más los días que comes fuera de casa ({avg_cal_eo:.0f} kcal vs {avg_cal_home:.0f} kcal)."
+            
+            insights.append({
+                "type": "warning",
+                "icon": "bi-exclamation-triangle",
+                "title": "Impacto de Comer Fuera de Casa",
+                "text": text_insight
+            })
+        elif has_eaten_out_recently:
+            insights.append({
+                "type": "info",
+                "icon": "bi-info-circle",
+                "title": "Comidas Fuera de Casa",
+                "text": "Has registrado comidas fuera de casa. La IA está analizando cómo estas comidas afectan tu peso y balance calórico diario."
+            })
+    elif has_eaten_out_recently:
+        # Fallback si no hay suficientes datos para la regresión pero sí hay registros de comer fuera
+        insights.append({
+            "type": "warning",
+            "icon": "bi-exclamation-triangle",
+            "title": "Impacto de Comer Fuera de Casa",
+            "text": "Comer fuera de casa incrementa significativamente tu ingesta calórica diaria (estimado en +500 kcal y un 30% extra de grasa/sodio por comida). Procura limitar estas comidas para evitar desvíos en tu peso."
+        })
+
     # 7. Consejo Predictivo Personalizado para Peso (Consejo diario)
     target_weekly_loss = float(user.target_weekly_loss_kg or 0.5)
     # 1 kg de grasa = ~7700 kcal. Déficit diario requerido = (target_weekly_loss * 7700) / 7

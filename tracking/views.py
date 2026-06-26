@@ -442,9 +442,9 @@ class FoodLogCreateView(LoginRequiredMixin, CreateView):
         data = super().get_context_data(**kwargs)
         from .forms import FoodLogItemFormSet
         if self.request.POST:
-            data['items'] = FoodLogItemFormSet(self.request.POST)
+            data['items'] = FoodLogItemFormSet(self.request.POST, form_kwargs={'user': self.request.user})
         else:
-            data['items'] = FoodLogItemFormSet()
+            data['items'] = FoodLogItemFormSet(form_kwargs={'user': self.request.user})
         return data
 
     def form_valid(self, form):
@@ -473,9 +473,9 @@ class FoodLogUpdateView(LoginRequiredMixin, UpdateView):
         data = super().get_context_data(**kwargs)
         from .forms import FoodLogItemFormSet
         if self.request.POST:
-            data['items'] = FoodLogItemFormSet(self.request.POST, instance=self.object)
+            data['items'] = FoodLogItemFormSet(self.request.POST, instance=self.object, form_kwargs={'user': self.request.user})
         else:
-            data['items'] = FoodLogItemFormSet(instance=self.object)
+            data['items'] = FoodLogItemFormSet(instance=self.object, form_kwargs={'user': self.request.user})
         return data
 
     def form_valid(self, form):

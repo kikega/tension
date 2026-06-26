@@ -452,3 +452,75 @@ class TestRecipeMultiUser:
         response_delete = client.post(url_delete)
         assert response_delete.status_code == 404
 
+
+@pytest.mark.django_db
+class TestFoodLogAndEatenOut:
+    def test_eaten_out_calorie_adjustment(self, test_user):
+        """Test that FoodLog get_total_calories applies correct penalty/adjustment when eaten_out is True"""
+        from nutrition.models import Food
+        from tracking.models import FoodLog, FoodLogItem
+
+        # Food with 100 kcal per 100g
+        food = Food.objects.create(name="Arroz", energy_kcal=Decimal("100.0"))
+        
+        # 1. eaten_out = False (Normal calories)
+        log_normal = FoodLog.objects.create(user=test_user, date=timezone.localdate(), meal_type="Almuerzo", eaten_out=False)
+        FoodLogItem.objects.create(food_log=log_normal, food=food, quantity_g=Decimal("200.0")) # 200 kcal
+        assert log_normal.get_total_calories() == 200.0
+
+        # 2. eaten_out = True with food items (Calculated: 200 kcal * 1.3 + 500 = 760 kcal)
+        log_eaten_out = FoodLog.objects.create(user=test_user, date=timezone.localdate(), meal_type="Almuerzo", eaten_out=True)
+        FoodLogItem.objects.create(food_log=log_eaten_out, food=food, quantity_g=Decimal("200.0"))
+        assert log_eaten_out.get_total_calories() == 760.0
+
+        # 3. eaten_out = True with no food items (Minimum 800 kcal fallback)
+        log_empty_eaten_out = FoodLog.objects.create(user=test_user, date=timezone.localdate(), meal_type="Almuerzo", eaten_out=True)
+        assert log_empty_eaten_out.get_total_calories() == 800.0
+
+    def test_recipe_filtering_in_formset(self, client, test_user):
+        """Test that the food_log_add view renders the formset filtering recipes to only user-owned and global ones"""
+        from nutrition.models import Recipe
+        other_user = User.objects.create_user(email="other@example.com", password="password")
+        
+        # Create recipes
+        recipe_global = Recipe.objects.create(name="Receta Global", servings=2)
+        recipe_user = Recipe.objects.create(name="Mi Receta", user=test_user, servings=1)
+        recipe_other = Recipe.objects.create(name="Receta Ajena", user=other_user, servings=3)
+
+        client.force_login(test_user)
+        response = client.get(reverse("food_log_add"))
+        assert response.status_code == 200
+        
+        # Check that recipe queryset in context items formset contains global and user recipes, but not other
+        formset = response.context["items"]
+        recipe_field = formset.forms[0].fields["recipe"]
+        queryset = list(recipe_field.queryset)
+        
+        assert recipe_global in queryset
+        assert recipe_user in queryset
+        assert recipe_other not in queryset
+
+    def test_eat_out_ai_insights(self, test_user):
+        """Test that generate_insights correctly incorporates eating out analysis and recommendations"""
+        from tracking.services.ai_analysis import generate_insights
+        from tracking.models import FoodLog, WeightMeasurement
+        
+        # Create some baseline weight data
+        for i in range(10):
+            d = timezone.localdate() - timezone.timedelta(days=10-i)
+            WeightMeasurement.objects.create(user=test_user, weight=Decimal(str(80.0 - i * 0.1)), date=d)
+            
+        # Create food log with eating out
+        FoodLog.objects.create(user=test_user, date=timezone.localdate() - timezone.timedelta(days=2), meal_type="Cena", eaten_out=True)
+        
+        insights_data = generate_insights(test_user)
+        assert "insights" in insights_data
+        
+        # Since we have less than 5 weight differences + eating out data points, the fallback warning should trigger
+        has_eat_out_insight = any(
+            insight["title"] in ["Impacto de Comer Fuera de Casa", "Comidas Fuera de Casa"]
+            for insight in insights_data["insights"]
+        )
+        assert has_eat_out_insight
+
+

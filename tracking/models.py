@@ -294,6 +294,11 @@ class FoodLog(models.Model):
                 totals["proteins"] += float(recipe_nutrition.get('proteins_g', 0) or 0) * factor
                 totals["lipids"] += float(recipe_nutrition.get('lipids_g', 0) or 0) * factor
                 totals["carbs"] += float(recipe_nutrition.get('carbohydrates_g', 0) or 0) * factor
+        if self.eaten_out:
+            if totals["calories"] > 0:
+                totals["calories"] = totals["calories"] * 1.30 + 500.0
+            else:
+                totals["calories"] = 800.0
         return totals
 
     def get_total_calories(self) -> float:

@@ -336,16 +336,7 @@
                         <div class="col-md-4">
                             <div class="bg-dark border border-secondary rounded p-3 h-100">
                                 <h6 class="text-warning mb-2">🌅 Desayuno ({{ day.distribution_pct.desayuno }}%)</h6>
-                                <div class="small text-muted mb-2">{{ day.meals.desayuno.advice }}</div>
-                                <table class="table table-sm table-dark mb-0 small">
-                                    <thead><tr><th>Alimento</th><th class="text-end">Cant.</th></tr></thead>
-                                    <tbody>
-                                        {% for food in day.meals.desayuno.foods %}
-                                        <tr><td>{{ food.name }}</td><td class="text-end">{{ food.qty }}{{ food.unit }}</td></tr>
-                                        {% endfor %}
-                                    </tbody>
-                                </table>
-                                <hr class="border-secondary my-2">
+                                <div class="small text-muted mb-3">{{ day.meals.desayuno.advice }}</div>
                                 <div class="small d-flex justify-content-between">
                                     <span>P: <strong class="text-danger">{{ day.meals.desayuno.macros.protein }}g</strong></span>
                                     <span>G: <strong class="text-info">{{ day.meals.desayuno.macros.fat }}g</strong></span>

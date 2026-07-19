@@ -16,15 +16,15 @@
           <div class="alert alert-danger py-2 px-3 small rounded-3">{{ form.non_field_errors }}</div>
         {% endif %}
         <div class="form-floating mb-3 text-start">
-          <input type="text"
+          <input type="email"
                  class="form-control {% if form.username.errors %}is-invalid{% endif %}"
                  id="id_username"
                  name="username"
-                 placeholder="Usuario"
+                 placeholder="correo@ejemplo.com"
                  required
                  autocomplete="username"
                  autofocus>
-          <label for="id_username">Usuario</label>
+          <label for="id_username">Correo electrónico</label>
           {% if form.username.errors %}<div class="invalid-feedback">{{ form.username.errors|striptags }}</div>{% endif %}
         </div>
         <div class="form-floating mb-4 text-start">

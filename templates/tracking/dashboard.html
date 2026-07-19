@@ -4,6 +4,10 @@
   <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h2">Dashboard</h1>
     <div class="btn-toolbar mb-2 mb-md-0 gap-2">
+      <a href="{% url 'export_csv' %}"
+         class="btn btn-sm btn-outline-info" title="Exportar datos a CSV">
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/></svg>
+      </a>
       <a href="{% url 'daily_activity_add' %}"
          class="btn btn-sm btn-outline-success">+ Actividad Watch</a>
       <a href="{% url 'add_measurement' %}"
@@ -211,11 +215,10 @@
 {% block extra_js %}
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
-  const ctx = document.getElementById('mainChart').getContext('2d');
-  
   const labels = {{ chart_labels|safe }};
-  const bpData = {{ bp_data|safe }}; // Format: [[dia, sys], [dia, sys]...] for floating bars
+  const bpData = {{ bp_data|safe }};
   const pulseData = {{ pulse_data|safe }};
+  const ctx = document.getElementById('mainChart').getContext('2d');
 
   new Chart(ctx, {
     type: 'bar',
@@ -278,39 +281,43 @@
   });
 
   // --- Weight Chart ---
-  const weightCtx = document.getElementById('weightChart').getContext('2d');
+  const weightCtx = document.getElementById('weightChart')?.getContext('2d');
   const weightLabels = {{ weight_labels|safe }};
   const weightDataValues = {{ weight_data|safe }};
 
-  new Chart(weightCtx, {
-    type: 'line',
-    data: {
-      labels: weightLabels,
-      datasets: [{
-        label: 'Peso (kg)',
-        data: weightDataValues,
-        borderColor: 'rgba(75, 192, 192, 1)',
-        backgroundColor: 'rgba(75, 192, 192, 0.2)',
-        borderWidth: 2,
-        fill: true,
-        tension: 0.3,
-        pointBackgroundColor: 'rgba(75, 192, 192, 1)'
-      }]
-    },
-    options: {
-      responsive: true,
-      scales: {
-        y: {
-          beginAtZero: false,
-          suggestedMin: Math.min(...weightDataValues) - 2,
-          suggestedMax: Math.max(...weightDataValues) + 2,
-          title: {
-            display: true,
-            text: 'Peso (kg)'
+  if (weightCtx && weightDataValues.length > 0) {
+    const wMin = Math.min(...weightDataValues);
+    const wMax = Math.max(...weightDataValues);
+    new Chart(weightCtx, {
+      type: 'line',
+      data: {
+        labels: weightLabels,
+        datasets: [{
+          label: 'Peso (kg)',
+          data: weightDataValues,
+          borderColor: 'rgba(75, 192, 192, 1)',
+          backgroundColor: 'rgba(75, 192, 192, 0.2)',
+          borderWidth: 2,
+          fill: true,
+          tension: 0.3,
+          pointBackgroundColor: 'rgba(75, 192, 192, 1)'
+        }]
+      },
+      options: {
+        responsive: true,
+        scales: {
+          y: {
+            beginAtZero: false,
+            suggestedMin: Math.min(...weightDataValues) - 2,
+            suggestedMax: Math.max(...weightDataValues) + 2,
+            title: {
+              display: true,
+              text: 'Peso (kg)'
+            }
           }
         }
       }
-    }
-  });
+    });
+  }
   </script>
 {% endblock %}

@@ -1,14 +1,11 @@
+from django.core.cache import cache
 from .models import AccessRequest
 
 def pending_requests(request):
-    """
-    Context processor to add the number of pending access requests
-    to the template context for staff/admin users.
-    """
     if request.user.is_authenticated and request.user.is_staff:
-        return {
-            'pending_requests_count': AccessRequest.objects.filter(status='pending').count()
-        }
-    return {
-        'pending_requests_count': 0
-    }
+        count = cache.get("pending_requests_count")
+        if count is None:
+            count = AccessRequest.objects.filter(status='pending').count()
+            cache.set("pending_requests_count", count, 60)
+        return {"pending_requests_count": count}
+    return {"pending_requests_count": 0}

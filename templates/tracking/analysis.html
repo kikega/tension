@@ -311,8 +311,6 @@
     <script>
 document.addEventListener("DOMContentLoaded", function() {
     const ctx = document.getElementById('analysisChart').getContext('2d');
-    
-    // Parse JSON safely
     const labels = JSON.parse('{{ chart_labels|escapejs }}');
     const sysData = JSON.parse('{{ sys_data|escapejs }}');
     const diaData = JSON.parse('{{ dia_data|escapejs }}');
@@ -321,6 +319,10 @@ document.addEventListener("DOMContentLoaded", function() {
     const balanceData = JSON.parse('{{ balance_data|escapejs }}');
     const intakeData = JSON.parse('{{ intake_data|escapejs }}');
     const expenditureData = JSON.parse('{{ expenditure_data|escapejs }}');
+    const cdrRefs = JSON.parse('{{ nutritional_references|escapejs|default:"{}" }}');
+    const timelineLabelsRaw = JSON.parse('{{ timeline_labels|escapejs|default:"[]" }}');
+    const weightDataRaw = JSON.parse('{{ ai_weight_data|escapejs|default:"[]" }}');
+    const sportDataRaw = JSON.parse('{{ sport_data|escapejs|default:"[]" }}');
 
     new Chart(ctx, {
         type: 'line',
@@ -391,9 +393,6 @@ document.addEventListener("DOMContentLoaded", function() {
     });
 
     const scatterCtx = document.getElementById('scatterChart')?.getContext('2d');
-    const timelineLabelsRaw = JSON.parse('{{ timeline_labels|escapejs|default:"[]" }}');
-    const weightDataRaw = JSON.parse('{{ ai_weight_data|escapejs|default:"[]" }}');
-    const sportDataRaw = JSON.parse('{{ sport_data|escapejs|default:"[]" }}');
 
     if (scatterCtx && timelineLabelsRaw && timelineLabelsRaw.length > 0) {
         
@@ -461,8 +460,6 @@ document.addEventListener("DOMContentLoaded", function() {
             }
         });
     }
-    // Lógica para CDR Nutricional
-    const cdrRefs = JSON.parse('{{ nutritional_references|escapejs|default:"{}" }}');
     const cdrSelect = document.getElementById('cdrGenderSelect');
     
     function updateCdrTable() {

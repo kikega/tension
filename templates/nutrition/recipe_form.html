@@ -1,13 +1,14 @@
 {% extends "base.html" %}
-{% block title %}Nueva Receta - Salud App{% endblock %}
+{% block title %}{% if object %}Editar Receta{% else %}Nueva Receta{% endif %} - Salud App{% endblock %}
 {% block content %}
     <div class="row">
-        <div class="col-md-7 offset-md-2">
+        <div class="col-md-8 offset-md-2">
             <div class="card">
-                <div class="card-header">Nueva Receta</div>
+                <div class="card-header">{% if object %}Editar Receta{% else %}Nueva Receta{% endif %}</div>
                 <div class="card-body">
                     <form method="post">
                         {% csrf_token %}
+                        {{ form.non_field_errors }}
                         <div class="mb-3">
                             <label class="form-label">Nombre</label>
                             {{ form.name }}
@@ -24,14 +25,70 @@
                             <label class="form-label">Raciones</label>
                             {{ form.servings }}
                         </div>
-                        <p class="text-muted small">
-                            💡 Los ingredientes se pueden añadir desde el panel de administración una vez guardada la receta.
-                        </p>
-                        <button type="submit" class="btn btn-warning w-100">Guardar Receta</button>
+
+                        <h5 class="mt-4 mb-3 border-bottom pb-2">Ingredientes</h5>
+                        {{ ingredients.management_form }}
+                        <div id="ingredient-list">
+                            {% for ingredient_form in ingredients %}
+                            <div class="row g-2 mb-2 ingredient-row">
+                                <div class="col-md-5">
+                                    {{ ingredient_form.id }}
+                                    {{ ingredient_form.food }}
+                                </div>
+                                <div class="col-md-4">
+                                    {{ ingredient_form.quantity_g }}
+                                </div>
+                                <div class="col-md-2 d-flex align-items-center">
+                                    {% if ingredient_form.DELETE %}
+                                    <div class="form-check">
+                                        {{ ingredient_form.DELETE }}
+                                        <label class="form-check-label text-danger small" for="{{ ingredient_form.DELETE.id_for_label }}">Eliminar</label>
+                                    </div>
+                                    {% endif %}
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <button type="button" class="btn btn-sm btn-outline-secondary mb-3" id="add-ingredient-btn">
+                            + Añadir Ingrediente
+                        </button>
+
+                        <button type="submit" class="btn btn-warning w-100 mt-2">
+                            {% if object %}Guardar Cambios{% else %}Guardar Receta{% endif %}
+                        </button>
                     </form>
                 </div>
             </div>
-            <a href="{% url 'recipe_list' %}" class="btn btn-link mt-2">← Volver</a>
+            <a href="{% url 'recipe_list' %}" class="btn btn-link mt-2">&larr; Volver</a>
         </div>
     </div>
 {% endblock content %}
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const addBtn = document.getElementById('add-ingredient-btn');
+    const list = document.getElementById('ingredient-list');
+    const totalForms = document.querySelector('#id_ingredients-TOTAL_FORMS');
+    if (!addBtn || !list || !totalForms) return;
+
+    addBtn.addEventListener('click', function() {
+        const current = parseInt(totalForms.value);
+        const template = list.querySelector('.ingredient-row').cloneNode(true);
+        template.querySelectorAll('input, select, textarea').forEach(function(el) {
+            const name = el.getAttribute('name');
+            const id = el.getAttribute('id');
+            if (name) el.setAttribute('name', name.replace(/-(\d+)-/, '-' + current + '-'));
+            if (id) el.setAttribute('id', id.replace(/-(\d+)-/, '-' + current + '-'));
+            if (el.type !== 'hidden') el.value = '';
+            if (el.type === 'checkbox') el.checked = false;
+        });
+        template.querySelectorAll('label').forEach(function(el) {
+            const htmlFor = el.getAttribute('for');
+            if (htmlFor) el.setAttribute('for', htmlFor.replace(/-(\d+)-/, '-' + current + '-'));
+        });
+        list.appendChild(template);
+        totalForms.value = current + 1;
+    });
+});
+</script>
+{% endblock extra_js %}

@@ -2,10 +2,10 @@ from django.shortcuts import render, get_object_or_404
 from django.views.generic import ListView, CreateView, DetailView, UpdateView, DeleteView
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.urls import reverse_lazy
-from django import forms as dj_forms
+from django.db import transaction
 
 from .models import Food, FoodCategory, Recipe, RecipeIngredient
-from .forms import FoodForm, RecipeForm
+from .forms import FoodForm, RecipeForm, RecipeIngredientFormSet
 
 
 class FoodListView(LoginRequiredMixin, ListView):
@@ -86,8 +86,25 @@ class RecipeCreateView(LoginRequiredMixin, CreateView):
     template_name = "nutrition/recipe_form.html"
     success_url = reverse_lazy("recipe_list")
 
+    def get_context_data(self, **kwargs):
+        data = super().get_context_data(**kwargs)
+        if self.request.POST:
+            data["ingredients"] = RecipeIngredientFormSet(self.request.POST)
+        else:
+            data["ingredients"] = RecipeIngredientFormSet()
+        return data
+
     def form_valid(self, form):
-        form.instance.user = self.request.user
+        context = self.get_context_data()
+        ingredients = context["ingredients"]
+        with transaction.atomic():
+            form.instance.user = self.request.user
+            self.object = form.save()
+            if ingredients.is_valid():
+                ingredients.instance = self.object
+                ingredients.save()
+            else:
+                return self.form_invalid(form)
         return super().form_valid(form)
 
 
@@ -120,6 +137,26 @@ class RecipeUpdateView(LoginRequiredMixin, UpdateView):
 
     def get_queryset(self):
         return Recipe.objects.filter(user=self.request.user)
+
+    def get_context_data(self, **kwargs):
+        data = super().get_context_data(**kwargs)
+        if self.request.POST:
+            data["ingredients"] = RecipeIngredientFormSet(self.request.POST, instance=self.object)
+        else:
+            data["ingredients"] = RecipeIngredientFormSet(instance=self.object)
+        return data
+
+    def form_valid(self, form):
+        context = self.get_context_data()
+        ingredients = context["ingredients"]
+        with transaction.atomic():
+            self.object = form.save()
+            if ingredients.is_valid():
+                ingredients.instance = self.object
+                ingredients.save()
+            else:
+                return self.form_invalid(form)
+        return super().form_valid(form)
 
     def get_success_url(self):
         return reverse_lazy("recipe_detail", kwargs={"pk": self.object.pk})

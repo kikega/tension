@@ -32,4 +32,6 @@ urlpatterns = [
     path("food/history/daily/<str:date>/", views.DailyFoodLogDetailView.as_view(), name="food_daily_detail"),
     # Análisis
     path("analysis/", views.AnalysisView.as_view(), name="analysis"),
+    # Exportación
+    path("export/csv/", views.ExportDataCSVView.as_view(), name="export_csv"),
 ]

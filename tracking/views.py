@@ -1,12 +1,14 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.views.generic import TemplateView, CreateView, ListView, UpdateView
+from django.views.generic import TemplateView, CreateView, ListView, UpdateView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.db import transaction
 from django.core.serializers.json import DjangoJSONEncoder
+from django.http import HttpResponse
 from django.utils import timezone
 from datetime import timedelta
 import json
+import csv
 
 from .models import (
     MeasurementSession,
@@ -30,6 +32,7 @@ from .forms import (
     FoodLogForm,
     DailyActivityLogForm,
 )
+from .services.helpers import get_bmr_for_user
 
 
 class DashboardView(LoginRequiredMixin, TemplateView):
@@ -96,6 +99,16 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             steps_today = daily_log.steps
             dist_today = float(daily_log.distance_km)
 
+        # Si hoy no hay datos de actividad, mostrar el último día con datos reales
+        if steps_today == 0 and dist_today == 0.0:
+            last_log = DailyActivityLog.objects.filter(
+                user=self.request.user
+            ).exclude(steps=0, distance_km=0.0).order_by("-date").first()
+            if last_log:
+                steps_today = last_log.steps
+                dist_today = float(last_log.distance_km)
+                active_cal = last_log.active_calories
+
         # Ingesta de hoy
         food_logs_today = FoodLog.objects.filter(user=self.request.user, date=today)
         total_intake_today = sum(log.get_total_calories() for log in food_logs_today)
@@ -111,22 +124,23 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context["has_daily_log_today"] = (daily_log is not None)
 
         # --- Food Data (Last 10 Days) ---
-        food_dates = FoodLog.objects.filter(user=self.request.user).values_list("date", flat=True).distinct().order_by("-date")[:10]
+        food_qs = FoodLog.objects.filter(user=self.request.user).prefetch_related(
+            "items__food", "items__recipe"
+        )
+        food_dates = food_qs.values_list("date", flat=True).distinct().order_by("-date")[:10]
         recent_food_days = []
         if food_dates:
-            recent_foods_qs = FoodLog.objects.filter(user=self.request.user, date__in=food_dates).prefetch_related("items__food", "items__recipe")
-            # Iterate using the ordered dates
+            food_by_date = {}
+            for log in food_qs.filter(date__in=list(food_dates)):
+                food_by_date.setdefault(log.date, []).append(log)
             for d in food_dates:
-                d_foods = [f for f in recent_foods_qs if f.date == d]
+                d_foods = food_by_date.get(d, [])
                 totals = {"calories": 0.0, "proteins": 0.0, "lipids": 0.0, "carbs": 0.0}
                 for log in d_foods:
                     macros = log.get_nutritional_totals()
                     for k in totals:
                         totals[k] += macros[k]
-                recent_food_days.append({
-                    "date": d,
-                    "totals": totals
-                })
+                recent_food_days.append({"date": d, "totals": totals})
         context["recent_food_days"] = recent_food_days
 
         return context
@@ -159,11 +173,10 @@ class AddMeasurementView(LoginRequiredMixin, CreateView):
             self.object = form.save()
             if readings.is_valid():
                 readings.instance = self.object
-                saved_readings = readings.save()
-                for i, reading in enumerate(saved_readings, start=1):
+                readings.save()
+                for i, reading in enumerate(self.object.readings.all(), start=1):
                     reading.order = i
                     reading.save(update_fields=["order"])
-                self.object.calculate_averages()
             else:
                 return self.form_invalid(form)
         return super().form_valid(form)
@@ -198,12 +211,10 @@ class MeasurementSessionUpdateView(LoginRequiredMixin, UpdateView):
             form.instance.user = self.request.user
             self.object = form.save()
             if readings.is_valid():
-                saved_readings = readings.save()
-                # Ensure order is maintained
+                readings.save()
                 for i, reading in enumerate(self.object.readings.all(), start=1):
                     reading.order = i
                     reading.save(update_fields=["order"])
-                self.object.calculate_averages()
             else:
                 return self.form_invalid(form)
         return super().form_valid(form)
@@ -561,27 +572,54 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
         user = self.request.user
         thirty_days_ago = timezone.now().date() - timedelta(days=30)
 
-        sessions = MeasurementSession.objects.filter(user=user, date__gte=thirty_days_ago).order_by("date")
-        weights = WeightMeasurement.objects.filter(user=user, date__gte=thirty_days_ago).order_by("date")
-        activities = PhysicalActivityLog.objects.filter(user=user, date__gte=thirty_days_ago).order_by("date")
-        foods = FoodLog.objects.filter(user=user, date__gte=thirty_days_ago).order_by("date")
-        daily_activities = DailyActivityLog.objects.filter(user=user, date__gte=thirty_days_ago).order_by("date")
+        sessions = list(MeasurementSession.objects.filter(user=user, date__gte=thirty_days_ago).order_by("date"))
+        weights = list(WeightMeasurement.objects.filter(user=user, date__gte=thirty_days_ago).order_by("date"))
+        activities = list(PhysicalActivityLog.objects.filter(user=user, date__gte=thirty_days_ago).order_by("date").select_related("activity"))
+        daily_activities = list(DailyActivityLog.objects.filter(user=user, date__gte=thirty_days_ago).order_by("date"))
 
-        # Serialize simple list of dictionaries for frontend charts
+        # Prefetch all food data in 2 queries total
+        foods = list(
+            FoodLog.objects.filter(user=user, date__gte=thirty_days_ago)
+            .prefetch_related("items__food", "items__recipe__ingredients__food")
+            .order_by("date")
+        )
+        # Precompute nutrition for all recipes used in this period
+        from nutrition.models import Recipe
+        recipe_ids = set()
+        for f in foods:
+            for item in f.items.all():
+                if item.recipe_id:
+                    recipe_ids.add(item.recipe_id)
+        recipe_cache = {}
+        if recipe_ids:
+            for recipe in Recipe.objects.filter(id__in=recipe_ids).prefetch_related("ingredients__food"):
+                recipe_cache[recipe.id] = recipe
+
+        # Group food logs by date for O(1) lookups
+        foods_by_date = {}
+        for f in foods:
+            foods_by_date.setdefault(f.date, []).append(f)
+
         dates_set = set()
-        for qs in [sessions, weights, activities, foods, daily_activities]:
-            for obj in qs:
-                dates_set.add(obj.date)
-                
-        sorted_dates = sorted(list(dates_set))
-        
-        # Build a daily aggregation
+        for obj in sessions + weights + activities + daily_activities + foods:
+            dates_set.add(obj.date)
+
+        sorted_dates = sorted(dates_set)
+
+        MICRO_FIELDS = [
+            "cholesterol_mg", "fiber_g", "calcium_mg", "iron_mg", "iodine_ug",
+            "magnesium_mg", "zinc_mg", "sodium_mg", "potassium_mg", "phosphorus_mg",
+            "selenium_ug", "thiamine_mg", "riboflavin_mg", "vitamin_b6_mg",
+            "folate_ug", "vitamin_b12_ug", "vitamin_c_mg", "vitamin_a_ug",
+            "vitamin_d_ug", "vitamin_e_mg",
+        ]
+
         daily_data = []
         for d in sorted_dates:
             d_sessions = [s for s in sessions if s.date == d]
             d_weights = [w for w in weights if w.date == d]
             d_acts = [a for a in activities if a.date == d]
-            d_foods = [f for f in foods if f.date == d]
+            d_foods = foods_by_date.get(d, [])
             d_daily_acts = [da for da in daily_activities if da.date == d]
 
             daily_nutrition = {field: 0.0 for field in [
@@ -591,44 +629,43 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
                 "riboflavin_mg", "vitamin_b6_mg", "folate_ug", "vitamin_b12_ug", "vitamin_c_mg",
                 "vitamin_a_ug", "vitamin_d_ug", "vitamin_e_mg"
             ]}
-            
+
             for food_log in d_foods:
                 totals = food_log.get_nutritional_totals()
                 daily_nutrition["energy_kcal"] += totals.get("calories", 0)
                 daily_nutrition["proteins_g"] += totals.get("proteins", 0)
                 daily_nutrition["lipids_g"] += totals.get("lipids", 0)
                 daily_nutrition["carbohydrates_g"] += totals.get("carbs", 0)
-                
+
                 for item in food_log.items.all():
                     if item.food and item.quantity_g is not None:
                         factor = float(item.quantity_g) / 100.0
-                        for field in daily_nutrition.keys():
-                            if field not in ["energy_kcal", "proteins_g", "lipids_g", "carbohydrates_g"]:
-                                daily_nutrition[field] += float(getattr(item.food, field) or 0) * factor
+                        for field in MICRO_FIELDS:
+                            daily_nutrition[field] += float(getattr(item.food, field) or 0) * factor
                     elif item.recipe and item.servings is not None:
-                        factor = float(item.servings) / float(item.recipe.servings) if item.recipe.servings else float(item.servings)
-                        rec_nut = item.recipe.calculate_nutrition()
-                        for field in daily_nutrition.keys():
-                            if field not in ["energy_kcal", "proteins_g", "lipids_g", "carbohydrates_g"]:
+                        recipe = recipe_cache.get(item.recipe_id)
+                        if recipe:
+                            factor = float(item.servings) / float(recipe.servings) if recipe.servings else float(item.servings)
+                            rec_nut = recipe.calculate_nutrition()
+                            for field in MICRO_FIELDS:
                                 daily_nutrition[field] += float(rec_nut.get(field, 0) or 0) * factor
 
-            # Gasto energético
             if d_daily_acts:
-                resting_c = d_daily_acts[0].resting_calories
-                active_c = d_daily_acts[0].active_calories
-                steps_c = d_daily_acts[0].steps
-                dist_c = float(d_daily_acts[0].distance_km)
-                extra_exercise_c = d_daily_acts[0].extra_exercise_calories
-                total_burned = d_daily_acts[0].get_total_calories_burned()
+                da = d_daily_acts[0]
+                resting_c = da.resting_calories
+                active_c = da.active_calories
+                steps_c = da.steps
+                dist_c = float(da.distance_km)
+                extra_exercise_c = da.extra_exercise_calories
+                total_burned = da.get_total_calories_burned()
             else:
-                # Estimación fallback si no se subieron datos del Apple Watch
                 w_val = 70.0
                 w_meas = [w for w in weights if w.date <= d]
                 if w_meas:
                     w_val = float(w_meas[-1].weight)
-                elif weights.exists():
+                elif weights:
                     w_val = float(weights[0].weight)
-                
+
                 resting_c = user.calculate_bmr(w_val)
                 active_c = 0
                 steps_c = 0
@@ -650,7 +687,6 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
                 "balance": caloric_balance,
                 "intake": total_intake,
                 "expenditure": total_burned,
-                # For BP charts
                 "avg_sys": sum(s.avg_systolic for s in d_sessions if s.avg_systolic) / len(d_sessions) if d_sessions and any(s.avg_systolic for s in d_sessions) else None,
                 "avg_dia": sum(s.avg_diastolic for s in d_sessions if s.avg_diastolic) / len(d_sessions) if d_sessions and any(s.avg_diastolic for s in d_sessions) else None,
             })
@@ -723,21 +759,9 @@ class DailyActivityLogCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         form.instance.user = self.request.user
-        
-        # Si no se introduce resting_calories, calcular basándonos en TMB (BMR) del usuario
         if not form.instance.resting_calories or form.instance.resting_calories == 0:
-            last_weight_measurement = WeightMeasurement.objects.filter(
-                user=self.request.user,
-                date__lte=form.instance.date
-            ).order_by("-date", "-created_at").first()
-            if not last_weight_measurement:
-                last_weight_measurement = WeightMeasurement.objects.filter(
-                    user=self.request.user
-                ).order_by("date", "created_at").first()
-            
-            weight = float(last_weight_measurement.weight) if last_weight_measurement else 70.0
-            form.instance.resting_calories = self.request.user.calculate_bmr(weight)
-            
+            bmr, _ = get_bmr_for_user(self.request.user, date=form.instance.date)
+            form.instance.resting_calories = bmr
         return super().form_valid(form)
 
 
@@ -751,19 +775,36 @@ class DailyActivityLogUpdateView(LoginRequiredMixin, UpdateView):
         return DailyActivityLog.objects.filter(user=self.request.user)
 
     def form_valid(self, form):
-        # Si no se introduce resting_calories, calcular basándonos en TMB (BMR) del usuario
         if not form.instance.resting_calories or form.instance.resting_calories == 0:
-            last_weight_measurement = WeightMeasurement.objects.filter(
-                user=self.request.user,
-                date__lte=form.instance.date
-            ).order_by("-date", "-created_at").first()
-            if not last_weight_measurement:
-                last_weight_measurement = WeightMeasurement.objects.filter(
-                    user=self.request.user
-                ).order_by("date", "created_at").first()
-            
-            weight = float(last_weight_measurement.weight) if last_weight_measurement else 70.0
-            form.instance.resting_calories = self.request.user.calculate_bmr(weight)
-            
+            bmr, _ = get_bmr_for_user(self.request.user, date=form.instance.date)
+            form.instance.resting_calories = bmr
         return super().form_valid(form)
+
+
+class ExportDataCSVView(LoginRequiredMixin, View):
+    def get(self, request):
+        response = HttpResponse(content_type="text/csv; charset=utf-8")
+        response["Content-Disposition"] = "attachment; filename=tension_export.csv"
+        writer = csv.writer(response)
+        writer.writerow(["Fecha", "Tipo", "Sistólica", "Diastólica", "Pulsaciones",
+                         "Peso(kg)", "MasaMagra(kg)", "MasaGrasa(kg)",
+                         "CaloríasIngeridas", "CaloríasActivas", "Pasos"])
+
+        sessions = MeasurementSession.objects.filter(user=request.user).order_by("-date")
+        weights = {w.date: w for w in WeightMeasurement.objects.filter(user=request.user).order_by("-date")}
+        daily_logs = {d.date: d for d in DailyActivityLog.objects.filter(user=request.user).order_by("-date")}
+
+        for s in sessions:
+            w = weights.get(s.date)
+            d = daily_logs.get(s.date)
+            writer.writerow([
+                s.date, s.get_session_type_display(),
+                s.avg_systolic, s.avg_diastolic, s.avg_pulse,
+                float(w.weight) if w else "",
+                float(w.lean_mass_kg) if w and w.lean_mass_kg else "",
+                float(w.fat_mass_kg) if w and w.fat_mass_kg else "",
+                "", "", ""
+            ])
+
+        return response
 

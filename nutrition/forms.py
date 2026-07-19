@@ -1,5 +1,6 @@
 from django import forms
-from .models import Food, FoodCategory, Recipe
+from django.forms import inlineformset_factory
+from .models import Food, FoodCategory, Recipe, RecipeIngredient
 
 
 class FoodForm(forms.ModelForm):
@@ -41,9 +42,26 @@ class FoodForm(forms.ModelForm):
             self.fields[field].required = False
 
 
-class RecipeForm(forms.ModelForm):
-    """Formulario básico de receta; los ingredientes se gestionan desde el admin."""
+class RecipeIngredientForm(forms.ModelForm):
+    class Meta:
+        model = RecipeIngredient
+        fields = ("food", "quantity_g")
+        widgets = {
+            "food": forms.Select(attrs={"class": "form-control form-select"}),
+            "quantity_g": forms.NumberInput(attrs={"class": "form-control", "placeholder": "Cantidad (g)"}),
+        }
 
+
+RecipeIngredientFormSet = inlineformset_factory(
+    Recipe,
+    RecipeIngredient,
+    form=RecipeIngredientForm,
+    extra=3,
+    can_delete=True,
+)
+
+
+class RecipeForm(forms.ModelForm):
     class Meta:
         model = Recipe
         fields = ["name", "description", "instructions", "servings"]

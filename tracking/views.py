@@ -736,6 +736,19 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
         context["ai_weight_data"] = json.dumps(ai_data.get("weight_data", []))
         context["sport_data"] = json.dumps(ai_data.get("sport_data", []))
 
+        # Meal Plan
+        from tracking.services.meal_planner import AdaptiveMealPlanner
+        planner = AdaptiveMealPlanner(user)
+        context["meal_plan"] = planner.get_weekly_plan()
+        context["meal_adherence"] = planner.analyse_adherence()
+        context["meal_ml_insights"] = planner.get_ml_insights()
+        context["meal_planner_debug"] = {
+            "daily_kcal": planner.daily_kcal,
+            "target_protein": planner.target_protein,
+            "target_fat": planner.target_fat,
+            "target_carbs": planner.target_carbs,
+        }
+
         return context
 
 

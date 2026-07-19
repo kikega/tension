@@ -29,7 +29,7 @@ def _multi_linear_regression(x_matrix, y_vals):
     if n < 3:
         return [0.0] * len(x_matrix[0]) if x_matrix else []
     m = len(x_matrix[0])
-    X = [[1.0] + row for row in x_matrix]
+    X = [[1.0] + list(row) for row in x_matrix]
     Xt = list(zip(*X))
     XtX = [[sum(a * b for a, b in zip(Xt_i, Xt_j)) for Xt_j in Xt] for Xt_i in Xt]
     XtY = [sum(a * b for a, b in zip(Xt_i, y_vals)) for Xt_i in Xt]

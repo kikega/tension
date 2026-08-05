@@ -73,6 +73,8 @@
                                     <td class="text-end text-muted pe-4 align-top">
                                         {% if item.food %}
                                             {{ item.quantity_g|floatformat:0 }}g
+                                        {% elif item.recipe and item.quantity_g %}
+                                            {{ item.quantity_g|floatformat:0 }}g
                                         {% elif item.recipe %}
                                             {{ item.servings|floatformat:1 }} rac.
                                         {% endif %}

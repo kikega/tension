@@ -642,13 +642,14 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
                         factor = float(item.quantity_g) / 100.0
                         for field in MICRO_FIELDS:
                             daily_nutrition[field] += float(getattr(item.food, field) or 0) * factor
-                    elif item.recipe and item.servings is not None:
+                    elif item.recipe:
                         recipe = recipe_cache.get(item.recipe_id)
                         if recipe:
-                            factor = float(item.servings) / float(recipe.servings) if recipe.servings else float(item.servings)
-                            rec_nut = recipe.calculate_nutrition()
-                            for field in MICRO_FIELDS:
-                                daily_nutrition[field] += float(rec_nut.get(field, 0) or 0) * factor
+                            factor = item.calculate_recipe_factor()
+                            if factor:
+                                rec_nut = recipe.calculate_nutrition()
+                                for field in MICRO_FIELDS:
+                                    daily_nutrition[field] += float(rec_nut.get(field, 0) or 0) * factor
 
             if d_daily_acts:
                 da = d_daily_acts[0]
@@ -744,6 +745,8 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
         context["meal_ml_insights"] = planner.get_ml_insights()
         context["meal_planner_debug"] = {
             "daily_kcal": planner.daily_kcal,
+            "daily_kcal_base": planner.base_daily_kcal,
+            "tdee": round(planner.tdee),
             "target_protein": planner.target_protein,
             "target_fat": planner.target_fat,
             "target_carbs": planner.target_carbs,

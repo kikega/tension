@@ -301,20 +301,23 @@
                     <div class="row text-center">
                         <div class="col-3">
                             <h5 class="text-warning">{{ meal_planner_debug.daily_kcal }}</h5>
-                            <small class="text-muted">kcal/día</small>
+                            <small class="text-muted">kcal/día hoy</small>
+                        </div>
+                        <div class="col-3">
+                            <h5 class="text-info">{{ meal_planner_debug.tdee }}</h5>
+                            <small class="text-muted">Gasto estimado</small>
                         </div>
                         <div class="col-3">
                             <h5 class="text-danger">{{ meal_planner_debug.target_protein }}g</h5>
                             <small class="text-muted">Proteína</small>
                         </div>
                         <div class="col-3">
-                            <h5 class="text-info">{{ meal_planner_debug.target_fat }}g</h5>
-                            <small class="text-muted">Grasas</small>
-                        </div>
-                        <div class="col-3">
                             <h5 class="text-primary">{{ meal_planner_debug.target_carbs }}g</h5>
                             <small class="text-muted">Carbohidratos</small>
                         </div>
+                    </div>
+                    <div class="text-center text-muted small mt-2">
+                        Objetivo base {{ meal_planner_debug.daily_kcal_base }} kcal · Grasas {{ meal_planner_debug.target_fat }}g · Ajustado por tu ejercicio y tendencia de peso
                     </div>
                 </div>
             </div>

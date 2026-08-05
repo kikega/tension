@@ -136,6 +136,10 @@ class Recipe(models.Model):
     def __str__(self) -> str:
         return self.name
 
+    def calculate_total_weight(self) -> float:
+        """Suma total del peso (g) de todos los ingredientes de la receta."""
+        return sum((float(i.quantity_g) for i in self.ingredients.all()), 0.0)
+
     def calculate_nutrition(self) -> dict:
         """Calcula la composición nutricional total de la receta en base a sus ingredientes."""
         NUTRIENT_FIELDS = [

@@ -42,6 +42,29 @@ MIN_DAILY_KCAL = 1400
 MAX_DAILY_KCAL = 3500
 
 
+def _meal_slot(meal_type: str) -> str:
+    """Clasifica una etiqueta de comida (libre en la app) en desayuno/comida/cena."""
+    t = (meal_type or "").lower()
+    if any(k in t for k in ("desayuno", "breakfast", "yogur", "avena")):
+        return "desayuno"
+    if any(k in t for k in ("cena", "dinner")):
+        return "cena"
+    return "comida"
+
+
+def _recipe_macros(recipe) -> dict:
+    """Macros totales de una receta sin consultas extra (usa la caché prefetch)."""
+    totals = {"kcal": 0.0, "protein": 0.0, "fat": 0.0, "carbs": 0.0}
+    for ing in recipe.ingredients.all():
+        f = ing.food
+        factor = float(ing.quantity_g or 0) / 100.0
+        totals["kcal"] += float(f.energy_kcal or 0) * factor
+        totals["protein"] += float(f.proteins_g or 0) * factor
+        totals["fat"] += float(f.lipids_g or 0) * factor
+        totals["carbs"] += float(f.carbohydrates_g or 0) * factor
+    return totals
+
+
 def _sum_foods(foods):
     return {
         "protein": round(sum(f["protein"] for f in foods)),
@@ -132,6 +155,133 @@ class AdaptiveMealPlanner:
         self.intake_by_date = {
             d: sum(fl.get_total_calories() for fl in logs)
             for d, logs in by_date.items()
+        }
+
+        self._build_food_preferences()
+
+    def _build_food_preferences(self):
+        """Perfil de lo que el usuario suele comer: alimentos/recetas más frecuentes
+        por franja de comida (desayuno/comida/cena), con su ración habitual."""
+        self.food_preferences = {"desayuno": defaultdict(int), "comida": defaultdict(int), "cena": defaultdict(int)}
+        self.pref_foods = {"desayuno": {}, "comida": {}, "cena": {}}
+        self.pref_recipes = {"desayuno": {}, "comida": {}, "cena": {}}
+        qty_sum = defaultdict(float)
+        qty_count = defaultdict(int)
+
+        for fl in self.food_logs:
+            slot = _meal_slot(fl.meal_type)
+            for item in fl.items.select_related("food", "recipe").all():
+                if item.food and item.quantity_g:
+                    qty = float(item.quantity_g)
+                    key = item.food_id
+                    self.food_preferences[slot][key] += 1
+                    qty_sum[(slot, key)] += qty
+                    qty_count[(slot, key)] += 1
+                    self.pref_foods[slot][key] = item.food
+                elif item.recipe:
+                    factor = item.calculate_recipe_factor()
+                    if factor:
+                        key = item.recipe_id
+                        self.food_preferences[slot][key] += 1
+                        qty_sum[(slot, key)] += factor
+                        qty_count[(slot, key)] += 1
+                        self.pref_recipes[slot][key] = item.recipe
+
+        # Resumen por slot, ordenado por frecuencia de uso
+        self.pref_summary = {}
+        for slot in ("desayuno", "comida", "cena"):
+            foods = []
+            for key, count in self.food_preferences[slot].items():
+                if key in self.pref_foods[slot]:
+                    food = self.pref_foods[slot][key]
+                    avg_qty = qty_sum[(slot, key)] / qty_count[(slot, key)]
+                    calories_per_100 = float(food.energy_kcal or 0)
+                    if calories_per_100 <= 0:
+                        continue
+                    factor = avg_qty / 100.0
+                    foods.append({
+                        "kind": "food",
+                        "name": food.name,
+                        "count": count,
+                        "unit": "g",
+                        "qty": avg_qty,
+                        "kcal": calories_per_100 * factor,
+                        "protein": float(food.proteins_g or 0) * factor,
+                        "fat": float(food.lipids_g or 0) * factor,
+                        "carbs": float(food.carbohydrates_g or 0) * factor,
+                    })
+                else:
+                    recipe = self.pref_recipes[slot][key]
+                    avg_servings = qty_sum[(slot, key)] / qty_count[(slot, key)]
+                    macros = _recipe_macros(recipe)
+                    recipes_servings = float(recipe.servings or 1)
+                    per_serving = {k: macros[k] / recipes_servings if recipes_servings else 0 for k in macros}
+                    scaled = {k: per_serving[k] * avg_servings for k in macros}
+                    if scaled["kcal"] <= 0:
+                        continue
+                    foods.append({
+                        "kind": "recipe",
+                        "name": recipe.name,
+                        "count": count,
+                        "unit": "ración",
+                        "qty": avg_servings,
+                        "kcal": scaled["kcal"],
+                        "protein": scaled["protein"],
+                        "fat": scaled["fat"],
+                        "carbs": scaled["carbs"],
+                    })
+            foods.sort(key=lambda f: -f["count"])
+            self.pref_summary[slot] = foods[:8]
+
+    def _build_meal_from_preferences(self, slot, target_kcal, target_protein=None, target_carbs=None):
+        """Construye una comida a partir de los alimentos que el usuario suele
+        tomar, escalando la ración habitual para acercarse a los objetivos."""
+        candidates = [f for f in self.pref_summary.get(slot, []) if f["kcal"] > 0]
+        if not candidates:
+            return None
+
+        # Combinación base: los alimentos más frecuentes del usuario
+        picked = []
+        raw_total = {"kcal": 0.0, "protein": 0.0, "fat": 0.0, "carbs": 0.0}
+        for c in candidates:
+            if len(picked) >= 4:
+                break
+            picked.append(c)
+            for k in raw_total:
+                raw_total[k] += c[k]
+        if raw_total["kcal"] <= 0:
+            return None
+
+        # Objetivo de proteína por defecto proporcional a la energía
+        if target_protein is None:
+            target_protein = raw_total["protein"] * (target_kcal / raw_total["kcal"])
+        if target_carbs is None:
+            target_carbs = raw_total["carbs"] * (target_kcal / raw_total["kcal"])
+
+        # Escalar el conjunto para alcanzar la energía objetivo
+        factor = target_kcal / raw_total["kcal"]
+        foods = []
+        for c in picked:
+            qty = c["qty"] * factor
+            foods.append({
+                "name": c["name"],
+                "qty_str": f"{round(qty)} {c['unit']}",
+                "qty": round(qty),
+                "unit": c["unit"],
+                "protein": round(c["protein"] * factor),
+                "fat": round(c["fat"] * factor),
+                "carbs": round(c["carbs"] * factor),
+                "kcal": round(c["kcal"] * factor),
+            })
+
+        meal_macros = _sum_foods(foods)
+        # Reajuste fino: pasar energía sobrante/faltante a un macro
+        # para aproximar kcal objetivo (la escala previa ya lo deja equilibrado)
+        return {
+            "macros": meal_macros,
+            "foods": foods,
+            "from_preferences": True,
+            "count": sum(c["count"] for c in picked),
         }
 
     def _estimate_tdee(self):
@@ -289,13 +439,53 @@ class AdaptiveMealPlanner:
         day = day or date.today()
         kcal = self.target_kcal_for(day)
 
-        breakfast = dict(BREAKFAST_TOTALS)
-        dinner = dict(DINNER_TOTALS)
+        # Reparto por comidas del objetivo diario
+        bf_kcal = round(kcal * 0.35)
+        l_kcal = round(kcal * 0.47)
+        d_kcal = max(0, kcal - bf_kcal - l_kcal)
 
-        # Fill remaining kcal with lunch
-        remaining = kcal - breakfast["kcal"] - dinner["kcal"]
-        lunch = _compute_lunch_macros(kcal, self.current_weight)
-        lunch = _adjust_macros_to_kcal(lunch, remaining)
+        # Intentar construir cada ingesta con los alimentos que suele comer el
+        # usuario; si no hay historial suficiente, usar las plantillas.
+        bf_pref = self._build_meal_from_preferences("desayuno", bf_kcal)
+        l_pref = self._build_meal_from_preferences("comida", l_kcal)
+        d_pref = self._build_meal_from_preferences("cena", d_kcal)
+
+        if bf_pref:
+            breakfast = bf_pref["macros"]
+            breakfast_foods = bf_pref["foods"]
+            breakfast_advice = (
+                f"Preparado con tus alimentos más frecuentes "
+                f"({bf_pref['count']} registros), ajustado a {bf_kcal} kcal."
+            )
+        else:
+            breakfast = dict(BREAKFAST_TOTALS)
+            breakfast_foods = BREAKFAST_TEMPLATE["foods"]
+            breakfast_advice = "3 huevos + 60g avena + fruta + 25g frutos secos + yogur"
+
+        if l_pref:
+            lunch = l_pref["macros"]
+            lunch_foods_hint = " · ".join(f"{f['name']} {f['qty_str']}" for f in l_pref["foods"][:4])
+            lunch_advice = (
+                f"Basado en tus comidas habituales ({l_pref['count']} registros), "
+                f"ajustado a {l_kcal} kcal y tus macronutrientes objetivo."
+            )
+        else:
+            lunch = _compute_lunch_macros(kcal, self.current_weight)
+            lunch = _adjust_macros_to_kcal(lunch, l_kcal)
+            lunch_foods_hint = f"{lunch['protein']}g proteína (pollo/pescado/carne) + {lunch['carbs']}g carbohidratos + verduras + AOVE"
+            lunch_advice = "Prioriza proteína animal, legumbres y verduras de hoja verde."
+
+        if d_pref:
+            dinner = d_pref["macros"]
+            dinner_foods = d_pref["foods"]
+            dinner_advice = (
+                f"Con tus alimentos de cena más habituales "
+                f"({d_pref['count']} registros), ajustado a {d_kcal} kcal."
+            )
+        else:
+            dinner = dict(DINNER_TOTALS)
+            dinner_foods = DINNER_TEMPLATE["foods"]
+            dinner_advice = "Batido de caseína + yogur/queso + nueces para recuperación nocturna."
 
         total = {
             "kcal": breakfast["kcal"] + lunch["kcal"] + dinner["kcal"],
@@ -319,20 +509,20 @@ class AdaptiveMealPlanner:
             "meals": {
                 "desayuno": {
                     "macros": breakfast,
-                    "foods": BREAKFAST_TEMPLATE["foods"],
-                    "advice": "3 huevos + 60g avena + fruta + 25g frutos secos + yogur",
+                    "foods": breakfast_foods,
+                    "advice": breakfast_advice,
                 },
                 "comida": {
                     "macros": lunch,
-                    "foods_hint": f"{lunch['protein']}g proteína (pollo/pescado/carne) + {lunch['carbs']}g carbohidratos + verduras + AOVE",
-                    "advice": "Prioriza proteína animal, legumbres y verduras de hoja verde.",
+                    "foods_hint": lunch_foods_hint,
+                    "advice": lunch_advice,
                     "protein_range": (150, 200),
                     "carbs_range": (100, 120),
                 },
                 "cena": {
                     "macros": dinner,
-                    "foods": DINNER_TEMPLATE["foods"],
-                    "advice": "Batido de caseína + yogur/queso + nueces para recuperación nocturna.",
+                    "foods": dinner_foods,
+                    "advice": dinner_advice,
                 },
             },
             "supplements": SUPPLEMENTS,

@@ -1,6 +1,7 @@
 from datetime import date, timedelta
 from collections import defaultdict
 from statistics import mean
+import math
 from tracking.models import FoodLog, WeightMeasurement, DailyActivityLog
 
 # ── Fixed recommendations ────────────────────────────────────────────────────
@@ -10,11 +11,12 @@ BREAKFAST_TEMPLATE = {
     "name": "Desayuno",
     "target_pct": (0.35, 0.40),
     "foods": [
-        {"name": "Huevos enteros", "qty_str": "3 ud", "protein": 18, "fat": 15, "carbs": 1, "kcal": 210},
-        {"name": "Avena", "qty_str": "60 g", "protein": 7, "fat": 4, "carbs": 40, "kcal": 230},
-        {"name": "Fruta (plátano/frutos rojos)", "qty_str": "1 ud", "protein": 1, "fat": 0, "carbs": 25, "kcal": 105},
-        {"name": "Frutos secos", "qty_str": "25 g", "protein": 5, "fat": 14, "carbs": 3, "kcal": 160},
-        {"name": "Yogur natural / kéfir", "qty_str": "1 ud", "protein": 8, "fat": 5, "carbs": 6, "kcal": 100},
+        # Proteína como alimento principal del desayuno (AMIX o AMIX Predator)
+        {"name": "AMIX / AMIX Predator (proteína)", "qty_str": "1-2 cacitos (30-60 g)", "protein": 39, "fat": 3, "carbs": 12, "kcal": 230},
+        # Café de desayuno: máximo 2 raciones
+        {"name": "Café de desayuno", "qty_str": "máx. 2 raciones", "protein": 0, "fat": 0, "carbs": 0, "kcal": 0},
+        # El resto variable: fruta al gusto (arándanos, manzana, etc.)
+        {"name": "Fruta (arándanos, manzana…)", "qty_str": "al gusto (1-2 piezas)", "protein": 2, "fat": 0, "carbs": 25, "kcal": 100},
     ],
 }
 
@@ -133,18 +135,20 @@ class AdaptiveMealPlanner:
         self._calibrate()
 
     def _load_history(self):
-        thirty_days_ago = date.today() - timedelta(days=60)
+        # Ventana de aprendizaje amplia: el algoritmo recuerda más y pondera
+        # lo reciente, afinando sus recomendaciones con el tiempo.
+        learning_start = date.today() - timedelta(days=120)
         self.food_logs = list(
-            FoodLog.objects.filter(user=self.user, date__gte=thirty_days_ago)
+            FoodLog.objects.filter(user=self.user, date__gte=learning_start)
             .prefetch_related("items__food", "items__recipe__ingredients__food")
             .order_by("date")
         )
         self.weights = list(
-            WeightMeasurement.objects.filter(user=self.user, date__gte=thirty_days_ago)
+            WeightMeasurement.objects.filter(user=self.user, date__gte=learning_start)
             .order_by("date")
         )
         self.daily_activity = list(
-            DailyActivityLog.objects.filter(user=self.user, date__gte=thirty_days_ago)
+            DailyActivityLog.objects.filter(user=self.user, date__gte=learning_start)
             .order_by("date")
         )
 
@@ -159,83 +163,208 @@ class AdaptiveMealPlanner:
 
         self._build_food_preferences()
 
-    def _build_food_preferences(self):
-        """Perfil de lo que el usuario suele comer: alimentos/recetas más frecuentes
-        por franja de comida (desayuno/comida/cena), con su ración habitual."""
-        self.food_preferences = {"desayuno": defaultdict(int), "comida": defaultdict(int), "cena": defaultdict(int)}
-        self.pref_foods = {"desayuno": {}, "comida": {}, "cena": {}}
-        self.pref_recipes = {"desayuno": {}, "comida": {}, "cena": {}}
-        qty_sum = defaultdict(float)
-        qty_count = defaultdict(int)
+    def _recency_weight(self, days_ago: int, half_life_days: float = 21.0) -> float:
+        """Decaimiento exponencial: lo reciente pesa más, lo antiguo se olvida
+        gradualmente. Es lo que permite que el modelo 'aprenda con el tiempo'."""
+        return math.exp(-math.log(2) * days_ago / half_life_days)
 
+    def _item_to_nutrition(self, item) -> dict | None:
+        """Convierte un ítem (alimento o receta) en su clave canónica + macros."""
+        if item.food and item.quantity_g:
+            food = item.food
+            qty = float(item.quantity_g)
+            kcal100 = float(food.energy_kcal or 0)
+            if kcal100 <= 0 or qty <= 0:
+                return None
+            factor = qty / 100.0
+            return {
+                "key": ("food", food.id),
+                "name": food.name,
+                "kind": "food",
+                "unit": "g",
+                "qty": qty,
+                "kcal": kcal100 * factor,
+                "protein": float(food.proteins_g or 0) * factor,
+                "fat": float(food.lipids_g or 0) * factor,
+                "carbs": float(food.carbohydrates_g or 0) * factor,
+            }
+        if item.recipe and item.recipe_id:
+            factor = item.calculate_recipe_factor()
+            if factor:
+                macros = _recipe_macros(item.recipe)
+                servings = float(item.recipe.servings or 1)
+                scaled = {k: macros[k] * factor for k in macros}
+                return {
+                    "key": ("recipe", item.recipe_id),
+                    "name": item.recipe.name,
+                    "kind": "recipe",
+                    "unit": "ración",
+                    "qty": factor,
+                    "kcal": scaled["kcal"],
+                    "protein": scaled["protein"],
+                    "fat": scaled["fat"],
+                    "carbs": scaled["carbs"],
+                }
+        return None
+
+    def _build_food_preferences(self):
+        """Aprendizaje de patrones de comida.
+
+        En lugar de contar alimentos sueltos, detecta la *combinación* habitual
+        de cada ingesta (p. ej. el desayuno de siempre) ponderando por recencia,
+        descarta las comidas 'fuera de casa' (desviaciones) y mide la estabilidad
+        de cada franja: si el desayuno/cena se repiten casi igual se recomienda
+        esa rutina; la comida (más variable) se construye con los alimentos más
+        frecuentes."""
+
+        today = date.today()
+
+        # Recopilar registros: fecha -> franja -> items (con macros y recencia)
+        days_by_slot = {s: {} for s in ("desayuno", "comida", "cena")}
+        eaten_out_by_slot = {"desayuno": 0, "comida": 0, "cena": 0}
         for fl in self.food_logs:
             slot = _meal_slot(fl.meal_type)
+            if fl.eaten_out:
+                eaten_out_by_slot[slot] += 1
+                continue
+            days_ago = (today - fl.date).days
+            weight = self._recency_weight(days_ago)
+            items = []
             for item in fl.items.select_related("food", "recipe").all():
-                if item.food and item.quantity_g:
-                    qty = float(item.quantity_g)
-                    key = item.food_id
-                    self.food_preferences[slot][key] += 1
-                    qty_sum[(slot, key)] += qty
-                    qty_count[(slot, key)] += 1
-                    self.pref_foods[slot][key] = item.food
-                elif item.recipe:
-                    factor = item.calculate_recipe_factor()
-                    if factor:
-                        key = item.recipe_id
-                        self.food_preferences[slot][key] += 1
-                        qty_sum[(slot, key)] += factor
-                        qty_count[(slot, key)] += 1
-                        self.pref_recipes[slot][key] = item.recipe
+                nutr = self._item_to_nutrition(item)
+                if nutr:
+                    items.append(nutr)
+            if not items:
+                continue
+            days_by_slot[slot].setdefault(fl.date, []).append({"weight": weight, "items": items})
 
-        # Resumen por slot, ordenado por frecuencia de uso
-        self.pref_summary = {}
+        self.pref_summary = {"desayuno": [], "comida": [], "cena": []}
+        self.slot_stats = {}
+
         for slot in ("desayuno", "comida", "cena"):
-            foods = []
-            for key, count in self.food_preferences[slot].items():
-                if key in self.pref_foods[slot]:
-                    food = self.pref_foods[slot][key]
-                    avg_qty = qty_sum[(slot, key)] / qty_count[(slot, key)]
-                    calories_per_100 = float(food.energy_kcal or 0)
-                    if calories_per_100 <= 0:
-                        continue
-                    factor = avg_qty / 100.0
-                    foods.append({
-                        "kind": "food",
-                        "name": food.name,
-                        "count": count,
-                        "unit": "g",
-                        "qty": avg_qty,
-                        "kcal": calories_per_100 * factor,
-                        "protein": float(food.proteins_g or 0) * factor,
-                        "fat": float(food.lipids_g or 0) * factor,
-                        "carbs": float(food.carbohydrates_g or 0) * factor,
-                    })
-                else:
-                    recipe = self.pref_recipes[slot][key]
-                    avg_servings = qty_sum[(slot, key)] / qty_count[(slot, key)]
-                    macros = _recipe_macros(recipe)
-                    recipes_servings = float(recipe.servings or 1)
-                    per_serving = {k: macros[k] / recipes_servings if recipes_servings else 0 for k in macros}
-                    scaled = {k: per_serving[k] * avg_servings for k in macros}
-                    if scaled["kcal"] <= 0:
-                        continue
-                    foods.append({
-                        "kind": "recipe",
-                        "name": recipe.name,
-                        "count": count,
-                        "unit": "ración",
-                        "qty": avg_servings,
-                        "kcal": scaled["kcal"],
-                        "protein": scaled["protein"],
-                        "fat": scaled["fat"],
-                        "carbs": scaled["carbs"],
-                    })
-            foods.sort(key=lambda f: -f["count"])
-            self.pref_summary[slot] = foods[:8]
+            day_records = days_by_slot[slot]
+            n_days = len(day_records)
+            n_eaten_out = eaten_out_by_slot[slot]
+            stats = {
+                "n_days": n_days,
+                "n_eaten_out": n_eaten_out,
+                "stability": 0.0,
+                "dominant_combo": None,
+                "n_distinct_combos": 0,
+            }
+            self.slot_stats[slot] = stats
+            if n_days == 0:
+                continue
 
-    def _build_meal_from_preferences(self, slot, target_kcal, target_protein=None, target_carbs=None):
+            # Firmas de combinación por día (conjunto de claves canónicas)
+            combo_weight = defaultdict(float)
+            per_combo_items = {}
+            for day, entries in day_records.items():
+                day_items = []
+                for e in entries:
+                    day_items.extend(e["items"])
+                weight = max(e["weight"] for e in entries)
+                all_keys = frozenset(i["key"] for i in day_items)
+                combo_weight[all_keys] += weight
+                per_combo_items.setdefault(all_keys, []).append(day_items)
+
+            # Combinación dominante y estabilidad (fracción ponderada que la usa)
+            dominant_keys, dominant_weight = max(combo_weight.items(), key=lambda kv: kv[1])
+            total_weight = sum(combo_weight.values())
+            stability = dominant_weight / total_weight if total_weight else 0.0
+            stats["n_distinct_combos"] = len(combo_weight)
+            stats["stability"] = round(stability, 3)
+            stats["dominant_combo"] = dominant_keys
+
+            # Cantidades medias de cada alimento dentro de la combinación dominante
+            qty_accum = defaultdict(float)
+            qty_count = defaultdict(int)
+            distinct_days = defaultdict(float)
+            macro_accum = defaultdict(lambda: {"kcal": 0.0, "protein": 0.0, "fat": 0.0, "carbs": 0.0})
+            for day_idx, day_items in enumerate(per_combo_items[dominant_keys]):
+                seen_keys = set()
+                for i in day_items:
+                    qty_accum[i["key"]] += i["qty"]
+                    qty_count[i["key"]] += 1
+                    for k in macro_accum[i["key"]]:
+                        macro_accum[i["key"]][k] += i[k]
+                    if i["key"] not in seen_keys:
+                        seen_keys.add(i["key"])
+                        distinct_days[i["key"]] += day_idx + 1
+            combo_foods = []
+            meta = {}
+            for day_items in per_combo_items[dominant_keys]:
+                for i in day_items:
+                    meta.setdefault(i["key"], {"name": i["name"], "kind": i["kind"], "unit": i["unit"]})
+            for key, m in meta.items():
+                n = qty_count.get(key, 0)
+                if not n:
+                    continue
+                avg = {k: macro_accum[key][k] / n for k in macro_accum[key]}
+                combo_foods.append({
+                    "kind": m["kind"],
+                    "name": m["name"],
+                    "unit": m["unit"],
+                    "qty": qty_accum[key] / n,
+                    "kcal": avg["kcal"],
+                    "protein": avg["protein"],
+                    "fat": avg["fat"],
+                    "carbs": avg["carbs"],
+                    "count": len(per_combo_items[dominant_keys]),
+                    "recency": distinct_days[key],
+                })
+            combo_foods.sort(key=lambda f: -f["recency"])
+
+            # Lista de honor por frecuencia ponderada para franjas variables
+            freq_accum = defaultdict(float)
+            freq_count = defaultdict(int)
+            freq_qty_accum = defaultdict(float)
+            freq_macros = defaultdict(lambda: {"kcal": 0.0, "protein": 0.0, "fat": 0.0, "carbs": 0.0})
+            freq_meta = {}
+            for day, entries in day_records.items():
+                for e in entries:
+                    for i in e["items"]:
+                        freq_accum[i["key"]] += e["weight"]
+                        freq_count[i["key"]] += 1
+                        freq_qty_accum[i["key"]] += i["qty"]
+                        for k in freq_macros[i["key"]]:
+                            freq_macros[i["key"]][k] += i[k] * e["weight"]
+                        freq_meta.setdefault(i["key"], {"name": i["name"], "kind": i["kind"], "unit": i["unit"]})
+
+            freq_foods = []
+            for key, m in freq_meta.items():
+                n = freq_count.get(key, 0)
+                if not n:
+                    continue
+                avg = {k: freq_macros[key][k] / freq_accum[key] for k in freq_macros[key]}
+                freq_foods.append({
+                    "kind": m["kind"],
+                    "name": m["name"],
+                    "unit": m["unit"],
+                    "qty": freq_qty_accum[key] / n,
+                    "count": freq_accum[key],
+                    "kcal": avg["kcal"],
+                    "protein": avg["protein"],
+                    "fat": avg["fat"],
+                    "carbs": avg["carbs"],
+                })
+            freq_foods.sort(key=lambda f: -f["count"])
+
+            # Si la franja es estable (rutina repetida) se prioriza la combinación
+            # dominante; si no, la de alimentos más frecuentes.
+            if stability >= 0.45 and combo_foods:
+                self.pref_summary[slot] = combo_foods[:8]
+            else:
+                self.pref_summary[slot] = freq_foods[:8]
+
+    def _build_meal_from_preferences(self, slot, target_kcal=None, natural=False, target_protein=None, target_carbs=None):
         """Construye una comida a partir de los alimentos que el usuario suele
-        tomar, escalando la ración habitual para acercarse a los objetivos."""
+        tomar.
+
+        - natural=True: devuelve la rutina con sus raciones reales (sin escalar),
+          para franjas estables como desayuno/cena.
+        - natural=False: escala el conjunto hasta alcanzar target_kcal, útil para
+          la comida (franja variable) y para llenar la energía restante."""
         candidates = [f for f in self.pref_summary.get(slot, []) if f["kcal"] > 0]
         if not candidates:
             return None
@@ -252,14 +381,13 @@ class AdaptiveMealPlanner:
         if raw_total["kcal"] <= 0:
             return None
 
-        # Objetivo de proteína por defecto proporcional a la energía
-        if target_protein is None:
-            target_protein = raw_total["protein"] * (target_kcal / raw_total["kcal"])
-        if target_carbs is None:
-            target_carbs = raw_total["carbs"] * (target_kcal / raw_total["kcal"])
+        if natural or not target_kcal:
+            factor = 1.0
+            meal_kcal = round(raw_total["kcal"])
+        else:
+            factor = target_kcal / raw_total["kcal"]
+            meal_kcal = target_kcal
 
-        # Escalar el conjunto para alcanzar la energía objetivo
-        factor = target_kcal / raw_total["kcal"]
         foods = []
         for c in picked:
             qty = c["qty"] * factor
@@ -275,8 +403,6 @@ class AdaptiveMealPlanner:
             })
 
         meal_macros = _sum_foods(foods)
-        # Reajuste fino: pasar energía sobrante/faltante a un macro
-        # para aproximar kcal objetivo (la escala previa ya lo deja equilibrado)
         return {
             "macros": meal_macros,
             "foods": foods,
@@ -438,53 +564,91 @@ class AdaptiveMealPlanner:
     def plan_for_day(self, day=None):
         day = day or date.today()
         kcal = self.target_kcal_for(day)
+        stats = self.slot_stats
 
-        # Reparto por comidas del objetivo diario
-        bf_kcal = round(kcal * 0.35)
-        l_kcal = round(kcal * 0.47)
-        d_kcal = max(0, kcal - bf_kcal - l_kcal)
+        # Franjas estables (desayuno/cena = rutina): se mantienen con sus raciones
+        # reales; la comida (variable) absorbe la energía restante.
+        def _natural_or_template(slot, stable, template_totals, template_foods):
+            if stable:
+                pref = self._build_meal_from_preferences(slot, natural=True)
+                if pref:
+                    return pref["macros"], pref["foods"], pref
+            return dict(template_totals), list(template_foods), None
 
-        # Intentar construir cada ingesta con los alimentos que suele comer el
-        # usuario; si no hay historial suficiente, usar las plantillas.
-        bf_pref = self._build_meal_from_preferences("desayuno", bf_kcal)
-        l_pref = self._build_meal_from_preferences("comida", l_kcal)
-        d_pref = self._build_meal_from_preferences("cena", d_kcal)
+        bf_pref = None
+        d_pref = None
+        l_pref = None
+        breakfast, breakfast_foods, bf_pref = _natural_or_template(
+            "desayuno", stats["desayuno"]["stability"] >= 0.45, BREAKFAST_TOTALS, BREAKFAST_TEMPLATE["foods"])
+        dinner, dinner_foods, d_pref = _natural_or_template(
+            "cena", stats["cena"]["stability"] >= 0.45, DINNER_TOTALS, DINNER_TEMPLATE["foods"])
 
-        if bf_pref:
-            breakfast = bf_pref["macros"]
-            breakfast_foods = bf_pref["foods"]
-            breakfast_advice = (
-                f"Preparado con tus alimentos más frecuentes "
-                f"({bf_pref['count']} registros), ajustado a {bf_kcal} kcal."
-            )
-        else:
-            breakfast = dict(BREAKFAST_TOTALS)
-            breakfast_foods = BREAKFAST_TEMPLATE["foods"]
-            breakfast_advice = "3 huevos + 60g avena + fruta + 25g frutos secos + yogur"
+        # La comida rellena la energía restante, con un mínimo razonable.
+        min_lunch = 400
+        remaining = kcal - breakfast["kcal"] - dinner["kcal"]
+        if remaining < min_lunch and (breakfast["kcal"] + dinner["kcal"]) > 0:
+            scale = max(0.0, (kcal - min_lunch) / (breakfast["kcal"] + dinner["kcal"]))
+            breakfast = {k: round(breakfast[k] * scale) for k in breakfast}
+            dinner = {k: round(dinner[k] * scale) for k in dinner}
+            breakfast_foods = [
+                {**f, "protein": round(f["protein"] * scale), "fat": round(f["fat"] * scale),
+                 "carbs": round(f["carbs"] * scale), "kcal": round(f["kcal"] * scale),
+                 "qty": round(f.get("qty", 0) * scale), "unit": f.get("unit", "")}
+                for f in breakfast_foods
+            ]
+            dinner_foods = [
+                {**f, "protein": round(f["protein"] * scale), "fat": round(f["fat"] * scale),
+                 "carbs": round(f["carbs"] * scale), "kcal": round(f["kcal"] * scale),
+                 "qty": round(f.get("qty", 0) * scale), "unit": f.get("unit", "")}
+                for f in dinner_foods
+            ]
+            for f in breakfast_foods + dinner_foods:
+                f["qty_str"] = f"{f.get('qty', f.get('qty_str', ''))} {f.get('unit', '')}".strip()
+            remaining = kcal - breakfast["kcal"] - dinner["kcal"]
 
+        l_kcal = max(min_lunch, remaining)
+
+        # La comida variable: compone con los alimentos más frecuentes escalados
+        # a la energía restante; si no hay historial, plantilla de macros.
+        if stats["comida"]["n_days"] > 0:
+            l_pref = self._build_meal_from_preferences("comida", target_kcal=l_kcal)
         if l_pref:
             lunch = l_pref["macros"]
             lunch_foods_hint = " · ".join(f"{f['name']} {f['qty_str']}" for f in l_pref["foods"][:4])
-            lunch_advice = (
-                f"Basado en tus comidas habituales ({l_pref['count']} registros), "
-                f"ajustado a {l_kcal} kcal y tus macronutrientes objetivo."
-            )
         else:
             lunch = _compute_lunch_macros(kcal, self.current_weight)
             lunch = _adjust_macros_to_kcal(lunch, l_kcal)
             lunch_foods_hint = f"{lunch['protein']}g proteína (pollo/pescado/carne) + {lunch['carbs']}g carbohidratos + verduras + AOVE"
+
+        # Textos
+        if bf_pref:
+            breakfast_advice = (
+                f"El modelo detecta tu desayuno habitual: repites esta combinación en el "
+                f"{stats['desayuno']['stability']*100:.0f}% de tus días ({stats['desayuno']['n_days']} días), "
+                f"así que la mantiene con tu ración real."
+            )
+        else:
+            breakfast_advice = "Proteína como base (1-2 cacitos de AMIX/AMIX Predator) + café de desayuno (máx. 2 raciones) + fruta al gusto (arándanos, manzana…)."
+
+        if stats["comida"]["stability"] < 0.45 and stats["comida"]["n_days"] > 3:
+            lunch_advice = (
+                f"Tu comida es la franja más variable (no repites combinación), por eso la "
+                f"IA la compone cada día con tus alimentos más frecuentes ajustados a {l_kcal} kcal."
+            )
+        elif l_pref:
+            lunch_advice = (
+                f"Basado en tus comidas habituales, ajustado a {l_kcal} kcal y tus macronutrientes objetivo."
+            )
+        else:
             lunch_advice = "Prioriza proteína animal, legumbres y verduras de hoja verde."
 
         if d_pref:
-            dinner = d_pref["macros"]
-            dinner_foods = d_pref["foods"]
             dinner_advice = (
-                f"Con tus alimentos de cena más habituales "
-                f"({d_pref['count']} registros), ajustado a {d_kcal} kcal."
+                f"El modelo detecta tu cena habitual: la repites en el "
+                f"{stats['cena']['stability']*100:.0f}% de tus días ({stats['cena']['n_days']} días), "
+                f"así que la mantiene con tu ración real."
             )
         else:
-            dinner = dict(DINNER_TOTALS)
-            dinner_foods = DINNER_TEMPLATE["foods"]
             dinner_advice = "Batido de caseína + yogur/queso + nueces para recuperación nocturna."
 
         total = {
@@ -544,6 +708,37 @@ class AdaptiveMealPlanner:
                     f"Objetivo ajustado por ejercicio: tu gasto esperado este día "
                     f"({sign}{p['exercise_delta']} kcal sobre tu media) modula el total a {p['daily_kcal_target']} kcal."
                 )
+
+        # Nota de aprendizaje: estabilidad de cada franja detectada por el modelo
+        learning_notes = []
+        slot_labels = {"desayuno": "Desayuno", "comida": "Comida", "cena": "Cena"}
+        for slot in ("desayuno", "comida", "cena"):
+            st = self.slot_stats.get(slot, {})
+            n = st.get("n_days", 0)
+            if n < 2:
+                continue
+            stab = st.get("stability", 0.0)
+            if stab >= 0.45:
+                learning_notes.append(
+                    f"{slot_labels[slot]}: has repetido casi la misma ingesta el {stab*100:.0f}% de tus {n} días. "
+                    f"El modelo la considera tu rutina y la mantiene estable."
+                )
+            else:
+                learning_notes.append(
+                    f"{slot_labels[slot]}: franja variable ({st.get('n_distinct_combos', 0)} combinaciones en {n} días). "
+                    f"La IA recomienda variar tus alimentos más frecuentes para mantenerla flexible."
+                )
+        eaten_out_total = sum(
+            self.slot_stats.get(s, {}).get("n_eaten_out", 0) for s in ("desayuno", "comida", "cena")
+        )
+        if eaten_out_total:
+            learning_notes.append(
+                f"Se descartaron {eaten_out_total} comidas fuera de casa del aprendizaje del patrón "
+                f"habitual, ya que se consideran desviaciones (no tu rutina real)."
+            )
+        if learning_notes:
+            for p in plans:
+                p["notes"].extend(learning_notes)
 
         trend = self._weight_trend()
         if self._weight_trend_has_data():

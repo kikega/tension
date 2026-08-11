@@ -325,6 +325,49 @@
             </div>
             {% endif %}
 
+            {% if meal_learning %}
+            <div class="card bg-dark text-white border-secondary mb-4">
+                <div class="card-header">
+                    <i class="bi bi-graph-up-arrow me-2"></i>Aprendizaje de tus patrones
+                </div>
+                <div class="card-body">
+                    <div class="row text-center">
+                        <div class="col-4 mb-2">
+                            <h6 class="text-warning mb-1"><i class="bi bi-sunrise me-1"></i>Desayuno</h6>
+                            {% if meal_learning.desayuno.n_days %}
+                                {% widthratio meal_learning.desayuno.stability 1 100 %}% estabilidad
+                                <br><small class="text-muted">{{ meal_learning.desayuno.n_days }} días · {{ meal_learning.desayuno.n_distinct_combos }} combinaciones</small>
+                            {% else %}
+                                <span class="text-muted">sin datos</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-4 mb-2">
+                            <h6 class="text-success mb-1"><i class="bi bi-egg-fried me-1"></i>Comida</h6>
+                            {% if meal_learning.comida.n_days %}
+                                {% widthratio meal_learning.comida.stability 1 100 %}% estabilidad
+                                <br><small class="text-muted">{{ meal_learning.comida.n_days }} días · {{ meal_learning.comida.n_distinct_combos }} combinaciones</small>
+                            {% else %}
+                                <span class="text-muted">sin datos</span>
+                            {% endif %}
+                        </div>
+                        <div class="col-4 mb-2">
+                            <h6 class="text-info mb-1"><i class="bi bi-moon-stars me-1"></i>Cena</h6>
+                            {% if meal_learning.cena.n_days %}
+                                {% widthratio meal_learning.cena.stability 1 100 %}% estabilidad
+                                <br><small class="text-muted">{{ meal_learning.cena.n_days }} días · {{ meal_learning.cena.n_distinct_combos }} combinaciones</small>
+                            {% else %}
+                                <span class="text-muted">sin datos</span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    <div class="text-center text-muted small mt-2">
+                        La IA aprende con el tiempo: pondera lo reciente, detecta si desayuno y cena se
+                        repiten (rutina) y descarta las comidas fuera de casa como desviaciones.
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
             {% for day in meal_plan %}
             <div class="card bg-dark text-white border-secondary mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center">

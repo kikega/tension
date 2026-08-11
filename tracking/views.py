@@ -727,6 +727,7 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
             "target_fat": planner.target_fat,
             "target_carbs": planner.target_carbs,
         }
+        context["meal_learning"] = planner.slot_stats
 
         # Generar referencias nutricionales serializadas
         nut_refs = NutritionalReference.objects.all()

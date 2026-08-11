@@ -713,30 +713,6 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
         context["intake_data"] = json.dumps(intake_data)
         context["expenditure_data"] = json.dumps(expenditure_data)
         
-        # Generar referencias nutricionales serializadas
-        nut_refs = NutritionalReference.objects.all()
-        ref_dict = {}
-        for r in nut_refs:
-            ref_dict[r.gender] = {
-                field: float(getattr(r, field) or 0)
-                for field in [
-                    "energy_kcal", "proteins_g", "lipids_g", "cholesterol_mg", "carbohydrates_g",
-                    "fiber_g", "calcium_mg", "iron_mg", "iodine_ug", "magnesium_mg", "zinc_mg",
-                    "sodium_mg", "potassium_mg", "phosphorus_mg", "selenium_ug", "thiamine_mg",
-                    "riboflavin_mg", "vitamin_b6_mg", "folate_ug", "vitamin_b12_ug", "vitamin_c_mg",
-                    "vitamin_a_ug", "vitamin_d_ug", "vitamin_e_mg"
-                ]
-            }
-        context["nutritional_references"] = json.dumps(ref_dict)
-
-        # AI Insights
-        from tracking.services.ai_analysis import generate_insights
-        ai_data = generate_insights(user)
-        context["ai_insights"] = ai_data.get("insights", [])
-        context["timeline_labels"] = json.dumps(ai_data.get("timeline_labels", []))
-        context["ai_weight_data"] = json.dumps(ai_data.get("weight_data", []))
-        context["sport_data"] = json.dumps(ai_data.get("sport_data", []))
-
         # Meal Plan
         from tracking.services.meal_planner import AdaptiveMealPlanner
         planner = AdaptiveMealPlanner(user)
@@ -751,6 +727,39 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
             "target_fat": planner.target_fat,
             "target_carbs": planner.target_carbs,
         }
+
+        # Generar referencias nutricionales serializadas
+        nut_refs = NutritionalReference.objects.all()
+        ref_dict = {}
+        for r in nut_refs:
+            ref_dict[r.gender] = {
+                field: float(getattr(r, field) or 0)
+                for field in [
+                    "energy_kcal", "proteins_g", "lipids_g", "cholesterol_mg", "carbohydrates_g",
+                    "fiber_g", "calcium_mg", "iron_mg", "iodine_ug", "magnesium_mg", "zinc_mg",
+                    "sodium_mg", "potassium_mg", "phosphorus_mg", "selenium_ug", "thiamine_mg",
+                    "riboflavin_mg", "vitamin_b6_mg", "folate_ug", "vitamin_b12_ug", "vitamin_c_mg",
+                    "vitamin_a_ug", "vitamin_d_ug", "vitamin_e_mg"
+                ]
+            }
+        # La referencia de energía pasa a ser la que recomienda la IA en el Plan
+        # Nutricional, en lugar del valor fijo de CDR.
+        daily_kcal = planner.daily_kcal
+        if daily_kcal:
+            if not ref_dict:
+                ref_dict["male"] = {}
+                ref_dict["female"] = {}
+            for gender in ref_dict:
+                ref_dict[gender]["energy_kcal"] = float(daily_kcal)
+        context["nutritional_references"] = json.dumps(ref_dict)
+
+        # AI Insights
+        from tracking.services.ai_analysis import generate_insights
+        ai_data = generate_insights(user)
+        context["ai_insights"] = ai_data.get("insights", [])
+        context["timeline_labels"] = json.dumps(ai_data.get("timeline_labels", []))
+        context["ai_weight_data"] = json.dumps(ai_data.get("weight_data", []))
+        context["sport_data"] = json.dumps(ai_data.get("sport_data", []))
 
         return context
 

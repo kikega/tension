@@ -110,6 +110,7 @@
                                                data-bs-toggle="modal" data-bs-target="#cdrDetailModal"
                                                data-date="{{ d.date|date:'d/m/Y' }}"
                                                data-energy_kcal="{{ d.daily_nutrition.energy_kcal|stringformat:'f' }}"
+                                               data-energy_recommended="{{ d.recommended_kcal }}"
                                                data-proteins_g="{{ d.daily_nutrition.proteins_g|stringformat:'f' }}"
                                                data-lipids_g="{{ d.daily_nutrition.lipids_g|stringformat:'f' }}"
                                                data-cholesterol_mg="{{ d.daily_nutrition.cholesterol_mg|stringformat:'f' }}"
@@ -212,6 +213,7 @@
                                                data-bs-toggle="modal" data-bs-target="#cdrDetailModal"
                                                data-date="{{ d.date|date:'d/m/Y' }}"
                                                data-energy_kcal="{{ d.daily_nutrition.energy_kcal|stringformat:'f' }}"
+                                               data-energy_recommended="{{ d.recommended_kcal }}"
                                                data-proteins_g="{{ d.daily_nutrition.proteins_g|stringformat:'f' }}"
                                                data-lipids_g="{{ d.daily_nutrition.lipids_g|stringformat:'f' }}"
                                                data-cholesterol_mg="{{ d.daily_nutrition.cholesterol_mg|stringformat:'f' }}"
@@ -238,7 +240,7 @@
                                                 {{ d.date|date:"d/m/Y" }}
                                             </a>
                                         </td>
-                                        <td class="cdr-cell" data-target="energy_kcal" data-value="{{ d.daily_nutrition.energy_kcal|stringformat:'f' }}">{{ d.daily_nutrition.energy_kcal|floatformat:1 }}</td>
+                                        <td class="cdr-cell" data-target="energy_kcal" data-value="{{ d.daily_nutrition.energy_kcal|stringformat:'f' }}" data-recommended="{{ d.recommended_kcal }}">{{ d.daily_nutrition.energy_kcal|floatformat:1 }}</td>
                                         <td class="cdr-cell" data-target="proteins_g" data-value="{{ d.daily_nutrition.proteins_g|stringformat:'f' }}">{{ d.daily_nutrition.proteins_g|floatformat:1 }}</td>
                                         <td class="cdr-cell" data-target="lipids_g" data-value="{{ d.daily_nutrition.lipids_g|stringformat:'f' }}">{{ d.daily_nutrition.lipids_g|floatformat:1 }}</td>
                                         <td class="cdr-cell" data-target="carbohydrates_g" data-value="{{ d.daily_nutrition.carbohydrates_g|stringformat:'f' }}">{{ d.daily_nutrition.carbohydrates_g|floatformat:1 }}</td>
@@ -633,7 +635,12 @@ document.addEventListener("DOMContentLoaded", function() {
             
             // Replace comma to dot if localized, then parse
             const consumed = parseFloat(valStr.replace(',', '.')); 
-            const recomended = ref[targetKey];
+            // Para energía use la recomendación IA concreta de ese día
+            let recomended = ref[targetKey];
+            if(targetKey === 'energy_kcal') {
+                const dayRecommended = cell.getAttribute('data-recommended');
+                if(dayRecommended) recomended = parseFloat(dayRecommended.replace(',', '.'));
+            }
             
             if(recomended) {
                 const percentage = (consumed / recomended) * 100;
@@ -710,7 +717,11 @@ document.addEventListener("DOMContentLoaded", function() {
             nutrients.forEach(n => {
                 const consumedStr = btn.getAttribute(`data-${n.key}`);
                 const consumed = parseFloat((consumedStr || '0').replace(',', '.'));
-                const recomended = ref[n.key];
+                let recomended = ref[n.key];
+                if(n.key === 'energy_kcal') {
+                    const dayRecStr = btn.getAttribute('data-energy_recommended');
+                    if(dayRecStr) recomended = parseFloat(dayRecStr.replace(',', '.'));
+                }
                 
                 let percentText = '-';
                 let badgeClass = 'text-muted';

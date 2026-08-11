@@ -753,6 +753,10 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
                 ref_dict[gender]["energy_kcal"] = float(daily_kcal)
         context["nutritional_references"] = json.dumps(ref_dict)
 
+        # kcal diaria recomendada por la IA para cada día concreto del periodo
+        for dd in daily_data:
+            dd["recommended_kcal"] = planner.plan_for_day(dd["date"])["daily_kcal_target"]
+
         # AI Insights
         from tracking.services.ai_analysis import generate_insights
         ai_data = generate_insights(user)

@@ -138,8 +138,8 @@
                                             </a>
                                         </td>
                                         <td>
-                                            {% if d.measurements.count > 0 %}
-                                                {{ d.avg_systolic|floatformat:0 }}/{{ d.avg_diastolic|floatformat:0 }}
+                                            {% if d.sessions %}
+                                                {{ d.avg_sys|floatformat:0 }}/{{ d.avg_dia|floatformat:0 }}
                                             {% else %}
                                                 -
                                             {% endif %}
@@ -152,8 +152,8 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% if d.activity_logs.count > 0 %}
-                                                {% for log in d.activity_logs %}
+                                            {% if d.activities %}
+                                                {% for log in d.activities %}
                                                     <span class="badge bg-secondary">{{ log.activity.name }} ({{ log.duration_minutes }}m)</span>
                                                 {% endfor %}
                                             {% else %}
@@ -161,8 +161,8 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% if d.food_logs.count > 0 %}
-                                                {% for log in d.food_logs %}
+                                            {% if d.foods %}
+                                                {% for log in d.foods %}
                                                     <span class="badge bg-info text-dark" title="{{ log.get_total_calories|floatformat:0 }} kcal">{{ log.meal_type }}</span>
                                                 {% endfor %}
                                             {% else %}

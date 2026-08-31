@@ -591,17 +591,19 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
             .prefetch_related("items__food", "items__recipe__ingredients__food")
             .order_by("date")
         )
-        # Precompute nutrition for all recipes used in this period
+        # Precompute nutrition for all recipes used in this period (with caching)
         from nutrition.models import Recipe
         recipe_ids = set()
         for f in foods:
             for item in f.items.all():
                 if item.recipe_id:
                     recipe_ids.add(item.recipe_id)
-        recipe_cache = {}
+        recipe_nutrition_cache = {}
+        recipe_weight_cache = {}
         if recipe_ids:
             for recipe in Recipe.objects.filter(id__in=recipe_ids).prefetch_related("ingredients__food"):
-                recipe_cache[recipe.id] = recipe
+                recipe_nutrition_cache[recipe.id] = recipe.calculate_nutrition()
+                recipe_weight_cache[recipe.id] = recipe.calculate_total_weight()
 
         # Group food logs by date for O(1) lookups
         foods_by_date = {}
@@ -639,25 +641,45 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
             ]}
 
             for food_log in d_foods:
-                totals = food_log.get_nutritional_totals()
-                daily_nutrition["energy_kcal"] += totals.get("calories", 0)
-                daily_nutrition["proteins_g"] += totals.get("proteins", 0)
-                daily_nutrition["lipids_g"] += totals.get("lipids", 0)
-                daily_nutrition["carbohydrates_g"] += totals.get("carbs", 0)
-
-                for item in food_log.items.all():
+                fl_calories = 0.0
+                for item in food_log.items.select_related("food", "recipe").all():
                     if item.food and item.quantity_g is not None:
                         factor = float(item.quantity_g) / 100.0
+                        if item.food.energy_kcal is not None:
+                            fl_calories += float(item.food.energy_kcal) * factor
+                        if item.food.proteins_g is not None:
+                            daily_nutrition["proteins_g"] += float(item.food.proteins_g) * factor
+                        if item.food.lipids_g is not None:
+                            daily_nutrition["lipids_g"] += float(item.food.lipids_g) * factor
+                        if item.food.carbohydrates_g is not None:
+                            daily_nutrition["carbohydrates_g"] += float(item.food.carbohydrates_g) * factor
                         for field in MICRO_FIELDS:
-                            daily_nutrition[field] += float(getattr(item.food, field) or 0) * factor
+                            val = getattr(item.food, field, None)
+                            if val is not None:
+                                daily_nutrition[field] += float(val) * factor
                     elif item.recipe:
-                        recipe = recipe_cache.get(item.recipe_id)
-                        if recipe:
-                            factor = item.calculate_recipe_factor()
+                        rec_nut = recipe_nutrition_cache.get(item.recipe_id)
+                        rec_weight = recipe_weight_cache.get(item.recipe_id, 0)
+                        if rec_nut:
+                            factor = 0
+                            if item.quantity_g and rec_weight > 0:
+                                factor = float(item.quantity_g) / rec_weight
+                            elif item.servings:
+                                servings_val = float(item.servings)
+                                recipe_servings = float(item.recipe.servings or 1)
+                                if servings_val > 0 and recipe_servings > 0:
+                                    factor = servings_val / recipe_servings
                             if factor:
-                                rec_nut = recipe.calculate_nutrition()
+                                fl_calories += float(rec_nut.get("energy_kcal", 0) or 0) * factor
+                                daily_nutrition["proteins_g"] += float(rec_nut.get("proteins_g", 0) or 0) * factor
+                                daily_nutrition["lipids_g"] += float(rec_nut.get("lipids_g", 0) or 0) * factor
+                                daily_nutrition["carbohydrates_g"] += float(rec_nut.get("carbohydrates_g", 0) or 0) * factor
                                 for field in MICRO_FIELDS:
                                     daily_nutrition[field] += float(rec_nut.get(field, 0) or 0) * factor
+
+                if food_log.eaten_out:
+                    fl_calories = fl_calories * 1.30 + 500.0 if fl_calories > 0 else 800.0
+                daily_nutrition["energy_kcal"] += fl_calories
 
             if d_daily_acts:
                 da = d_daily_acts[0]

@@ -13,7 +13,7 @@
     <div class="row mb-4">
         {% for insight in ai_insights %}
         <div class="col-md-6 mb-3">
-            <div class="card shadow-sm border-{{ insight.type }} bg-dark text-white h-100">
+            <div class="card shadow-sm border-{{ insight.type }} h-100">
                 <div class="card-body">
                     <h5 class="card-title text-{{ insight.type }}">
                         <i class="bi {{ insight.icon }} me-2"></i>{{ insight.title }}
@@ -65,7 +65,7 @@
         
         <!-- Pestaña 1: Gráfico Lineal -->
         <div class="tab-pane fade show active" id="linear" role="tabpanel" aria-labelledby="linear-tab">
-            <div class="card shadow-sm border-0 bg-dark text-white mb-4">
+            <div class="card shadow-sm mb-4">
                 <div class="card-body">
                     <!-- Wrapper relativo vital para Chart.js -->
                     <div style="position: relative; height: 60vh; width: 100%;">
@@ -77,7 +77,7 @@
 
         <!-- Pestaña 2: Gráfico de Dispersión (Deporte vs Peso) -->
         <div class="tab-pane fade" id="scatter" role="tabpanel" aria-labelledby="scatter-tab">
-            <div class="card shadow-sm border-0 bg-dark text-white mb-4">
+            <div class="card shadow-sm mb-4">
                 <div class="card-body">
                     <!-- Wrapper relativo vital para Chart.js -->
                     <div style="position: relative; height: 60vh; width: 100%;">
@@ -90,7 +90,7 @@
         <!-- Pestaña 3: Tabla de Datos -->
         <div class="tab-pane fade" id="table" role="tabpanel" aria-labelledby="table-tab">
             <div class="card shadow-sm mb-4">
-                <div class="card-body bg-dark text-white p-0">
+                <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-dark table-hover mb-0">
                             <thead>
@@ -138,8 +138,8 @@
                                             </a>
                                         </td>
                                         <td>
-                                            {% if d.avg_sys and d.avg_dia %}
-                                                {{ d.avg_sys|floatformat:0 }} / {{ d.avg_dia|floatformat:0 }}
+                                            {% if d.measurements.count > 0 %}
+                                                {{ d.avg_systolic|floatformat:0 }}/{{ d.avg_diastolic|floatformat:0 }}
                                             {% else %}
                                                 -
                                             {% endif %}
@@ -152,25 +152,27 @@
                                             {% endif %}
                                         </td>
                                         <td>
-                                            {% for a in d.activities %}
-                                                <span class="badge bg-success mb-1">{{ a.activity.name }} ({{ a.duration_minutes }}m)</span>
-                                                <br>
-                                            {% empty %}
+                                            {% if d.activity_logs.count > 0 %}
+                                                {% for log in d.activity_logs %}
+                                                    <span class="badge bg-secondary">{{ log.activity.name }} ({{ log.duration_minutes }}m)</span>
+                                                {% endfor %}
+                                            {% else %}
                                                 -
-                                            {% endfor %}
+                                            {% endif %}
                                         </td>
                                         <td>
-                                            {% for f in d.foods %}
-                                                <span class="badge {% if f.eaten_out %}bg-danger{% else %}bg-primary{% endif %} mb-1">{{ f.meal_type }}</span>
-                                                <br>
-                                            {% empty %}
+                                            {% if d.food_logs.count > 0 %}
+                                                {% for log in d.food_logs %}
+                                                    <span class="badge bg-info text-dark" title="{{ log.get_total_calories|floatformat:0 }} kcal">{{ log.meal_type }}</span>
+                                                {% endfor %}
+                                            {% else %}
                                                 -
-                                            {% endfor %}
+                                            {% endif %}
                                         </td>
                                     </tr>
                                 {% empty %}
                                     <tr>
-                                        <td colspan="5" class="text-center py-4 text-muted">No hay datos registrados en los últimos 30 días.</td>
+                                        <td colspan="5" class="text-center">No hay datos suficientes para el análisis.</td>
                                     </tr>
                                 {% endfor %}
                             </tbody>
@@ -182,12 +184,12 @@
 
         <!-- Pestaña 4: Ingestas vs CDR -->
         <div class="tab-pane fade" id="cdr" role="tabpanel" aria-labelledby="cdr-tab">
-            <div class="card shadow-sm mb-4 bg-dark text-white border-0">
+            <div class="card shadow-sm mb-4">
                 <div class="card-header d-flex justify-content-between align-items-center flex-wrap">
                     <h5 class="mb-0">Cantidades Diarias Recomendadas (CDR)</h5>
                     <div class="d-flex align-items-center mt-2 mt-md-0">
                         <label for="cdrGenderSelect" class="form-label mb-0 me-2 text-info">Perfil Base:</label>
-                        <select id="cdrGenderSelect" class="form-select form-select-sm bg-dark text-white border-secondary w-auto">
+                        <select id="cdrGenderSelect" class="form-select form-select-sm w-auto">
                             <option value="male">Hombre</option>
                             <option value="female">Mujer</option>
                         </select>
@@ -259,7 +261,7 @@
 
         <!-- Pestaña 5: Balance Calórico y Pasos -->
         <div class="tab-pane fade" id="calories" role="tabpanel" aria-labelledby="calories-tab">
-            <div class="card shadow-sm border-0 bg-dark text-white mb-4">
+            <div class="card shadow-sm mb-4">
                 <div class="card-body">
                     <h5 class="card-title text-warning mb-3">Historial de Pasos y Balance Energético</h5>
                     <div class="row">
@@ -285,7 +287,7 @@
             <div class="row mb-4">
                 {% for insight in meal_ml_insights %}
                 <div class="col-md-6 mb-3">
-                    <div class="card shadow-sm border-{{ insight.type }} bg-dark text-white h-100">
+                    <div class="card shadow-sm border-{{ insight.type }} h-100">
                         <div class="card-body">
                             <h5 class="card-title text-{{ insight.type }}"><i class="bi {{ insight.icon }} me-2"></i>{{ insight.title }}</h5>
                             <p class="card-text mb-0">{{ insight.text }}</p>
@@ -297,7 +299,7 @@
             {% endif %}
 
             {% if meal_planner_debug %}
-            <div class="card bg-dark text-white border-secondary mb-4">
+            <div class="card border-secondary border-opacity-25 mb-4">
                 <div class="card-header">Objetivos Diarios</div>
                 <div class="card-body">
                     <div class="row text-center">
@@ -326,9 +328,9 @@
             {% endif %}
 
             {% if meal_learning %}
-            <div class="card bg-dark text-white border-secondary mb-4">
+            <div class="card border-secondary border-opacity-25 mb-4">
                 <div class="card-header">
-                    <i class="bi bi-graph-up-arrow me-2"></i>Aprendizaje de tus patrones
+                    <i class="bi bi-graph-up-arrow me-2 text-warning"></i>Aprendizaje de tus patrones
                 </div>
                 <div class="card-body">
                     <div class="row text-center">
@@ -369,7 +371,7 @@
             {% endif %}
 
             {% for day in meal_plan %}
-            <div class="card bg-dark text-white border-secondary mb-3">
+            <div class="card border-secondary border-opacity-25 mb-3">
                 <div class="card-header d-flex justify-content-between align-items-center">
                     <span class="fw-bold">{{ day.date|date:"l d/m/Y" }}</span>
                     <span class="badge bg-warning text-dark">{{ day.macros.kcal }} kcal</span>
@@ -377,12 +379,12 @@
                 <div class="card-body">
                     {% if day.notes %}
                     {% for note in day.notes %}
-                    <div class="alert alert-dark border-secondary py-2 small mb-3">{{ note }}</div>
+                    <div class="alert alert-dark border-secondary border-opacity-25 py-2 small mb-3">{{ note }}</div>
                     {% endfor %}
                     {% endif %}
                     <div class="row g-3">
                         <div class="col-md-4">
-                            <div class="bg-dark border border-secondary rounded p-3 h-100">
+                            <div class="border border-secondary border-opacity-25 rounded p-3 h-100">
                                 <h6 class="text-warning mb-2">🌅 Desayuno ({{ day.distribution_pct.desayuno }}%)</h6>
                                 <div class="small text-muted mb-3">{{ day.meals.desayuno.advice }}</div>
                                 <table class="table table-sm table-dark mb-0 small">
@@ -393,7 +395,7 @@
                                         {% endfor %}
                                     </tbody>
                                 </table>
-                                <div class="small d-flex justify-content-between">
+                                <div class="small d-flex justify-content-between mt-2">
                                     <span>P: <strong class="text-danger">{{ day.meals.desayuno.macros.protein }}g</strong></span>
                                     <span>G: <strong class="text-info">{{ day.meals.desayuno.macros.fat }}g</strong></span>
                                     <span>HC: <strong class="text-primary">{{ day.meals.desayuno.macros.carbs }}g</strong></span>
@@ -401,11 +403,11 @@
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="bg-dark border border-secondary rounded p-3 h-100">
+                            <div class="border border-secondary border-opacity-25 rounded p-3 h-100">
                                 <h6 class="text-success mb-2">🍽️ Comida ({{ day.distribution_pct.comida }}%)</h6>
                                 <div class="small text-muted mb-2">{{ day.meals.comida.advice }}</div>
                                 <div class="small">{{ day.meals.comida.foods_hint }}</div>
-                                <hr class="border-secondary my-2">
+                                <hr class="border-secondary border-opacity-25 my-2">
                                 <div class="small d-flex justify-content-between">
                                     <span>P: <strong class="text-danger">{{ day.meals.comida.macros.protein }}g</strong></span>
                                     <span>G: <strong class="text-info">{{ day.meals.comida.macros.fat }}g</strong></span>
@@ -415,7 +417,7 @@
                             </div>
                         </div>
                         <div class="col-md-4">
-                            <div class="bg-dark border border-secondary rounded p-3 h-100">
+                            <div class="border border-secondary border-opacity-25 rounded p-3 h-100">
                                 <h6 class="text-info mb-2">🌙 Cena ({{ day.distribution_pct.cena }}%)</h6>
                                 <div class="small text-muted mb-2">{{ day.meals.cena.advice }}</div>
                                 <table class="table table-sm table-dark mb-0 small">
@@ -426,7 +428,7 @@
                                         {% endfor %}
                                     </tbody>
                                 </table>
-                                <hr class="border-secondary my-2">
+                                <hr class="border-secondary border-opacity-25 my-2">
                                 <div class="small d-flex justify-content-between">
                                     <span>P: <strong class="text-danger">{{ day.meals.cena.macros.protein }}g</strong></span>
                                     <span>G: <strong class="text-info">{{ day.meals.cena.macros.fat }}g</strong></span>
@@ -437,7 +439,7 @@
                     </div>
                     <div class="row mt-3">
                         <div class="col-12">
-                            <div class="bg-dark border border-secondary rounded p-3">
+                            <div class="border border-secondary border-opacity-25 rounded p-3">
                                 <h6 class="text-warning mb-2">💊 Suplementación recomendada</h6>
                                 <div class="d-flex flex-wrap gap-2">
                                     {% for supp in day.supplements %}
@@ -449,7 +451,7 @@
                     </div>
                     <div class="row mt-3">
                         <div class="col-12">
-                            <div class="bg-dark border border-secondary rounded p-3">
+                            <div class="border border-secondary border-opacity-25 rounded p-3">
                                 <h6 class="mb-2">📊 Totales del día</h6>
                                 <div class="row text-center">
                                     <div class="col-3">
@@ -475,7 +477,7 @@
                 </div>
             </div>
             {% empty %}
-            <div class="card bg-dark text-white border-secondary">
+            <div class="card border-secondary border-opacity-25">
                 <div class="card-body text-center py-5">
                     <p class="text-muted">Completa tu perfil (altura, peso, fecha de nacimiento, género) y registra comidas para obtener un plan personalizado.</p>
                 </div>
@@ -489,10 +491,10 @@
 <!-- Modal de Detalle Nutricional CDR -->
 <div class="modal fade" id="cdrDetailModal" tabindex="-1" aria-labelledby="cdrDetailModalLabel" aria-hidden="true">
     <div class="modal-dialog modal-lg modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content bg-dark text-white border-secondary">
-            <div class="modal-header border-secondary">
-                <h5 class="modal-title" id="cdrDetailModalLabel">Detalle Nutricional</h5>
-                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        <div class="modal-content shadow-lg">
+            <div class="modal-header border-secondary border-opacity-25">
+                <h5 class="modal-title fw-bold text-warning" id="cdrDetailModalLabel">Detalle Nutricional</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
             </div>
             <div class="modal-body p-0">
                 <table class="table table-dark table-hover mb-0 align-middle">

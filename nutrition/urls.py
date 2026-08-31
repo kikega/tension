@@ -14,4 +14,9 @@ urlpatterns = [
     path("recipes/<int:pk>/", views.RecipeDetailView.as_view(), name="recipe_detail"),
     path("recipes/<int:pk>/edit/", views.RecipeUpdateView.as_view(), name="recipe_edit"),
     path("recipes/<int:pk>/delete/", views.RecipeDeleteView.as_view(), name="recipe_delete"),
+    # API endpoints para creación y consulta al vuelo
+    path("api/foods/create/", views.QuickFoodCreateAPIView.as_view(), name="api_food_create"),
+    path("api/foods/search/", views.FoodSearchAPIView.as_view(), name="api_food_search"),
+    path("api/recipes/create/", views.QuickRecipeCreateAPIView.as_view(), name="api_recipe_create"),
+    path("api/recipes/<int:pk>/detail/", views.RecipeDetailAPIView.as_view(), name="api_recipe_detail"),
 ]

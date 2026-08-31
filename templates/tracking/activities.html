@@ -1,28 +1,60 @@
 {% extends "base.html" %}
-{% block title %}Actividades Físicas - Salud App{% endblock %}
+{% block title %}Actividades Físicas — Salud App{% endblock %}
+
 {% block content %}
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">Mis Actividades Físicas</h1>
-        <a href="{% url 'activity_add' %}"
-           class="btn btn-sm btn-outline-warning">+ Añadir Actividad</a>
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h1 class="h3 mb-0 text-white">
+            <i class="bi bi-activity text-warning me-2"></i>Mis Actividades Físicas
+        </h1>
+        <p class="text-muted mb-0 small">Deportes, entrenamientos y rutinas de ejercicio</p>
     </div>
-    {% if activities %}
-        <div class="row row-cols-1 row-cols-md-3 g-3">
-            {% for act in activities %}
-                <div class="col">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h5 class="card-title">{{ act.name }}</h5>
-                            {% if act.description %}<p class="card-text small text-muted">{{ act.description }}</p>{% endif %}
+    <div class="col-auto d-flex gap-2">
+        <a href="{% url 'activity_log_add' %}" class="btn btn-outline-info">
+            <i class="bi bi-plus-lg me-1"></i> Registrar Sesión
+        </a>
+        <a href="{% url 'activity_add' %}" class="btn btn-warning">
+            <i class="bi bi-plus-circle me-1"></i> Nueva Actividad
+        </a>
+    </div>
+</div>
+
+{% if activities %}
+    <div class="row row-cols-1 row-cols-md-3 g-3 mb-4">
+        {% for act in activities %}
+            <div class="col">
+                <div class="card h-100 shadow-sm border-secondary border-opacity-25">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title text-warning mb-0">{{ act.name }}</h5>
+                            <i class="bi bi-person-walking text-muted"></i>
                         </div>
+                        {% if act.description %}
+                            <p class="card-text small text-light mt-2">{{ act.description }}</p>
+                        {% else %}
+                            <p class="card-text small text-muted mt-2">Sin descripción</p>
+                        {% endif %}
                     </div>
                 </div>
-            {% endfor %}
+            </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="card p-5 text-center shadow-sm mb-4">
+        <div class="card-body">
+            <i class="bi bi-activity fs-1 text-warning mb-3 d-block"></i>
+            <h4 class="text-white">No hay actividades físicas configuradas</h4>
+            <p class="text-muted mb-4">Añade deportes o rutinas (Gimnasio, Caminar, Correr, etc.) para registrarlas en tus sesiones.</p>
+            <a href="{% url 'activity_add' %}" class="btn btn-warning">
+                <i class="bi bi-plus-circle me-1"></i> Añadir la primera actividad
+            </a>
         </div>
-    {% else %}
-        <div class="alert alert-secondary text-center">
-            No has configurado ninguna actividad física.
-            <a href="{% url 'activity_add' %}" class="alert-link">Añade la primera</a>.
-        </div>
-    {% endif %}
+    </div>
+{% endif %}
+
+<div class="d-flex gap-2 align-items-center">
+    <a href="{% url 'activity_log_list' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-clock-history me-1"></i> Ver historial de sesiones deportivas
+    </a>
+</div>
 {% endblock %}

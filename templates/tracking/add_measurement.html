@@ -1,72 +1,98 @@
 {% extends "base.html" %}
-{% block title %}Nueva Medición - Salud App{% endblock %}
+{% block title %}Nueva Medición — Salud App{% endblock %}
+
 {% block content %}
-  <div class="row">
-    <div class="col-md-8 offset-md-2">
-      <div class="card">
-        <div class="card-header bg-warning text-dark">
-          <h4 class="mb-0">Nueva Medición</h4>
+<div class="row justify-content-center">
+    <div class="col-lg-8">
+        <div class="row mb-4 align-items-center">
+            <div class="col">
+                <h1 class="h3 mb-0 text-white">
+                    <i class="bi bi-heart-pulse text-warning me-2"></i>Nueva Medición de Tensión
+                </h1>
+                <p class="text-muted mb-0 small">Registra tu toma de tensión arterial con triple lectura</p>
+            </div>
+            <div class="col-auto">
+                <a href="{% url 'history' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Ver Historial
+                </a>
+            </div>
         </div>
-        <div class="card-body">
-          <form method="post">
-            {% csrf_token %}
-            <h5 class="mb-3">Datos de la Sesión</h5>
-            <div class="row">
-              <div class="col-md-6 mb-3">
-                <label class="form-label">Fecha</label>
-                {{ form.date }}
-              </div>
-              <div class="col-md-6 mb-3">
-                <label class="form-label">Momento</label>
-                {{ form.time_of_day }}
-              </div>
-              <div class="col-md-6 mb-3">
-                <label class="form-label">Tipo</label>
-                {{ form.session_type }}
-              </div>
-              <div class="col-md-6 mb-3">
-                <label class="form-label">Estado de Ánimo</label>
-                {{ form.mood }}
-              </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <i class="bi bi-calendar-event text-warning me-2"></i>Datos de la Sesión
             </div>
-            <div class="mb-3">
-              <label class="form-label">Suplementos (notas libres)</label>
-              {{ form.supplements }}
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-light">Fecha *</label>
+                            {{ form.date }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-light">Momento del Día *</label>
+                            {{ form.time_of_day }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-light">Tipo de Sesión *</label>
+                            {{ form.session_type }}
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-light">Estado de Ánimo</label>
+                            {{ form.mood }}
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label text-muted">Suplementos (notas libres)</label>
+                            {{ form.supplements }}
+                        </div>
+                    </div>
+
+                    <div class="border-top border-secondary border-opacity-25 pt-3 mb-3">
+                        <h5 class="text-warning fw-bold mb-3">
+                            <i class="bi bi-list-ol me-2"></i>Lecturas (3 obligatorias)
+                        </h5>
+                        {{ readings.management_form }}
+                        <div class="table-responsive mb-3">
+                            <table class="table table-dark table-hover mb-0 align-middle text-center">
+                                <thead>
+                                    <tr>
+                                        <th style="width: 10%;">#</th>
+                                        <th style="width: 30%;">Sistólica (mmHg)</th>
+                                        <th style="width: 30%;">Diastólica (mmHg)</th>
+                                        <th style="width: 30%;">Pulsaciones (bpm)</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for rform in readings %}
+                                        <tr>
+                                            <td class="text-muted fw-bold">{{ forloop.counter }}</td>
+                                            <td>{{ rform.systolic }}</td>
+                                            <td>{{ rform.diastolic }}</td>
+                                            <td>{{ rform.pulse }}</td>
+                                            {{ rform.id }}
+                                        </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label text-muted">Observaciones adicionales</label>
+                        {{ form.observations }}
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <a href="{% url 'history' %}" class="btn btn-outline-secondary px-4">Cancelar</a>
+                        <button type="submit" class="btn btn-warning px-5 fw-bold">
+                            <i class="bi bi-check-circle me-1"></i> Guardar Medición
+                        </button>
+                    </div>
+                </form>
             </div>
-            <hr>
-            <h5 class="mb-3">Lecturas (3 obligatorias)</h5>
-            {{ readings.management_form }}
-            <div class="table-responsive">
-              <table class="table table-sm">
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Sistólica</th>
-                    <th>Diastólica</th>
-                    <th>Pulsaciones</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {% for rform in readings %}
-                    <tr>
-                      <td class="align-middle text-muted">{{ forloop.counter }}</td>
-                      <td>{{ rform.systolic }}</td>
-                      <td>{{ rform.diastolic }}</td>
-                      <td>{{ rform.pulse }}</td>
-                      {{ rform.id }}
-                    </tr>
-                  {% endfor %}
-                </tbody>
-              </table>
-            </div>
-            <div class="mb-3">
-              <label class="form-label">Observaciones</label>
-              {{ form.observations }}
-            </div>
-            <button type="submit" class="btn btn-success w-100">Guardar Medición</button>
-          </form>
         </div>
-      </div>
     </div>
-  </div>
+</div>
 {% endblock %}

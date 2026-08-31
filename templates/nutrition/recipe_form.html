@@ -1,68 +1,102 @@
 {% extends "base.html" %}
-{% block title %}{% if object %}Editar Receta{% else %}Nueva Receta{% endif %} - Salud App{% endblock %}
+{% block title %}{% if object %}Editar Receta{% else %}Nueva Receta{% endif %} — Salud App{% endblock %}
+
 {% block content %}
-    <div class="row">
-        <div class="col-md-8 offset-md-2">
-            <div class="card">
-                <div class="card-header">{% if object %}Editar Receta{% else %}Nueva Receta{% endif %}</div>
-                <div class="card-body">
-                    <form method="post">
-                        {% csrf_token %}
-                        {{ form.non_field_errors }}
-                        <div class="mb-3">
-                            <label class="form-label">Nombre</label>
+<div class="row justify-content-center">
+    <div class="col-lg-9">
+        <div class="row mb-4 align-items-center">
+            <div class="col">
+                <h1 class="h3 mb-0 text-white">
+                    <i class="bi bi-book text-warning me-2"></i>{% if object %}Editar Receta{% else %}Nueva Receta{% endif %}
+                </h1>
+                <p class="text-muted mb-0 small">Define los ingredientes y cantidades para el cálculo automático de nutrientes</p>
+            </div>
+            <div class="col-auto">
+                <a href="{% url 'recipe_list' %}" class="btn btn-outline-secondary">
+                    <i class="bi bi-arrow-left me-1"></i> Volver a Recetas
+                </a>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <i class="bi bi-pencil-square text-warning me-2"></i>Detalles de la Receta
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger mb-3">{{ form.non_field_errors }}</div>
+                    {% endif %}
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-8">
+                            <label class="form-label fw-semibold text-light">Nombre de la Receta *</label>
                             {{ form.name }}
                         </div>
-                        <div class="mb-3">
-                            <label class="form-label">Descripción</label>
-                            {{ form.description }}
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Preparación</label>
-                            {{ form.instructions }}
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Raciones</label>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold text-light">Raciones *</label>
                             {{ form.servings }}
                         </div>
-
-                        <h5 class="mt-4 mb-3 border-bottom pb-2">Ingredientes</h5>
-                        {{ ingredients.management_form }}
-                        <div id="ingredient-list">
-                            {% for ingredient_form in ingredients %}
-                            <div class="row g-2 mb-2 ingredient-row">
-                                <div class="col-md-5">
-                                    {{ ingredient_form.id }}
-                                    {{ ingredient_form.food }}
-                                </div>
-                                <div class="col-md-4">
-                                    {{ ingredient_form.quantity_g }}
-                                </div>
-                                <div class="col-md-2 d-flex align-items-center">
-                                    {% if ingredient_form.DELETE %}
-                                    <div class="form-check">
-                                        {{ ingredient_form.DELETE }}
-                                        <label class="form-check-label text-danger small" for="{{ ingredient_form.DELETE.id_for_label }}">Eliminar</label>
-                                    </div>
-                                    {% endif %}
-                                </div>
-                            </div>
-                            {% endfor %}
+                        <div class="col-12">
+                            <label class="form-label text-muted">Descripción corta</label>
+                            {{ form.description }}
                         </div>
-                        <button type="button" class="btn btn-sm btn-outline-secondary mb-3" id="add-ingredient-btn">
-                            + Añadir Ingrediente
-                        </button>
+                        <div class="col-12">
+                            <label class="form-label text-muted">Instrucciones de Preparación</label>
+                            {{ form.instructions }}
+                        </div>
+                    </div>
 
-                        <button type="submit" class="btn btn-warning w-100 mt-2">
-                            {% if object %}Guardar Cambios{% else %}Guardar Receta{% endif %}
+                    <div class="d-flex justify-content-between align-items-center border-bottom border-secondary border-opacity-25 pb-2 mb-3 mt-4">
+                        <h5 class="text-warning mb-0 fw-bold">
+                            <i class="bi bi-list-check me-2"></i>Ingredientes de la Receta
+                        </h5>
+                        <button type="button" class="btn btn-sm btn-outline-info" id="add-ingredient-btn">
+                            <i class="bi bi-plus-lg me-1"></i> Añadir Ingrediente
                         </button>
-                    </form>
-                </div>
+                    </div>
+
+                    {{ ingredients.management_form }}
+                    <div id="ingredient-list">
+                        {% for ingredient_form in ingredients %}
+                        <div class="row g-2 mb-2 ingredient-row align-items-center p-2 rounded border border-secondary border-opacity-25">
+                            <div class="col-md-6">
+                                <label class="form-label small text-muted d-block mb-1">Alimento</label>
+                                {{ ingredient_form.id }}
+                                {{ ingredient_form.food }}
+                            </div>
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted d-block mb-1">Cantidad (gramos)</label>
+                                {{ ingredient_form.quantity_g }}
+                            </div>
+                            <div class="col-md-2 text-center pt-3">
+                                {% if ingredient_form.DELETE %}
+                                <div class="form-check d-inline-block">
+                                    {{ ingredient_form.DELETE }}
+                                    <label class="form-check-label text-danger small" for="{{ ingredient_form.DELETE.id_for_label }}">
+                                        <i class="bi bi-trash"></i>
+                                    </label>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endfor %}
+                    </div>
+
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
+                        <a href="{% url 'recipe_list' %}" class="btn btn-outline-secondary px-4">Cancelar</a>
+                        <button type="submit" class="btn btn-warning px-5 fw-bold">
+                            <i class="bi bi-check-circle me-1"></i> {% if object %}Guardar Cambios{% else %}Guardar Receta{% endif %}
+                        </button>
+                    </div>
+                </form>
             </div>
-            <a href="{% url 'recipe_list' %}" class="btn btn-link mt-2">&larr; Volver</a>
         </div>
     </div>
+</div>
 {% endblock content %}
+
 {% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -73,7 +107,9 @@ document.addEventListener('DOMContentLoaded', function() {
 
     addBtn.addEventListener('click', function() {
         const current = parseInt(totalForms.value);
-        const template = list.querySelector('.ingredient-row').cloneNode(true);
+        const rows = list.querySelectorAll('.ingredient-row');
+        if (rows.length === 0) return;
+        const template = rows[0].cloneNode(true);
         template.querySelectorAll('input, select, textarea').forEach(function(el) {
             const name = el.getAttribute('name');
             const id = el.getAttribute('id');

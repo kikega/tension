@@ -452,10 +452,14 @@ class FoodLogCreateView(LoginRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         data = super().get_context_data(**kwargs)
         from .forms import FoodLogItemFormSet
+        from nutrition.models import FoodCategory, Recipe
+        from django.db.models import Q
         if self.request.POST:
             data['items'] = FoodLogItemFormSet(self.request.POST, form_kwargs={'user': self.request.user})
         else:
             data['items'] = FoodLogItemFormSet(form_kwargs={'user': self.request.user})
+        data['categories'] = FoodCategory.objects.all()
+        data['available_recipes'] = Recipe.objects.filter(Q(user__isnull=True) | Q(user=self.request.user))
         return data
 
     def form_valid(self, form):
@@ -483,10 +487,14 @@ class FoodLogUpdateView(LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         data = super().get_context_data(**kwargs)
         from .forms import FoodLogItemFormSet
+        from nutrition.models import FoodCategory, Recipe
+        from django.db.models import Q
         if self.request.POST:
             data['items'] = FoodLogItemFormSet(self.request.POST, instance=self.object, form_kwargs={'user': self.request.user})
         else:
             data['items'] = FoodLogItemFormSet(instance=self.object, form_kwargs={'user': self.request.user})
+        data['categories'] = FoodCategory.objects.all()
+        data['available_recipes'] = Recipe.objects.filter(Q(user__isnull=True) | Q(user=self.request.user))
         return data
 
     def form_valid(self, form):

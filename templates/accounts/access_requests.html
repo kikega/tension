@@ -1,81 +1,87 @@
 {% extends "base.html" %}
-{% block title %}Solicitudes de Acceso - Salud App{% endblock %}
+{% block title %}Solicitudes de Acceso — Salud App{% endblock %}
+
 {% block content %}
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
-        <h1 class="h2">Solicitudes de Acceso Pendientes</h1>
-        <span class="badge bg-warning text-dark fs-6">{{ requests|length }} Pendientes</span>
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h1 class="h3 mb-0 text-white">
+            <i class="bi bi-person-check text-warning me-2"></i>Solicitudes de Acceso Pendientes
+        </h1>
+        <p class="text-muted mb-0 small">Aprobación y validación de nuevas cuentas de usuario</p>
     </div>
+    <div class="col-auto">
+        <span class="badge bg-warning text-dark fs-6">{{ requests|length }} Pendiente{{ requests|length|pluralize }}</span>
+    </div>
+</div>
 
-    {% if requests %}
-        <div class="row row-cols-1 row-cols-md-2 g-4">
-            {% for req in requests %}
-                <div class="col">
-                    <div class="card h-100">
-                        <div class="card-header d-flex justify-content-between align-items-center">
-                            <h5 class="mb-0 text-truncate" title="{{ req.user.email }}">{{ req.user.email }}</h5>
-                            <small class="text-white-50">{{ req.created_at|date:"d/m/Y H:i" }}</small>
+{% if requests %}
+    <div class="row row-cols-1 row-cols-md-2 g-4 mb-4">
+        {% for req in requests %}
+            <div class="col">
+                <div class="card h-100 shadow-sm border-secondary border-opacity-25">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0 text-truncate text-warning" title="{{ req.user.email }}">
+                            <i class="bi bi-envelope me-1"></i>{{ req.user.email }}
+                        </h5>
+                        <small class="text-muted">{{ req.created_at|date:"d/m/Y H:i" }}</small>
+                    </div>
+                    <div class="card-body">
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <span class="text-muted small d-block">Nombre</span>
+                                <span class="fw-semibold text-light">{{ req.user.first_name|default:"—" }} {{ req.user.last_name|default:"" }}</span>
+                            </div>
+                            <div class="col-6">
+                                <span class="text-muted small d-block">Género</span>
+                                <span class="text-light">{{ req.user.get_gender_display|default:"—" }}</span>
+                            </div>
                         </div>
-                        <div class="card-body">
-                            <div class="row mb-3">
-                                <div class="col-6">
-                                    <strong>Nombre:</strong>
-                                    <div>{{ req.user.first_name|default:"—" }} {{ req.user.last_name|default:"" }}</div>
-                                </div>
-                                <div class="col-6">
-                                    <strong>Género:</strong>
-                                    <div>{{ req.user.get_gender_display|default:"—" }}</div>
-                                </div>
+                        <div class="row mb-3">
+                            <div class="col-6">
+                                <span class="text-muted small d-block">Fecha de Nacimiento</span>
+                                <span class="text-light">{{ req.user.birth_date|date:"d/m/Y"|default:"—" }}</span>
                             </div>
-                            <div class="row mb-3">
-                                <div class="col-6">
-                                    <strong>Fecha de Nacimiento:</strong>
-                                    <div>{{ req.user.birth_date|date:"d/m/Y"|default:"—" }}</div>
-                                </div>
-                                <div class="col-6">
-                                    <strong>Altura:</strong>
-                                    <div>{% if req.user.height_cm %}{{ req.user.height_cm }} cm{% else %}—{% endif %}</div>
-                                </div>
+                            <div class="col-6">
+                                <span class="text-muted small d-block">Altura</span>
+                                <span class="text-light">{% if req.user.height_cm %}{{ req.user.height_cm }} cm{% else %}—{% endif %}</span>
                             </div>
-                            <div class="row mb-4">
-                                <div class="col-12">
-                                    <strong>Meta Semanal:</strong>
-                                    <div>{{ req.user.target_weekly_loss_kg|default:"0.50" }} kg/semana</div>
-                                </div>
+                        </div>
+                        <div class="row mb-4">
+                            <div class="col-12">
+                                <span class="text-muted small d-block">Meta Semanal</span>
+                                <span class="badge bg-secondary">{{ req.user.target_weekly_loss_kg|default:"0.50" }} kg/semana</span>
                             </div>
+                        </div>
 
-                            <div class="d-flex gap-2">
-                                <form action="{% url 'approve_access_request' req.pk %}" method="post" class="flex-grow-1">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-warning w-100 py-2">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-check-circle-fill me-1" viewBox="0 0 16 16">
-                                            <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0m-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
-                                        </svg>Aprobar
-                                    </button>
-                                </form>
-                                <form action="{% url 'reject_access_request' req.pk %}" method="post" class="flex-grow-1">
-                                    {% csrf_token %}
-                                    <button type="submit" class="btn btn-outline-danger w-100 py-2" onclick="return confirm('¿Estás seguro de que quieres rechazar y desactivar esta solicitud?');">
-                                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-x-circle-fill me-1" viewBox="0 0 16 16">
-                                            <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0M5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293z"/>
-                                        </svg>Rechazar
-                                    </button>
-                                </form>
-                            </div>
+                        <div class="d-flex gap-2 border-top border-secondary border-opacity-25 pt-3">
+                            <form action="{% url 'approve_access_request' req.pk %}" method="post" class="flex-grow-1">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-warning w-100 fw-bold">
+                                    <i class="bi bi-check-circle-fill me-1"></i> Aprobar
+                                </button>
+                            </form>
+                            <form action="{% url 'reject_access_request' req.pk %}" method="post" class="flex-grow-1">
+                                {% csrf_token %}
+                                <button type="submit" class="btn btn-outline-danger w-100" onclick="return confirm('¿Estás seguro de que quieres rechazar y desactivar esta solicitud?');">
+                                    <i class="bi bi-x-circle-fill me-1"></i> Rechazar
+                                </button>
+                            </form>
                         </div>
                     </div>
                 </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <div class="card p-5 text-center my-4">
-            <div class="card-body">
-                <svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" fill="currentColor" class="bi bi-people-fill text-muted mb-3" viewBox="0 0 16 16">
-                    <path d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-5.784 6A2.24 2.24 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.3 6.3 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1zM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5"/>
-                </svg>
-                <h4 class="text-white mb-2">No hay solicitudes pendientes</h4>
-                <p class="text-white-50">Todos los registros de usuarios han sido procesados.</p>
-                <a href="{% url 'dashboard' %}" class="btn btn-sm btn-outline-warning mt-2">Ir al Dashboard</a>
             </div>
+        {% endfor %}
+    </div>
+{% else %}
+    <div class="card p-5 text-center my-4 shadow-sm">
+        <div class="card-body">
+            <i class="bi bi-people-fill fs-1 text-muted mb-3 d-block"></i>
+            <h4 class="text-white mb-2">No hay solicitudes pendientes</h4>
+            <p class="text-muted mb-4">Todos los registros de usuarios han sido procesados.</p>
+            <a href="{% url 'dashboard' %}" class="btn btn-outline-warning">
+                <i class="bi bi-grid me-1"></i> Ir al Dashboard
+            </a>
         </div>
-    {% endif %}
+    </div>
+{% endif %}
 {% endblock %}

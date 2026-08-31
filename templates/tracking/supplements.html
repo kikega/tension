@@ -1,34 +1,61 @@
 {% extends "base.html" %}
-{% block title %}Suplementos - Salud App{% endblock %}
+{% block title %}Catálogo de Suplementos — Salud App{% endblock %}
+
 {% block content %}
-    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">Mi Catálogo de Suplementos</h1>
-        <a href="{% url 'supplement_add' %}"
-           class="btn btn-sm btn-outline-warning">+ Añadir Suplemento</a>
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h1 class="h3 mb-0 text-white">
+            <i class="bi bi-capsule text-warning me-2"></i>Mis Suplementos
+        </h1>
+        <p class="text-muted mb-0 small">Catálogo de vitaminas, minerales y suplementos registrados</p>
     </div>
-    {% if supplements %}
-        <div class="row row-cols-1 row-cols-md-3 g-3">
-            {% for s in supplements %}
-                <div class="col">
-                    <div class="card h-100">
-                        <div class="card-body">
-                            <h5 class="card-title">{{ s.name }}</h5>
-                            {% if s.manufacturer %}<h6 class="card-subtitle mb-2 text-muted">{{ s.manufacturer }}</h6>{% endif %}
-                            {% if s.description %}<p class="card-text small">{{ s.description }}</p>{% endif %}
+    <div class="col-auto d-flex gap-2">
+        <a href="{% url 'supplement_log_add' %}" class="btn btn-outline-info">
+            <i class="bi bi-plus-lg me-1"></i> Registrar Toma
+        </a>
+        <a href="{% url 'supplement_add' %}" class="btn btn-warning">
+            <i class="bi bi-plus-circle me-1"></i> Añadir Suplemento
+        </a>
+    </div>
+</div>
+
+{% if supplements %}
+    <div class="row row-cols-1 row-cols-md-3 g-3 mb-4">
+        {% for s in supplements %}
+            <div class="col">
+                <div class="card h-100 shadow-sm border-secondary border-opacity-25">
+                    <div class="card-body">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <h5 class="card-title text-warning mb-0">{{ s.name }}</h5>
+                            <i class="bi bi-capsule text-muted"></i>
                         </div>
+                        {% if s.manufacturer %}
+                            <h6 class="card-subtitle mb-2 text-muted small"><i class="bi bi-building me-1"></i>{{ s.manufacturer }}</h6>
+                        {% endif %}
+                        {% if s.description %}
+                            <p class="card-text small text-light mt-2">{{ s.description }}</p>
+                        {% endif %}
                     </div>
                 </div>
-            {% endfor %}
-        </div>
-    {% else %}
-        <div class="alert alert-secondary text-center">
-            No has añadido ningún suplemento todavía.
-            <a href="{% url 'supplement_add' %}" class="alert-link">Añade el primero</a>.
-        </div>
-    {% endif %}
-    <div class="mt-4">
-        <a href="{% url 'supplement_log_add' %}"
-           class="btn btn-outline-secondary">Registrar Toma de Suplemento</a>
-        <a href="{% url 'supplement_log_list' %}" class="btn btn-link ms-2">Ver historial de tomas</a>
+            </div>
+        {% endfor %}
     </div>
+{% else %}
+    <div class="card p-5 text-center shadow-sm mb-4">
+        <div class="card-body">
+            <i class="bi bi-capsule fs-1 text-warning mb-3 d-block"></i>
+            <h4 class="text-white">No hay suplementos en tu catálogo</h4>
+            <p class="text-muted mb-4">Añade suplementos o complejos vitamínicos para registrar su consumo diario.</p>
+            <a href="{% url 'supplement_add' %}" class="btn btn-warning">
+                <i class="bi bi-plus-circle me-1"></i> Añadir el primer suplemento
+            </a>
+        </div>
+    </div>
+{% endif %}
+
+<div class="d-flex gap-2 align-items-center">
+    <a href="{% url 'supplement_log_list' %}" class="btn btn-outline-secondary">
+        <i class="bi bi-clock-history me-1"></i> Ver historial de tomas
+    </a>
+</div>
 {% endblock %}

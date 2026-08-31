@@ -1,167 +1,207 @@
 {% extends "base.html" %}
-{% block title %}Nuevo Alimento - Salud App{% endblock %}
+{% block title %}{% if form.instance.pk %}Editar Alimento{% else %}Nuevo Alimento{% endif %} — Salud App{% endblock %}
+
 {% block content %}
-    <div class="pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">Nuevo Alimento</h1>
+<div class="row mb-4 align-items-center">
+    <div class="col">
+        <h1 class="h3 mb-0 text-white">
+            <i class="bi bi-egg-fried text-warning me-2"></i>{% if form.instance.pk %}Editar Alimento{% else %}Nuevo Alimento{% endif %}
+        </h1>
+        <p class="text-muted mb-0 small">Introduce los datos y la composición nutricional estandarizada por 100g</p>
     </div>
-    <form method="post">
-        {% csrf_token %}
-        <div class="card mb-3">
-            <div class="card-header">Datos Generales</div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-6">
-                        <label class="form-label">Nombre</label>
-                        {{ form.name }}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Categoría</label>
-                        {{ form.category }}
-                    </div>
-                    <div class="col-md-6">
-                        <label class="form-label">Estacionalidad</label>
-                        {{ form.seasonality }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Porción comestible (%)</label>
-                        {{ form.edible_portion }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">Valoración</label>
-                        {{ form.nutritional_rating }}
-                    </div>
-                    <div class="col-md-12">
-                        <label class="form-label">Descripción</label>
-                        {{ form.description }}
-                    </div>
+    <div class="col-auto">
+        <a href="{% url 'food_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-arrow-left me-1"></i> Volver al Catálogo
+        </a>
+    </div>
+</div>
+
+<form method="post">
+    {% csrf_token %}
+    
+    {% if form.errors %}
+        <div class="alert alert-danger shadow-sm mb-4">
+            <i class="bi bi-exclamation-triangle-fill me-2"></i>Por favor revisa los errores en el formulario.
+        </div>
+    {% endif %}
+
+    <!-- 1. Datos Generales -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <i class="bi bi-info-circle text-warning me-2"></i>Datos Generales
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold text-light">Nombre *</label>
+                    {{ form.name }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold text-light">Categoría</label>
+                    {{ form.category }}
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold text-light">Estacionalidad</label>
+                    {{ form.seasonality }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold text-light">Porción comestible (%)</label>
+                    {{ form.edible_portion }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold text-light">Valoración Nutricional</label>
+                    {{ form.nutritional_rating }}
+                </div>
+                <div class="col-md-12">
+                    <label class="form-label text-muted">Descripción</label>
+                    {{ form.description }}
                 </div>
             </div>
         </div>
-        <div class="card mb-3">
-            <div class="card-header">Macronutrientes (por 100 g)</div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.energy_kcal.label }}</label>
-                        {{ form.energy_kcal }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.proteins_g.label }}</label>
-                        {{ form.proteins_g }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.lipids_g.label }}</label>
-                        {{ form.lipids_g }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.cholesterol_mg.label }}</label>
-                        {{ form.cholesterol_mg }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.carbohydrates_g.label }}</label>
-                        {{ form.carbohydrates_g }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.glycemic_index.label }}</label>
-                        {{ form.glycemic_index }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.fiber_g.label }}</label>
-                        {{ form.fiber_g }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.water_g.label }}</label>
-                        {{ form.water_g }}
-                    </div>
+    </div>
+
+    <!-- 2. Macronutrientes -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <i class="bi bi-fire text-warning me-2"></i>Macronutrientes (por 100 g)
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold text-warning">{{ form.energy_kcal.label }}</label>
+                    {{ form.energy_kcal }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold text-info">{{ form.proteins_g.label }}</label>
+                    {{ form.proteins_g }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold text-danger">{{ form.lipids_g.label }}</label>
+                    {{ form.lipids_g }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-light">{{ form.cholesterol_mg.label }}</label>
+                    {{ form.cholesterol_mg }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-semibold text-success">{{ form.carbohydrates_g.label }}</label>
+                    {{ form.carbohydrates_g }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-light">{{ form.glycemic_index.label }}</label>
+                    {{ form.glycemic_index }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-light">{{ form.fiber_g.label }}</label>
+                    {{ form.fiber_g }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-light">{{ form.water_g.label }}</label>
+                    {{ form.water_g }}
                 </div>
             </div>
         </div>
-        <div class="card mb-3">
-            <div class="card-header">Minerales (por 100 g)</div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.calcium_mg.label }}</label>
-                        {{ form.calcium_mg }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.iron_mg.label }}</label>
-                        {{ form.iron_mg }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.iodine_ug.label }}</label>
-                        {{ form.iodine_ug }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.magnesium_mg.label }}</label>
-                        {{ form.magnesium_mg }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.zinc_mg.label }}</label>
-                        {{ form.zinc_mg }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.sodium_mg.label }}</label>
-                        {{ form.sodium_mg }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.potassium_mg.label }}</label>
-                        {{ form.potassium_mg }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.phosphorus_mg.label }}</label>
-                        {{ form.phosphorus_mg }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.selenium_ug.label }}</label>
-                        {{ form.selenium_ug }}
-                    </div>
+    </div>
+
+    <!-- 3. Minerales -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <i class="bi bi-gem text-info me-2"></i>Minerales (por 100 g)
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label text-light">{{ form.calcium_mg.label }}</label>
+                    {{ form.calcium_mg }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-light">{{ form.iron_mg.label }}</label>
+                    {{ form.iron_mg }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-light">{{ form.iodine_ug.label }}</label>
+                    {{ form.iodine_ug }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-light">{{ form.magnesium_mg.label }}</label>
+                    {{ form.magnesium_mg }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-light">{{ form.zinc_mg.label }}</label>
+                    {{ form.zinc_mg }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-light">{{ form.sodium_mg.label }}</label>
+                    {{ form.sodium_mg }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-light">{{ form.potassium_mg.label }}</label>
+                    {{ form.potassium_mg }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-light">{{ form.phosphorus_mg.label }}</label>
+                    {{ form.phosphorus_mg }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-light">{{ form.selenium_ug.label }}</label>
+                    {{ form.selenium_ug }}
                 </div>
             </div>
         </div>
-        <div class="card mb-3">
-            <div class="card-header">Vitaminas (por 100 g)</div>
-            <div class="card-body">
-                <div class="row g-3">
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.thiamine_mg.label }}</label>
-                        {{ form.thiamine_mg }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.riboflavin_mg.label }}</label>
-                        {{ form.riboflavin_mg }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.vitamin_b6_mg.label }}</label>
-                        {{ form.vitamin_b6_mg }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.folate_ug.label }}</label>
-                        {{ form.folate_ug }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.vitamin_b12_ug.label }}</label>
-                        {{ form.vitamin_b12_ug }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.vitamin_c_mg.label }}</label>
-                        {{ form.vitamin_c_mg }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.vitamin_a_ug.label }}</label>
-                        {{ form.vitamin_a_ug }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.vitamin_d_ug.label }}</label>
-                        {{ form.vitamin_d_ug }}
-                    </div>
-                    <div class="col-md-3">
-                        <label class="form-label">{{ form.vitamin_e_mg.label }}</label>
-                        {{ form.vitamin_e_mg }}
-                    </div>
+    </div>
+
+    <!-- 4. Vitaminas -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header">
+            <i class="bi bi-capsule text-success me-2"></i>Vitaminas (por 100 g)
+        </div>
+        <div class="card-body">
+            <div class="row g-3">
+                <div class="col-md-3">
+                    <label class="form-label text-light">{{ form.thiamine_mg.label }}</label>
+                    {{ form.thiamine_mg }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-light">{{ form.riboflavin_mg.label }}</label>
+                    {{ form.riboflavin_mg }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-light">{{ form.vitamin_b6_mg.label }}</label>
+                    {{ form.vitamin_b6_mg }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-light">{{ form.folate_ug.label }}</label>
+                    {{ form.folate_ug }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-light">{{ form.vitamin_b12_ug.label }}</label>
+                    {{ form.vitamin_b12_ug }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-light">{{ form.vitamin_c_mg.label }}</label>
+                    {{ form.vitamin_c_mg }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-light">{{ form.vitamin_a_ug.label }}</label>
+                    {{ form.vitamin_a_ug }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-light">{{ form.vitamin_d_ug.label }}</label>
+                    {{ form.vitamin_d_ug }}
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label text-light">{{ form.vitamin_e_mg.label }}</label>
+                    {{ form.vitamin_e_mg }}
                 </div>
             </div>
         </div>
-        <button type="submit" class="btn btn-warning w-100 mb-4">Guardar Alimento</button>
-    </form>
+    </div>
+
+    <div class="d-grid gap-2 d-md-flex justify-content-md-end mb-4">
+        <a href="{% url 'food_list' %}" class="btn btn-outline-secondary px-4">Cancelar</a>
+        <button type="submit" class="btn btn-warning px-5 fw-bold">
+            <i class="bi bi-check-circle me-1"></i> Guardar Alimento
+        </button>
+    </div>
+</form>
 {% endblock content %}

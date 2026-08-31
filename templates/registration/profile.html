@@ -1,37 +1,61 @@
 {% extends "base.html" %}
 {% block title %}Mi Perfil de Salud — Salud App{% endblock %}
+
 {% block content %}
-    <div class="row justify-content-center">
-        <div class="col-md-6">
-            <div class="card shadow-sm mt-4">
-                <div class="card-header bg-info text-dark">
-                    <h4 class="mb-0">Mi Perfil de Salud</h4>
-                </div>
-                <div class="card-body">
-                    <p class="text-muted small mb-4">
-                        Completa estos datos para que nuestra IA pueda estimar tu Tasa Metabólica Basal (TMB), calcular tus necesidades calóricas diarias y darte sugerencias más precisas para lograr tu objetivo de peso.
-                    </p>
-                    <form method="post">
-                        {% csrf_token %}
-                        {% if form.non_field_errors %}<div class="alert alert-danger">{{ form.non_field_errors }}</div>{% endif %}
-                        {% for field in form %}
-                            <div class="mb-3">
-                                <label for="{{ field.id_for_label }}" class="form-label fw-bold">{{ field.label }}</label>
-                                {{ field }}
-                                {% if field.help_text %}<div class="form-text text-muted">{{ field.help_text }}</div>{% endif %}
-                                {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors }}</div>{% endif %}
-                            </div>
-                        {% endfor %}
-                        <div class="d-grid mt-4">
-                            <button type="submit" class="btn btn-info">Guardar Perfil</button>
+<div class="row justify-content-center">
+    <div class="col-md-7 col-lg-6">
+        <div class="row mb-4 align-items-center">
+            <div class="col">
+                <h1 class="h3 mb-0 text-white">
+                    <i class="bi bi-person-badge text-warning me-2"></i>Mi Perfil de Salud
+                </h1>
+                <p class="text-muted mb-0 small">Configuración biométrica y objetivos metabólicos</p>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <i class="bi bi-sliders text-warning me-2"></i>Parámetros Fisiológicos
+            </div>
+            <div class="card-body">
+                <p class="text-muted small mb-4">
+                    Completa estos datos para que el sistema pueda estimar tu Tasa Metabólica Basal (TMB), calcular tus necesidades calóricas diarias y darte sugerencias más precisas.
+                </p>
+                <form method="post">
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger mb-3">{{ form.non_field_errors }}</div>
+                    {% endif %}
+                    
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label for="{{ field.id_for_label }}" class="form-label fw-semibold text-light">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <div class="form-text text-muted small">{{ field.help_text }}</div>
+                            {% endif %}
+                            {% if field.errors %}
+                                <div class="invalid-feedback d-block">{{ field.errors }}</div>
+                            {% endif %}
                         </div>
-                    </form>
-                </div>
-                <div class="card-footer bg-light text-center d-flex justify-content-between">
-                    <a href="{% url 'password_change' %}" class="btn btn-outline-secondary btn-sm">Cambiar Contraseña</a>
-                    <a href="{% url 'dashboard' %}" class="btn btn-link">Volver al Dashboard</a>
-                </div>
+                    {% endfor %}
+                    
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-warning fw-bold py-2">
+                            <i class="bi bi-check-circle me-1"></i> Guardar Perfil
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer d-flex justify-content-between align-items-center">
+                <a href="{% url 'password_change' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-key me-1"></i> Cambiar Contraseña
+                </a>
+                <a href="{% url 'dashboard' %}" class="btn btn-sm btn-outline-info">
+                    <i class="bi bi-grid me-1"></i> Dashboard
+                </a>
             </div>
         </div>
     </div>
+</div>
 {% endblock %}

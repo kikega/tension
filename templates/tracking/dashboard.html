@@ -1,25 +1,37 @@
 {% extends "base.html" %}
 {% block title %}Dashboard - Salud App{% endblock %}
 {% block content %}
-  <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Dashboard</h1>
-    <div class="btn-toolbar mb-2 mb-md-0 gap-2">
+  <div class="row mb-4 align-items-center">
+    <div class="col">
+      <h1 class="h3 mb-0 text-white">
+        <i class="bi bi-grid-1x2 text-warning me-2"></i>Dashboard
+      </h1>
+      <p class="text-muted mb-0 small">Panel de control de métricas de salud y actividad</p>
+    </div>
+    <div class="col-auto d-flex gap-2">
       <a href="{% url 'export_csv' %}"
          class="btn btn-sm btn-outline-info" title="Exportar datos a CSV">
-        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-download" viewBox="0 0 16 16"><path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/><path d="M7.646 11.854a.5.5 0 0 0 .708 0l3-3a.5.5 0 0 0-.708-.708L8.5 10.293V1.5a.5.5 0 0 0-1 0v8.793L5.354 8.146a.5.5 0 1 0-.708.708z"/></svg>
+        <i class="bi bi-download me-1"></i> Exportar
       </a>
       <a href="{% url 'daily_activity_add' %}"
-         class="btn btn-sm btn-outline-success">+ Actividad Watch</a>
+         class="btn btn-sm btn-outline-success">
+        <i class="bi bi-smartwatch me-1"></i> + Actividad Watch
+      </a>
       <a href="{% url 'add_measurement' %}"
-         class="btn btn-sm btn-outline-warning">+ Nueva Medición</a>
+         class="btn btn-sm btn-warning fw-bold">
+        <i class="bi bi-plus-lg me-1"></i> + Nueva Medición
+      </a>
     </div>
   </div>
+
   <!-- Summary Cards Row 1 -->
   <div class="row mb-4">
     <!-- Tensión -->
     <div class="col-md-4 mb-3 mb-md-0">
-      <div class="card h-100 text-center border-info mb-0">
-        <div class="card-header bg-info text-dark fw-bold">Última Tensión</div>
+      <div class="card h-100 text-center border-info border-opacity-50 mb-0 shadow-sm">
+        <div class="card-header border-bottom border-info border-opacity-25 fw-bold text-info">
+          <i class="bi bi-heart-pulse me-1"></i> Última Tensión
+        </div>
         <div class="card-body d-flex flex-column justify-content-center py-3">
           {% if last_session %}
             <h3 class="card-title text-info mb-0">
@@ -36,8 +48,10 @@
     </div>
     <!-- Peso -->
     <div class="col-md-4 mb-3 mb-md-0">
-      <div class="card h-100 text-center border-success mb-0">
-        <div class="card-header bg-success text-white fw-bold">Último Peso</div>
+      <div class="card h-100 text-center border-success border-opacity-50 mb-0 shadow-sm">
+        <div class="card-header border-bottom border-success border-opacity-25 fw-bold text-success">
+          <i class="bi bi-speedometer2 me-1"></i> Último Peso
+        </div>
         <div class="card-body d-flex flex-column justify-content-center py-3">
           {% if last_weight %}
             <h3 class="card-title text-success mb-0">{{ last_weight.weight }} kg</h3>
@@ -50,9 +64,9 @@
     </div>
     <!-- Balance Calórico -->
     <div class="col-md-4">
-      <div class="card h-100 text-center {% if today_balance < 0 %}border-success{% else %}border-danger{% endif %} mb-0">
-        <div class="card-header {% if today_balance < 0 %}bg-success text-white{% else %}bg-danger text-white{% endif %} fw-bold">
-          Balance Calórico de Hoy
+      <div class="card h-100 text-center {% if today_balance < 0 %}border-success{% else %}border-danger{% endif %} border-opacity-50 mb-0 shadow-sm">
+        <div class="card-header border-bottom {% if today_balance < 0 %}border-success text-success{% else %}border-danger text-danger{% endif %} border-opacity-25 fw-bold">
+          <i class="bi bi-fire me-1"></i> Balance Calórico de Hoy
         </div>
         <div class="card-body d-flex flex-column justify-content-center py-3">
           <h3 class="card-title {% if today_balance < 0 %}text-success{% else %}text-danger{% endif %} mb-0">
@@ -70,8 +84,10 @@
   <div class="row mb-4">
     <!-- Ejercicio -->
     <div class="col-md-4 mb-3 mb-md-0">
-      <div class="card h-100 text-center border-warning mb-0">
-        <div class="card-header bg-warning text-dark fw-bold">Último Ejercicio</div>
+      <div class="card h-100 text-center border-warning border-opacity-50 mb-0 shadow-sm">
+        <div class="card-header border-bottom border-warning border-opacity-25 fw-bold text-warning">
+          <i class="bi bi-person-walking me-1"></i> Último Ejercicio
+        </div>
         <div class="card-body d-flex flex-column justify-content-center py-3">
           {% if last_activity %}
             <h3 class="card-title text-warning mb-0 fs-4">{{ last_activity.activity.name }}</h3>
@@ -86,11 +102,13 @@
     </div>
     <!-- Pasos -->
     <div class="col-md-4 mb-3 mb-md-0">
-      <div class="card h-100 text-center border-info mb-0">
-        <div class="card-header bg-info text-dark fw-bold">Pasos de Hoy</div>
+      <div class="card h-100 text-center border-info border-opacity-50 mb-0 shadow-sm">
+        <div class="card-header border-bottom border-info border-opacity-25 fw-bold text-info">
+          <i class="bi bi-footprints me-1"></i> Pasos de Hoy
+        </div>
         <div class="card-body d-flex flex-column justify-content-center py-3">
           <h3 class="card-title text-info mb-0">{{ today_steps }} / 10.000</h3>
-          <div class="progress mt-2 mx-auto" style="width: 80%; height: 8px;">
+          <div class="progress mt-2 mx-auto bg-dark" style="width: 80%; height: 8px;">
             <div class="progress-bar bg-info" role="progressbar" style="width: {% widthratio today_steps 100 1 %}%" aria-valuenow="{{ today_steps }}" aria-valuemin="0" aria-valuemax="10000"></div>
           </div>
         </div>
@@ -98,8 +116,10 @@
     </div>
     <!-- Distancia -->
     <div class="col-md-4">
-      <div class="card h-100 text-center border-primary mb-0">
-        <div class="card-header bg-primary text-white fw-bold">Distancia de Hoy</div>
+      <div class="card h-100 text-center border-primary border-opacity-50 mb-0 shadow-sm">
+        <div class="card-header border-bottom border-primary border-opacity-25 fw-bold text-primary">
+          <i class="bi bi-geo-alt me-1"></i> Distancia de Hoy
+        </div>
         <div class="card-body d-flex flex-column justify-content-center py-3">
           <h3 class="card-title text-primary mb-0">{{ today_distance|floatformat:2 }} km</h3>
           <p class="text-muted small mt-1 mb-0">
@@ -111,8 +131,10 @@
   </div>
   <div class="row mb-4">
     <div class="col-md-12">
-      <div class="card">
-        <div class="card-header">Evolución Reciente (Velas: Rango Sys/Dia, Línea: Pulsaciones)</div>
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <i class="bi bi-graph-up text-warning me-2"></i>Evolución Reciente (Velas: Rango Sys/Dia, Línea: Pulsaciones)
+        </div>
         <div class="card-body">
           <canvas id="mainChart" width="400" height="150"></canvas>
         </div>

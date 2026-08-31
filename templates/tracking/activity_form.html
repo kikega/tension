@@ -1,26 +1,58 @@
 {% extends "base.html" %}
-{% block title %}Nueva Actividad - Salud App{% endblock %}
+{% block title %}Nueva Actividad Física — Salud App{% endblock %}
+
 {% block content %}
-    <div class="row">
-        <div class="col-md-6 offset-md-3">
-            <div class="card">
-                <div class="card-header">Nueva Actividad Física</div>
-                <div class="card-body">
-                    <form method="post">
-                        {% csrf_token %}
-                        <div class="mb-3">
-                            <label class="form-label">Nombre (ej. Andar, Gimnasio, Karate)</label>
-                            {{ form.name }}
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Descripción</label>
-                            {{ form.description }}
-                        </div>
-                        <button type="submit" class="btn btn-warning w-100">Guardar</button>
-                    </form>
-                </div>
+<div class="row justify-content-center">
+    <div class="col-md-6 col-lg-5">
+        <div class="row mb-4 align-items-center">
+            <div class="col">
+                <h1 class="h3 mb-0 text-white">
+                    <i class="bi bi-activity text-warning me-2"></i>Nueva Actividad Física
+                </h1>
+                <p class="text-muted mb-0 small">Añadir deporte o tipo de ejercicio al catálogo</p>
             </div>
-            <a href="{% url 'activity_list' %}" class="btn btn-link mt-2">← Volver</a>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header">
+                <i class="bi bi-plus-circle text-warning me-2"></i>Datos de la Actividad
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    {% if form.non_field_errors %}
+                        <div class="alert alert-danger mb-3">{{ form.non_field_errors }}</div>
+                    {% endif %}
+                    
+                    {% for field in form %}
+                        <div class="mb-3">
+                            <label for="{{ field.id_for_label }}" class="form-label fw-semibold text-light">{{ field.label }}</label>
+                            {{ field }}
+                            {% if field.help_text %}
+                                <div class="form-text text-muted small">{{ field.help_text }}</div>
+                            {% endif %}
+                            {% if field.errors %}
+                                <div class="invalid-feedback d-block">{{ field.errors }}</div>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                    
+                    <div class="d-grid mt-4">
+                        <button type="submit" class="btn btn-warning fw-bold py-2">
+                            <i class="bi bi-check-circle me-1"></i> Guardar Actividad
+                        </button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-footer d-flex justify-content-between align-items-center">
+                <a href="{% url 'activity_list' %}" class="btn btn-sm btn-outline-info">
+                    <i class="bi bi-activity me-1"></i> Ver Catálogo
+                </a>
+                <a href="{% url 'dashboard' %}" class="btn btn-sm btn-outline-secondary">
+                    <i class="bi bi-grid me-1"></i> Dashboard
+                </a>
+            </div>
         </div>
     </div>
+</div>
 {% endblock %}

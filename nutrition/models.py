@@ -29,6 +29,13 @@ class Food(models.Model):
         ("winter", "Invierno"),
     ]
 
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        null=True,
+        blank=True,
+        verbose_name=_("Usuario")
+    )
     category = models.ForeignKey(FoodCategory, on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Categoría"))
     name = models.CharField(max_length=200, verbose_name=_("Alimento"))
     description = models.TextField(blank=True, verbose_name=_("Descripción"))

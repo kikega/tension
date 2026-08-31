@@ -71,9 +71,9 @@ class SupplementForm(forms.ModelForm):
         model = Supplement
         fields = ["name", "manufacturer", "description"]
         widgets = {
-            "name": forms.TextInput(attrs={"class": "form-control"}),
-            "manufacturer": forms.TextInput(attrs={"class": "form-control"}),
-            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3}),
+            "name": forms.TextInput(attrs={"class": "form-control", "placeholder": "Ej. Vitamina D3 + K2"}),
+            "manufacturer": forms.TextInput(attrs={"class": "form-control", "placeholder": "Ej. Solgar, HSN, etc."}),
+            "description": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Ej. 4000 UI por cápsula, tomar con las comidas..."}),
         }
 
 
@@ -87,7 +87,7 @@ class SupplementLogForm(forms.ModelForm):
             "supplement": forms.Select(attrs={"class": "form-select"}),
             "date": forms.DateInput(attrs={"type": "date", "class": "form-control"}),
             "time_of_day": forms.Select(attrs={"class": "form-select"}),
-            "notes": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
+            "notes": forms.Textarea(attrs={"class": "form-control", "rows": 3, "placeholder": "Notas u observaciones opcionales..."}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -181,12 +181,14 @@ class FoodLogItemForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
-        from nutrition.models import Recipe
+        from nutrition.models import Recipe, Food
         from django.db.models import Q
         if user:
             self.fields["recipe"].queryset = Recipe.objects.filter(Q(user__isnull=True) | Q(user=user))
+            self.fields["food"].queryset = Food.objects.filter(Q(user__isnull=True) | Q(user=user))
         else:
             self.fields["recipe"].queryset = Recipe.objects.filter(user__isnull=True)
+            self.fields["food"].queryset = Food.objects.filter(user__isnull=True)
 
 FoodLogItemFormSet = inlineformset_factory(
     FoodLog,

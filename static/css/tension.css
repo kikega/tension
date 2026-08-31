@@ -5,13 +5,19 @@
 /* --------------------------------------------------------------------------
    1. Base & Global Styles
    -------------------------------------------------------------------------- */
+html {
+    scroll-behavior: smooth;
+}
+
 html,
 body {
     min-height: 100%;
     background: linear-gradient(135deg, #161823 0%, #111e3b 100%);
     background-attachment: fixed;
     color: #e2e8f0;
-    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    font-family: 'Inter', system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
 }
 
 /* Typography global overrides */
@@ -20,6 +26,29 @@ h1, h2, h3, h4, h5, h6 {
     color: #fff;
     letter-spacing: -0.02em;
 }
+
+h1 { font-size: 1.75rem; }
+h2 { font-size: 1.5rem; }
+h3 { font-size: 1.25rem; }
+
+/* Selection color */
+::selection {
+    background: rgba(255, 193, 7, 0.3);
+    color: #fff;
+}
+
+/* Wider container for more screen usage */
+.container,
+.container-fluid {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+}
+
+@media (min-width: 576px)  { .container { max-width: 540px;  max-width: 90vw; } }
+@media (min-width: 768px)  { .container { max-width: 720px;  max-width: 92vw; } }
+@media (min-width: 992px)  { .container { max-width: 960px;  max-width: 94vw; } }
+@media (min-width: 1200px) { .container { max-width: 1140px; max-width: 94vw; } }
+@media (min-width: 1400px) { .container { max-width: 1320px; max-width: 95vw; } }
 
 /* --------------------------------------------------------------------------
    2. Layout & Navigation
@@ -506,4 +535,457 @@ a:hover,
 
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(255, 193, 7, 0.4);
+}
+
+/* --------------------------------------------------------------------------
+   12. Login & Auth Pages (Glassmorphism)
+   -------------------------------------------------------------------------- */
+.login-wrapper {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+    padding: 2rem 1rem;
+}
+
+.glass-card {
+    background: rgba(28, 30, 46, 0.7);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 1.5rem;
+    box-shadow: 0 24px 64px rgba(0, 0, 0, 0.4);
+    padding: 3rem 2.5rem;
+    width: 100%;
+    max-width: 420px;
+    animation: fadeInUp 0.5s ease-out;
+}
+
+.login-logo {
+    width: 80px;
+    height: auto;
+    margin-bottom: 1rem;
+    filter: drop-shadow(0 4px 12px rgba(255, 193, 7, 0.3));
+    transition: transform 0.3s ease;
+}
+
+.login-logo:hover {
+    transform: scale(1.05);
+}
+
+/* --------------------------------------------------------------------------
+   13. Footer
+   -------------------------------------------------------------------------- */
+.footer {
+    background: rgba(22, 24, 35, 0.6);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    margin-top: auto;
+}
+
+.footer img {
+    opacity: 0.6;
+    transition: opacity 0.3s ease;
+}
+
+.footer img:hover {
+    opacity: 1;
+}
+
+/* --------------------------------------------------------------------------
+   14. Animations & Micro-interactions
+   -------------------------------------------------------------------------- */
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.6; }
+}
+
+.card {
+    animation: fadeInUp 0.4s ease-out both;
+}
+
+.card:nth-child(1) { animation-delay: 0.05s; }
+.card:nth-child(2) { animation-delay: 0.1s; }
+.card:nth-child(3) { animation-delay: 0.15s; }
+
+/* Smooth transitions for interactive elements */
+.form-control,
+.form-select,
+.btn,
+.page-link,
+.nav-link,
+.dropdown-item {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Focus ring for accessibility */
+.form-control:focus,
+.form-select:focus,
+.btn:focus-visible,
+.page-link:focus-visible,
+.nav-link:focus-visible {
+    outline: 2px solid rgba(255, 193, 7, 0.5);
+    outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   15. Responsive Tab Navigation (Horizontal Scroll on Mobile)
+   -------------------------------------------------------------------------- */
+.nav-tabs {
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 2px;
+}
+
+.nav-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.nav-tabs .nav-link {
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+    .nav-tabs {
+        gap: 0.15rem;
+    }
+    .nav-tabs .nav-link {
+        font-size: 0.8rem;
+        padding: 0.6rem 0.85rem;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   16. Responsive Improvements
+   -------------------------------------------------------------------------- */
+@media (max-width: 768px) {
+    /* Disable hover transforms on touch devices */
+    .btn:hover {
+        transform: none;
+    }
+
+    /* Tighter padding on mobile */
+    .card-body {
+        padding: 1rem;
+    }
+
+    .card-header {
+        padding: 0.85rem 1rem;
+    }
+
+    /* Stack dashboard cards vertically */
+    .row > [class*="col-md-4"] {
+        flex: 0 0 auto;
+        width: 100%;
+    }
+
+    /* Smaller table text */
+    .table {
+        font-size: 0.85rem;
+    }
+
+    .table th,
+    .table td {
+        padding: 0.6rem 0.5rem;
+    }
+
+    /* Smaller badges on mobile */
+    .badge.fs-6 {
+        font-size: 0.8rem !important;
+    }
+
+    /* Glass card tighter */
+    .glass-card {
+        padding: 2rem 1.5rem;
+        border-radius: 1rem;
+    }
+
+    /* Login wrapper */
+    .login-wrapper {
+        min-height: 70vh;
+        padding: 1rem;
+    }
+
+    /* Footer */
+    .footer {
+        padding: 2rem 0 !important;
+    }
+
+    /* Navbar adjustments */
+    .navbar-brand {
+        font-size: 1rem;
+    }
+
+    /* Display titles smaller */
+    .display-6 {
+        font-size: 1.5rem;
+    }
+}
+
+@media (max-width: 576px) {
+    h1.h3 {
+        font-size: 1.15rem;
+    }
+
+    .btn-sm {
+        font-size: 0.78rem;
+        padding: 0.35rem 0.7rem;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   17. Sticky Table Headers
+   -------------------------------------------------------------------------- */
+.table-responsive {
+    max-height: 70vh;
+    overflow-y: auto;
+}
+
+.table thead th {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: rgba(22, 24, 35, 0.98) !important;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border-bottom: 2px solid rgba(255, 193, 7, 0.2) !important;
+}
+
+/* --------------------------------------------------------------------------
+   18. Alert Enhancements (Dismissible)
+   -------------------------------------------------------------------------- */
+.alert-dismissible {
+    padding-right: 3rem;
+    position: relative;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.alert-dismissible .btn-close {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    filter: invert(1) brightness(2);
+}
+
+/* --------------------------------------------------------------------------
+   19. Loading & Skeleton States
+   -------------------------------------------------------------------------- */
+.skeleton {
+    background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.04) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s ease-in-out infinite;
+    border-radius: 0.5rem;
+    min-height: 1rem;
+}
+
+@keyframes skeleton-shimmer {
+    0% { background-position: 200% 0; }
+    100% { background-position: -200% 0; }
+}
+
+.loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(22, 24, 35, 0.8);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+    animation: fadeIn 0.2s ease-out;
+}
+
+/* --------------------------------------------------------------------------
+   20. Tooltip & Popover Dark Theme
+   -------------------------------------------------------------------------- */
+.tooltip-inner {
+    background: rgba(28, 30, 46, 0.95);
+    backdrop-filter: blur(8px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.5rem;
+    color: #e2e8f0;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.8rem;
+}
+
+.popover {
+    background: rgba(28, 30, 46, 0.95);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    color: #e2e8f0;
+}
+
+/* --------------------------------------------------------------------------
+   21. Print Styles
+   -------------------------------------------------------------------------- */
+@media print {
+    html, body {
+        background: #fff !important;
+        color: #000 !important;
+    }
+
+    .navbar, .footer, .btn, nav, .modal-backdrop {
+        display: none !important;
+    }
+
+    .card {
+        background: #fff !important;
+        border: 1px solid #ddd !important;
+        box-shadow: none !important;
+        animation: none !important;
+        break-inside: avoid;
+    }
+
+    .card-header, .card-body, .card-footer {
+        background: #fff !important;
+        color: #000 !important;
+    }
+
+    .table {
+        color: #000 !important;
+    }
+
+    .table th {
+        background: #f5f5f5 !important;
+        color: #000 !important;
+    }
+
+    h1, h2, h3, h4, h5, h6 {
+        color: #000 !important;
+    }
+
+    .badge {
+        border: 1px solid #000 !important;
+    }
+}
+
+/* --------------------------------------------------------------------------
+   22. Chart.js Dark Theme Overrides
+   -------------------------------------------------------------------------- */
+canvas {
+    border-radius: 0.5rem;
+}
+
+/* --------------------------------------------------------------------------
+   23. Progress Bar Enhancements
+   -------------------------------------------------------------------------- */
+.progress {
+    background-color: rgba(20, 21, 31, 0.8);
+    border-radius: 1rem;
+    overflow: hidden;
+}
+
+.progress-bar {
+    transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* --------------------------------------------------------------------------
+   24. Custom Utility Classes
+   -------------------------------------------------------------------------- */
+.text-gradient {
+    background: linear-gradient(135deg, #ffc107, #ff9800);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+}
+
+.glass-border {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.3);
+}
+
+/* --------------------------------------------------------------------------
+   25. Dashboard Stat Mini-Cards
+   -------------------------------------------------------------------------- */
+.stat-mini-card {
+    background: rgba(28, 30, 46, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 0.75rem;
+    padding: 1rem 0.5rem;
+    text-align: center;
+    transition: all 0.2s ease;
+    height: 100%;
+}
+
+.stat-mini-card:hover {
+    border-color: rgba(255, 193, 7, 0.2);
+    background: rgba(28, 30, 46, 0.7);
+}
+
+.stat-mini-card .stat-value {
+    font-size: 1.4rem;
+    font-weight: 700;
+    line-height: 1.2;
+    margin-bottom: 0.15rem;
+}
+
+.stat-mini-card .stat-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #94a3b8;
+    font-weight: 500;
+}
+
+.stat-mini-card .progress {
+    height: 4px !important;
+}
+
+@media (max-width: 768px) {
+    .stat-mini-card {
+        padding: 0.75rem 0.35rem;
+    }
+
+    .stat-mini-card .stat-value {
+        font-size: 1.1rem;
+    }
+
+    .stat-mini-card .stat-label {
+        font-size: 0.65rem;
+    }
 }

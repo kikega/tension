@@ -163,7 +163,13 @@
                                         <td>
                                             {% if d.foods %}
                                                 {% for log in d.foods %}
-                                                    <span class="badge bg-info text-dark" title="{{ log.get_total_calories|floatformat:0 }} kcal">{{ log.meal_type }}</span>
+                                                    {% if "desayuno" in log.meal_type.lower %}
+                                                        <span class="badge bg-warning text-dark" title="{{ log.get_total_calories|floatformat:0 }} kcal">{{ log.meal_type }}</span>
+                                                    {% elif "cena" in log.meal_type.lower %}
+                                                        <span class="badge bg-info text-dark" title="{{ log.get_total_calories|floatformat:0 }} kcal">{{ log.meal_type }}</span>
+                                                    {% else %}
+                                                        <span class="badge bg-success" title="{{ log.get_total_calories|floatformat:0 }} kcal">{{ log.meal_type }}</span>
+                                                    {% endif %}
                                                 {% endfor %}
                                             {% else %}
                                                 -

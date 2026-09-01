@@ -71,17 +71,48 @@
                                 {{ ingredient_form.quantity_g }}
                             </div>
                             <div class="col-md-2 text-center pt-3">
-                                {% if ingredient_form.DELETE %}
+                                {% if ingredient_form.instance.pk %}
                                 <div class="form-check d-inline-block">
                                     {{ ingredient_form.DELETE }}
                                     <label class="form-check-label text-danger small" for="{{ ingredient_form.DELETE.id_for_label }}">
                                         <i class="bi bi-trash"></i>
                                     </label>
                                 </div>
+                                {% else %}
+                                <button type="button" class="btn btn-sm btn-outline-danger remove-ingredient-btn" title="Eliminar fila">
+                                    <i class="bi bi-x-lg"></i>
+                                </button>
                                 {% endif %}
                             </div>
                         </div>
                         {% endfor %}
+                    </div>
+
+                    <!-- Resumen nutricional en vivo de la receta -->
+                    <div class="p-3 rounded border border-secondary border-opacity-25 my-4">
+                        <h6 class="text-warning mb-2 fw-semibold"><i class="bi bi-calculator me-1"></i> Resumen Nutricional Estimado de la Receta</h6>
+                        <div class="row text-center">
+                            <div class="col">
+                                <span class="small text-muted d-block">Peso Total</span>
+                                <span class="fw-bold text-light" id="recipe-live-total-weight">0 g</span>
+                            </div>
+                            <div class="col">
+                                <span class="small text-muted d-block">Calorías Totales</span>
+                                <span class="fw-bold text-warning" id="recipe-live-total-cal">0 kcal</span>
+                            </div>
+                            <div class="col">
+                                <span class="small text-muted d-block">Proteínas</span>
+                                <span class="fw-bold text-info" id="recipe-live-total-prot">0 g</span>
+                            </div>
+                            <div class="col">
+                                <span class="small text-muted d-block">Grasas</span>
+                                <span class="fw-bold text-danger" id="recipe-live-total-fat">0 g</span>
+                            </div>
+                            <div class="col">
+                                <span class="small text-muted d-block">Carbohidratos</span>
+                                <span class="fw-bold text-success" id="recipe-live-total-carbs">0 g</span>
+                            </div>
+                        </div>
                     </div>
 
                     <div class="d-grid gap-2 d-md-flex justify-content-md-end mt-4">
@@ -95,6 +126,28 @@
         </div>
     </div>
 </div>
+
+<!-- Template oculto para añadir nuevas filas limpias -->
+<div id="empty-ingredient-form" class="d-none">
+    <div class="row g-2 mb-2 ingredient-row align-items-center p-2 rounded border border-secondary border-opacity-25">
+        <div class="col-md-6">
+            <label class="form-label small text-muted d-block mb-1">Alimento</label>
+            {{ ingredients.empty_form.id }}
+            {{ ingredients.empty_form.food }}
+        </div>
+        <div class="col-md-4">
+            <label class="form-label small text-muted d-block mb-1">Cantidad (gramos)</label>
+            {{ ingredients.empty_form.quantity_g }}
+        </div>
+        <div class="col-md-2 text-center pt-3">
+            <button type="button" class="btn btn-sm btn-outline-danger remove-ingredient-btn" title="Eliminar fila">
+                <i class="bi bi-x-lg"></i>
+            </button>
+        </div>
+    </div>
+</div>
+
+{{ available_foods|json_script:"initial-foods-data" }}
 {% endblock content %}
 
 {% block extra_js %}
@@ -103,28 +156,86 @@ document.addEventListener('DOMContentLoaded', function() {
     const addBtn = document.getElementById('add-ingredient-btn');
     const list = document.getElementById('ingredient-list');
     const totalForms = document.querySelector('#id_ingredients-TOTAL_FORMS');
-    if (!addBtn || !list || !totalForms) return;
+    const emptyTemplate = document.getElementById('empty-ingredient-form');
 
-    addBtn.addEventListener('click', function() {
-        const current = parseInt(totalForms.value);
-        const rows = list.querySelectorAll('.ingredient-row');
-        if (rows.length === 0) return;
-        const template = rows[0].cloneNode(true);
-        template.querySelectorAll('input, select, textarea').forEach(function(el) {
-            const name = el.getAttribute('name');
-            const id = el.getAttribute('id');
-            if (name) el.setAttribute('name', name.replace(/-(\d+)-/, '-' + current + '-'));
-            if (id) el.setAttribute('id', id.replace(/-(\d+)-/, '-' + current + '-'));
-            if (el.type !== 'hidden') el.value = '';
-            if (el.type === 'checkbox') el.checked = false;
+    let foodMap = {};
+    const initialFoodsElem = document.getElementById('initial-foods-data');
+    if (initialFoodsElem) {
+        try {
+            const arr = JSON.parse(initialFoodsElem.textContent);
+            if (Array.isArray(arr)) {
+                arr.forEach(f => { foodMap[f.id] = f; });
+            }
+        } catch(e) {}
+    }
+
+    function recalculateRecipeTotals() {
+        let totalWeight = 0.0;
+        let totalCal = 0.0;
+        let totalProt = 0.0;
+        let totalFat = 0.0;
+        let totalCarbs = 0.0;
+
+        document.querySelectorAll('#ingredient-list .ingredient-row').forEach(row => {
+            const delCheckbox = row.querySelector('input[name$="-DELETE"]');
+            if (delCheckbox && delCheckbox.checked) return;
+
+            const foodSelect = row.querySelector('select[name$="-food"]');
+            const qtyInput = row.querySelector('input[name$="-quantity_g"]');
+
+            const foodId = foodSelect ? foodSelect.value : null;
+            const qty = qtyInput && qtyInput.value ? parseFloat(qtyInput.value) : 0;
+
+            if (foodId && foodMap[foodId] && qty > 0) {
+                const f = foodMap[foodId];
+                const factor = qty / 100.0;
+                totalWeight += qty;
+                totalCal += (f.energy_kcal || 0) * factor;
+                totalProt += (f.proteins_g || 0) * factor;
+                totalFat += (f.lipids_g || 0) * factor;
+                totalCarbs += (f.carbohydrates_g || 0) * factor;
+            }
         });
-        template.querySelectorAll('label').forEach(function(el) {
-            const htmlFor = el.getAttribute('for');
-            if (htmlFor) el.setAttribute('for', htmlFor.replace(/-(\d+)-/, '-' + current + '-'));
+
+        document.getElementById('recipe-live-total-weight').textContent = `${Math.round(totalWeight)} g`;
+        document.getElementById('recipe-live-total-cal').textContent = `${Math.round(totalCal)} kcal`;
+        document.getElementById('recipe-live-total-prot').textContent = `${totalProt.toFixed(1)} g`;
+        document.getElementById('recipe-live-total-fat').textContent = `${totalFat.toFixed(1)} g`;
+        document.getElementById('recipe-live-total-carbs').textContent = `${totalCarbs.toFixed(1)} g`;
+    }
+
+    function bindRow(row) {
+        const sel = row.querySelector('select[name$="-food"]');
+        const qty = row.querySelector('input[name$="-quantity_g"]');
+        const delCheck = row.querySelector('input[name$="-DELETE"]');
+        const removeBtn = row.querySelector('.remove-ingredient-btn');
+
+        if (sel) sel.addEventListener('change', recalculateRecipeTotals);
+        if (qty) qty.addEventListener('input', recalculateRecipeTotals);
+        if (delCheck) delCheck.addEventListener('change', recalculateRecipeTotals);
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function() {
+                row.remove();
+                recalculateRecipeTotals();
+            });
+        }
+    }
+
+    document.querySelectorAll('#ingredient-list .ingredient-row').forEach(bindRow);
+    recalculateRecipeTotals();
+
+    if (addBtn && list && totalForms && emptyTemplate) {
+        addBtn.addEventListener('click', function() {
+            const current = parseInt(totalForms.value);
+            const html = emptyTemplate.innerHTML.replace(/__prefix__/g, current);
+            list.insertAdjacentHTML('beforeend', html);
+            totalForms.value = current + 1;
+
+            const newRow = list.lastElementChild;
+            bindRow(newRow);
+            recalculateRecipeTotals();
         });
-        list.appendChild(template);
-        totalForms.value = current + 1;
-    });
+    }
 });
 </script>
 {% endblock extra_js %}

@@ -452,14 +452,32 @@ class FoodLogCreateView(LoginRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         data = super().get_context_data(**kwargs)
         from .forms import FoodLogItemFormSet
-        from nutrition.models import FoodCategory, Recipe
+        from nutrition.models import Food, FoodCategory, Recipe
         from django.db.models import Q
         if self.request.POST:
             data['items'] = FoodLogItemFormSet(self.request.POST, form_kwargs={'user': self.request.user})
         else:
             data['items'] = FoodLogItemFormSet(form_kwargs={'user': self.request.user})
         data['categories'] = FoodCategory.objects.all()
-        data['available_recipes'] = Recipe.objects.filter(Q(user__isnull=True) | Q(user=self.request.user))
+        data['available_recipes'] = Recipe.objects.filter(Q(user__isnull=True) | Q(user=self.request.user)).order_by("name")
+        foods_qs = Food.objects.filter(
+            Q(user__isnull=True) | Q(user=self.request.user)
+        ).select_related("category").order_by("name")
+        data['available_foods'] = [
+            {
+                "id": f.id,
+                "name": f.name,
+                "category": f.category.name if f.category else "",
+                "energy_kcal": float(f.energy_kcal or 0),
+                "proteins_g": float(f.proteins_g or 0),
+                "lipids_g": float(f.lipids_g or 0),
+                "carbohydrates_g": float(f.carbohydrates_g or 0),
+                "fiber_g": float(f.fiber_g or 0),
+                "glycemic_index": float(f.glycemic_index) if f.glycemic_index is not None else None,
+                "is_custom": (f.user_id is not None),
+            }
+            for f in foods_qs
+        ]
         return data
 
     def form_valid(self, form):
@@ -487,14 +505,32 @@ class FoodLogUpdateView(LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         data = super().get_context_data(**kwargs)
         from .forms import FoodLogItemFormSet
-        from nutrition.models import FoodCategory, Recipe
+        from nutrition.models import Food, FoodCategory, Recipe
         from django.db.models import Q
         if self.request.POST:
             data['items'] = FoodLogItemFormSet(self.request.POST, instance=self.object, form_kwargs={'user': self.request.user})
         else:
             data['items'] = FoodLogItemFormSet(instance=self.object, form_kwargs={'user': self.request.user})
         data['categories'] = FoodCategory.objects.all()
-        data['available_recipes'] = Recipe.objects.filter(Q(user__isnull=True) | Q(user=self.request.user))
+        data['available_recipes'] = Recipe.objects.filter(Q(user__isnull=True) | Q(user=self.request.user)).order_by("name")
+        foods_qs = Food.objects.filter(
+            Q(user__isnull=True) | Q(user=self.request.user)
+        ).select_related("category").order_by("name")
+        data['available_foods'] = [
+            {
+                "id": f.id,
+                "name": f.name,
+                "category": f.category.name if f.category else "",
+                "energy_kcal": float(f.energy_kcal or 0),
+                "proteins_g": float(f.proteins_g or 0),
+                "lipids_g": float(f.lipids_g or 0),
+                "carbohydrates_g": float(f.carbohydrates_g or 0),
+                "fiber_g": float(f.fiber_g or 0),
+                "glycemic_index": float(f.glycemic_index) if f.glycemic_index is not None else None,
+                "is_custom": (f.user_id is not None),
+            }
+            for f in foods_qs
+        ]
         return data
 
     def form_valid(self, form):

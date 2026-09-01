@@ -51,12 +51,23 @@ class RecipeIngredientForm(forms.ModelForm):
             "quantity_g": forms.NumberInput(attrs={"class": "form-control", "placeholder": "Cantidad (g)"}),
         }
 
+    def __init__(self, *args, **kwargs):
+        user = kwargs.pop("user", None)
+        super().__init__(*args, **kwargs)
+        from django.db.models import Q
+        if user:
+            self.fields["food"].queryset = Food.objects.filter(
+                Q(user__isnull=True) | Q(user=user)
+            ).order_by("name")
+        else:
+            self.fields["food"].queryset = Food.objects.order_by("name")
+
 
 RecipeIngredientFormSet = inlineformset_factory(
     Recipe,
     RecipeIngredient,
     form=RecipeIngredientForm,
-    extra=3,
+    extra=1,
     can_delete=True,
 )
 

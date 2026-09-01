@@ -121,9 +121,25 @@ class RecipeCreateView(LoginRequiredMixin, CreateView):
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         data = super().get_context_data(**kwargs)
         if self.request.POST:
-            data["ingredients"] = RecipeIngredientFormSet(self.request.POST)
+            data["ingredients"] = RecipeIngredientFormSet(self.request.POST, form_kwargs={"user": self.request.user})
         else:
-            data["ingredients"] = RecipeIngredientFormSet()
+            data["ingredients"] = RecipeIngredientFormSet(form_kwargs={"user": self.request.user})
+        
+        foods_qs = Food.objects.filter(
+            Q(user__isnull=True) | Q(user=self.request.user)
+        ).order_by("name")
+        data["available_foods"] = [
+            {
+                "id": f.id,
+                "name": f.name,
+                "energy_kcal": float(f.energy_kcal or 0),
+                "proteins_g": float(f.proteins_g or 0),
+                "lipids_g": float(f.lipids_g or 0),
+                "carbohydrates_g": float(f.carbohydrates_g or 0),
+                "glycemic_index": float(f.glycemic_index) if f.glycemic_index is not None else None,
+            }
+            for f in foods_qs
+        ]
         return data
 
     def form_valid(self, form):
@@ -177,9 +193,25 @@ class RecipeUpdateView(LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         data = super().get_context_data(**kwargs)
         if self.request.POST:
-            data["ingredients"] = RecipeIngredientFormSet(self.request.POST, instance=self.object)
+            data["ingredients"] = RecipeIngredientFormSet(self.request.POST, instance=self.object, form_kwargs={"user": self.request.user})
         else:
-            data["ingredients"] = RecipeIngredientFormSet(instance=self.object)
+            data["ingredients"] = RecipeIngredientFormSet(instance=self.object, form_kwargs={"user": self.request.user})
+        
+        foods_qs = Food.objects.filter(
+            Q(user__isnull=True) | Q(user=self.request.user)
+        ).order_by("name")
+        data["available_foods"] = [
+            {
+                "id": f.id,
+                "name": f.name,
+                "energy_kcal": float(f.energy_kcal or 0),
+                "proteins_g": float(f.proteins_g or 0),
+                "lipids_g": float(f.lipids_g or 0),
+                "carbohydrates_g": float(f.carbohydrates_g or 0),
+                "glycemic_index": float(f.glycemic_index) if f.glycemic_index is not None else None,
+            }
+            for f in foods_qs
+        ]
         return data
 
     def form_valid(self, form):
@@ -453,13 +485,13 @@ class FoodSearchAPIView(LoginRequiredMixin, View):
         q = (request.GET.get("q") or "").strip()
         qs = Food.objects.filter(
             Q(user__isnull=True) | Q(user=request.user)
-        ).select_related("category")
+        ).select_related("category").order_by("name")
 
         if q:
             qs = qs.filter(name__icontains=q)
 
         foods_data = []
-        for food in qs[:100]:
+        for food in qs[:1000]:
             foods_data.append({
                 "id": food.id,
                 "name": food.name,

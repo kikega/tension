@@ -337,3 +337,42 @@ class TestFoodCustomMutationsAndPermissions:
         assert response.status_code == 302
         assert not Food.objects.filter(pk=food.pk).exists()
 
+
+# ==============================================================================
+# 7. PRUEBAS DE RECIPE FORMSET Y CONTEXTO DE ALIMENTOS
+# ==============================================================================
+
+@pytest.mark.django_db
+class TestRecipeIngredientFormsAndViews:
+    def test_recipe_ingredient_form_filtering(self, user_a, user_b):
+        from nutrition.forms import RecipeIngredientForm
+        food_a = Food.objects.create(user=user_a, name="Alimento Propio A")
+        food_b = Food.objects.create(user=user_b, name="Alimento Privado B")
+        food_global = Food.objects.create(name="Alimento Global")
+
+        form = RecipeIngredientForm(user=user_a)
+        qs = form.fields["food"].queryset
+        assert food_a in qs
+        assert food_global in qs
+        assert food_b not in qs
+
+    def test_recipe_create_view_context(self, client, user_a):
+        Food.objects.create(user=user_a, name="Plátano Canario", energy_kcal=Decimal("90.0"))
+        client.force_login(user_a)
+        url = reverse("recipe_add")
+        response = client.get(url)
+        assert response.status_code == 200
+        assert "available_foods" in response.context
+        food_names = [f["name"] for f in response.context["available_foods"]]
+        assert "Plátano Canario" in food_names
+
+    def test_food_log_create_view_context(self, client, user_a):
+        Food.objects.create(user=user_a, name="Avena Integral", energy_kcal=Decimal("380.0"))
+        client.force_login(user_a)
+        url = reverse("food_log_add")
+        response = client.get(url)
+        assert response.status_code == 200
+        assert "available_foods" in response.context
+        food_names = [f["name"] for f in response.context["available_foods"]]
+        assert "Avena Integral" in food_names
+

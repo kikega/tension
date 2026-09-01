@@ -503,6 +503,8 @@
         </div>
     </div>
 </div>
+
+{{ available_foods|json_script:"initial-foods-data" }}
 {% endblock content %}
 
 {% block extra_js %}
@@ -518,6 +520,20 @@ document.addEventListener("DOMContentLoaded", function() {
     let foodsCache = [];
     let foodMap = {}; // id -> food object
 
+    // Carga síncrona inmediata desde el servidor
+    const initialFoodsElem = document.getElementById('initial-foods-data');
+    if (initialFoodsElem) {
+        try {
+            const arr = JSON.parse(initialFoodsElem.textContent);
+            if (Array.isArray(arr) && arr.length > 0) {
+                foodsCache = arr;
+                arr.forEach(f => { foodMap[f.id] = f; });
+            }
+        } catch(e) {
+            console.error("Error al parsear alimentos iniciales:", e);
+        }
+    }
+
     function fetchFoodsCatalog() {
         fetch("{% url 'api_food_search' %}")
             .then(res => res.json())
@@ -526,6 +542,9 @@ document.addEventListener("DOMContentLoaded", function() {
                     foodsCache = data.foods;
                     foodMap = {};
                     foodsCache.forEach(f => { foodMap[f.id] = f; });
+                    if (typeof populateAllQrFoodSelects === 'function') {
+                        populateAllQrFoodSelects();
+                    }
                     recalculateMainFormTotals();
                 }
             })
@@ -868,11 +887,24 @@ document.addEventListener("DOMContentLoaded", function() {
 
     function createFoodOptionsHtml(selectedId) {
         let html = '<option value="">-- Seleccionar ingrediente --</option>';
+        let found = false;
         foodsCache.forEach(f => {
-            const sel = (selectedId && parseInt(selectedId) === f.id) ? 'selected' : '';
-            html += `<option value="${f.id}" ${sel}>${f.name}</option>`;
+            const isSel = (selectedId !== '' && selectedId !== null && selectedId !== undefined && String(selectedId) === String(f.id));
+            if (isSel) found = true;
+            html += `<option value="${f.id}" ${isSel ? 'selected' : ''}>${f.name}</option>`;
         });
+        if (selectedId && !found && foodMap[selectedId]) {
+            html += `<option value="${selectedId}" selected>${foodMap[selectedId].name}</option>`;
+        }
         return html;
+    }
+
+    function populateAllQrFoodSelects() {
+        document.querySelectorAll('.qr-ingredient-food-select').forEach(sel => {
+            const curVal = sel.value;
+            sel.innerHTML = createFoodOptionsHtml(curVal);
+            if (curVal) sel.value = curVal;
+        });
     }
 
     function addQrIngredientRow(foodId = '', quantityG = 100) {
@@ -904,6 +936,10 @@ document.addEventListener("DOMContentLoaded", function() {
         const qty = tr.querySelector('.qr-ingredient-qty');
         const remove = tr.querySelector('.qr-remove-ing-btn');
 
+        if (foodId) {
+            sel.value = foodId;
+        }
+
         if (sel) sel.addEventListener('change', recalculateQrTotals);
         if (qty) qty.addEventListener('input', recalculateQrTotals);
         if (remove) {
@@ -919,6 +955,15 @@ document.addEventListener("DOMContentLoaded", function() {
     if (qrAddIngBtn) {
         qrAddIngBtn.addEventListener('click', function() {
             addQrIngredientRow();
+        });
+    }
+
+    const modalQrEl = document.getElementById('modalQuickRecipe');
+    if (modalQrEl) {
+        modalQrEl.addEventListener('show.bs.modal', function() {
+            if (qrTableBody && qrTableBody.children.length === 0) {
+                addQrIngredientRow();
+            }
         });
     }
 
@@ -980,6 +1025,19 @@ document.addEventListener("DOMContentLoaded", function() {
                     qrTableBody.innerHTML = '';
                     if (Array.isArray(rec.ingredients)) {
                         rec.ingredients.forEach(ing => {
+                            if (!foodMap[ing.food_id]) {
+                                const newF = {
+                                    id: ing.food_id,
+                                    name: ing.food_name,
+                                    energy_kcal: ing.energy_kcal || 0,
+                                    proteins_g: ing.proteins_g || 0,
+                                    lipids_g: ing.lipids_g || 0,
+                                    carbohydrates_g: ing.carbohydrates_g || 0,
+                                    glycemic_index: ing.glycemic_index
+                                };
+                                foodMap[ing.food_id] = newF;
+                                foodsCache.push(newF);
+                            }
                             addQrIngredientRow(ing.food_id, ing.quantity_g);
                         });
                     }

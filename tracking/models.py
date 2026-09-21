@@ -276,7 +276,11 @@ class FoodLog(models.Model):
             "lipids": 0.0,
             "carbs": 0.0,
         }
-        for item in self.items.select_related("food", "recipe").all():
+        if hasattr(self, "_prefetched_objects_cache") and "items" in self._prefetched_objects_cache:
+            items_qs = self.items.all()
+        else:
+            items_qs = self.items.select_related("food", "recipe").all()
+        for item in items_qs:
             item_totals = item.get_nutritional_totals()
             for key in totals:
                 totals[key] += item_totals[key]

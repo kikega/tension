@@ -131,12 +131,18 @@ class AdaptiveMealPlanner:
     Learns from historical food logs to adapt portions over time.
     """
 
-    def __init__(self, user):
+    def __init__(self, user, build_preferences: bool = True):
         self.user = user
-        self._load_history()
+        self.pref_summary = {"desayuno": [], "comida": [], "cena": []}
+        self.slot_stats = {
+            "desayuno": {"n_days": 0, "n_eaten_out": 0, "stability": 0.0, "dominant_combo": None, "n_distinct_combos": 0},
+            "comida": {"n_days": 0, "n_eaten_out": 0, "stability": 0.0, "dominant_combo": None, "n_distinct_combos": 0},
+            "cena": {"n_days": 0, "n_eaten_out": 0, "stability": 0.0, "dominant_combo": None, "n_distinct_combos": 0},
+        }
+        self._load_history(build_preferences=build_preferences)
         self._calibrate()
 
-    def _load_history(self):
+    def _load_history(self, build_preferences: bool = True):
         # Ventana de aprendizaje amplia: el algoritmo recuerda más y pondera
         # lo reciente, afinando sus recomendaciones con el tiempo.
         learning_start = date.today() - timedelta(days=120)
@@ -163,7 +169,8 @@ class AdaptiveMealPlanner:
             for d, logs in by_date.items()
         }
 
-        self._build_food_preferences()
+        if build_preferences:
+            self._build_food_preferences()
 
     def _recency_weight(self, days_ago: int, half_life_days: float = 21.0) -> float:
         """Decaimiento exponencial: lo reciente pesa más, lo antiguo se olvida
@@ -232,7 +239,7 @@ class AdaptiveMealPlanner:
             days_ago = (today - fl.date).days
             weight = self._recency_weight(days_ago)
             items = []
-            for item in fl.items.select_related("food", "recipe").all():
+            for item in fl.items.all():
                 nutr = self._item_to_nutrition(item)
                 if nutr:
                     items.append(nutr)

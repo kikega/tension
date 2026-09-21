@@ -1,0 +1,200 @@
+{% if meal_ml_insights %}
+<div class="row mb-4">
+    {% for insight in meal_ml_insights %}
+    <div class="col-md-6 mb-3">
+        <div class="card shadow-sm border-{{ insight.type }} h-100">
+            <div class="card-body">
+                <h5 class="card-title text-{{ insight.type }}"><i class="bi {{ insight.icon }} me-2"></i>{{ insight.title }}</h5>
+                <p class="card-text mb-0">{{ insight.text }}</p>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endif %}
+
+{% if meal_planner_debug %}
+<div class="card border-secondary border-opacity-25 mb-4">
+    <div class="card-header">Objetivos Diarios</div>
+    <div class="card-body">
+        <div class="row text-center">
+            <div class="col-3">
+                <h5 class="text-warning">{{ meal_planner_debug.daily_kcal }}</h5>
+                <small class="text-muted">kcal/día hoy</small>
+            </div>
+            <div class="col-3">
+                <h5 class="text-info">{{ meal_planner_debug.tdee }}</h5>
+                <small class="text-muted">Gasto estimado</small>
+            </div>
+            <div class="col-3">
+                <h5 class="text-danger">{{ meal_planner_debug.target_protein }}g</h5>
+                <small class="text-muted">Proteína</small>
+            </div>
+            <div class="col-3">
+                <h5 class="text-primary">{{ meal_planner_debug.target_carbs }}g</h5>
+                <small class="text-muted">Carbohidratos</small>
+            </div>
+        </div>
+        <div class="text-center text-muted small mt-2">
+            Objetivo base {{ meal_planner_debug.daily_kcal_base }} kcal · Grasas {{ meal_planner_debug.target_fat }}g · Ajustado por tu ejercicio y tendencia de peso
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if meal_learning %}
+<div class="card border-secondary border-opacity-25 mb-4">
+    <div class="card-header">
+        <i class="bi bi-graph-up-arrow me-2 text-warning"></i>Aprendizaje de tus patrones
+    </div>
+    <div class="card-body">
+        <div class="row text-center">
+            <div class="col-4 mb-2">
+                <h6 class="text-warning mb-1"><i class="bi bi-sunrise me-1"></i>Desayuno</h6>
+                {% if meal_learning.desayuno.n_days %}
+                    {% widthratio meal_learning.desayuno.stability 1 100 %}% estabilidad
+                    <br><small class="text-muted">{{ meal_learning.desayuno.n_days }} días · {{ meal_learning.desayuno.n_distinct_combos }} combinaciones</small>
+                {% else %}
+                    <span class="text-muted">sin datos</span>
+                {% endif %}
+            </div>
+            <div class="col-4 mb-2">
+                <h6 class="text-success mb-1"><i class="bi bi-egg-fried me-1"></i>Comida</h6>
+                {% if meal_learning.comida.n_days %}
+                    {% widthratio meal_learning.comida.stability 1 100 %}% estabilidad
+                    <br><small class="text-muted">{{ meal_learning.comida.n_days }} días · {{ meal_learning.comida.n_distinct_combos }} combinaciones</small>
+                {% else %}
+                    <span class="text-muted">sin datos</span>
+                {% endif %}
+            </div>
+            <div class="col-4 mb-2">
+                <h6 class="text-info mb-1"><i class="bi bi-moon-stars me-1"></i>Cena</h6>
+                {% if meal_learning.cena.n_days %}
+                    {% widthratio meal_learning.cena.stability 1 100 %}% estabilidad
+                    <br><small class="text-muted">{{ meal_learning.cena.n_days }} días · {{ meal_learning.cena.n_distinct_combos }} combinaciones</small>
+                {% else %}
+                    <span class="text-muted">sin datos</span>
+                {% endif %}
+            </div>
+        </div>
+        <div class="text-center text-muted small mt-2">
+            La IA aprende con el tiempo: pondera lo reciente, detecta si desayuno y cena se
+            repiten (rutina) y descarta las comidas fuera de casa como desviaciones.
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% for day in meal_plan %}
+<div class="card border-secondary border-opacity-25 mb-3">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <span class="fw-bold">{{ day.date|date:"l d/m/Y" }}</span>
+        <span class="badge bg-warning text-dark">{{ day.macros.kcal }} kcal</span>
+    </div>
+    <div class="card-body">
+        {% if day.notes %}
+        {% for note in day.notes %}
+        <div class="alert alert-dark border-secondary border-opacity-25 py-2 small mb-3">{{ note }}</div>
+        {% endfor %}
+        {% endif %}
+        <div class="row g-3">
+            <div class="col-md-4">
+                <div class="border border-secondary border-opacity-25 rounded p-3 h-100">
+                    <h6 class="text-warning mb-2">🌅 Desayuno ({{ day.distribution_pct.desayuno }}%)</h6>
+                    <div class="small text-muted mb-3">{{ day.meals.desayuno.advice }}</div>
+                    <table class="table table-sm table-dark mb-0 small">
+                        <thead><tr><th>Alimento</th><th class="text-end">Cant.</th></tr></thead>
+                        <tbody>
+                            {% for food in day.meals.desayuno.foods %}
+                            <tr><td>{{ food.name }}</td><td class="text-end">{{ food.qty_str }}</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <div class="small d-flex justify-content-between mt-2">
+                        <span>P: <strong class="text-danger">{{ day.meals.desayuno.macros.protein }}g</strong></span>
+                        <span>G: <strong class="text-info">{{ day.meals.desayuno.macros.fat }}g</strong></span>
+                        <span>HC: <strong class="text-primary">{{ day.meals.desayuno.macros.carbs }}g</strong></span>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="border border-secondary border-opacity-25 rounded p-3 h-100">
+                    <h6 class="text-success mb-2">🍽️ Comida ({{ day.distribution_pct.comida }}%)</h6>
+                    <div class="small text-muted mb-2">{{ day.meals.comida.advice }}</div>
+                    <div class="small">{{ day.meals.comida.foods_hint }}</div>
+                    <hr class="border-secondary border-opacity-25 my-2">
+                    <div class="small d-flex justify-content-between">
+                        <span>P: <strong class="text-danger">{{ day.meals.comida.macros.protein }}g</strong></span>
+                        <span>G: <strong class="text-info">{{ day.meals.comida.macros.fat }}g</strong></span>
+                        <span>HC: <strong class="text-primary">{{ day.meals.comida.macros.carbs }}g</strong></span>
+                    </div>
+                    <div class="small text-muted mt-1">Rango proteína: {{ day.meals.comida.protein_range.0 }}-{{ day.meals.comida.protein_range.1 }}g | Carbohidratos: {{ day.meals.comida.carbs_range.0 }}-{{ day.meals.comida.carbs_range.1 }}g</div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="border border-secondary border-opacity-25 rounded p-3 h-100">
+                    <h6 class="text-info mb-2">🌙 Cena ({{ day.distribution_pct.cena }}%)</h6>
+                    <div class="small text-muted mb-2">{{ day.meals.cena.advice }}</div>
+                    <table class="table table-sm table-dark mb-0 small">
+                        <thead><tr><th>Alimento</th><th class="text-end">Cant.</th></tr></thead>
+                        <tbody>
+                            {% for food in day.meals.cena.foods %}
+                            <tr><td>{{ food.name }}</td><td class="text-end">{{ food.qty_str }}</td></tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    <hr class="border-secondary border-opacity-25 my-2">
+                    <div class="small d-flex justify-content-between">
+                        <span>P: <strong class="text-danger">{{ day.meals.cena.macros.protein }}g</strong></span>
+                        <span>G: <strong class="text-info">{{ day.meals.cena.macros.fat }}g</strong></span>
+                        <span>HC: <strong class="text-primary">{{ day.meals.cena.macros.carbs }}g</strong></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="border border-secondary border-opacity-25 rounded p-3">
+                    <h6 class="text-warning mb-2">💊 Suplementación recomendada</h6>
+                    <div class="d-flex flex-wrap gap-2">
+                        {% for supp in day.supplements %}
+                        <span class="badge bg-secondary">{{ supp.name }}: {{ supp.qty }}</span>
+                        {% endfor %}
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="row mt-3">
+            <div class="col-12">
+                <div class="border border-secondary border-opacity-25 rounded p-3">
+                    <h6 class="mb-2">📊 Totales del día</h6>
+                    <div class="row text-center">
+                        <div class="col-3">
+                            <span class="fs-5 fw-bold text-warning">{{ day.macros.kcal }}</span>
+                            <br><small class="text-muted">kcal</small>
+                        </div>
+                        <div class="col-3">
+                            <span class="fs-5 fw-bold text-danger">{{ day.macros.protein }}g</span>
+                            <br><small class="text-muted">Proteína</small>
+                        </div>
+                        <div class="col-3">
+                            <span class="fs-5 fw-bold text-info">{{ day.macros.fat }}g</span>
+                            <br><small class="text-muted">Grasas</small>
+                        </div>
+                        <div class="col-3">
+                            <span class="fs-5 fw-bold text-primary">{{ day.macros.carbs }}g</span>
+                            <br><small class="text-muted">Carbohidratos</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% empty %}
+<div class="card border-secondary border-opacity-25">
+    <div class="card-body text-center py-5">
+        <p class="text-muted">Completa tu perfil (altura, peso, fecha de nacimiento, género) y registra comidas para obtener un plan personalizado.</p>
+    </div>
+</div>
+{% endfor %}

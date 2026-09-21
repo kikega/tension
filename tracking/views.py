@@ -4,7 +4,7 @@ from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.db import transaction
 from django.core.serializers.json import DjangoJSONEncoder
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from datetime import timedelta
 import json
@@ -678,7 +678,7 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
 
             for food_log in d_foods:
                 fl_calories = 0.0
-                for item in food_log.items.select_related("food", "recipe").all():
+                for item in food_log.items.all():
                     if item.food and item.quantity_g is not None:
                         factor = float(item.quantity_g) / 100.0
                         if item.food.energy_kcal is not None:
@@ -779,21 +779,9 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
         context["intake_data"] = json.dumps(intake_data)
         context["expenditure_data"] = json.dumps(expenditure_data)
         
-        # Meal Plan
+        # Meal Planner base calibrado (rápido, sin combinatoria de 120 días)
         from tracking.services.meal_planner import AdaptiveMealPlanner
-        planner = AdaptiveMealPlanner(user)
-        context["meal_plan"] = planner.get_weekly_plan()
-        context["meal_adherence"] = planner.analyse_adherence()
-        context["meal_ml_insights"] = planner.get_ml_insights()
-        context["meal_planner_debug"] = {
-            "daily_kcal": planner.daily_kcal,
-            "daily_kcal_base": planner.base_daily_kcal,
-            "tdee": round(planner.tdee),
-            "target_protein": planner.target_protein,
-            "target_fat": planner.target_fat,
-            "target_carbs": planner.target_carbs,
-        }
-        context["meal_learning"] = planner.slot_stats
+        planner = AdaptiveMealPlanner(user, build_preferences=False)
 
         # Generar referencias nutricionales serializadas
         nut_refs = NutritionalReference.objects.all()
@@ -809,8 +797,6 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
                     "vitamin_a_ug", "vitamin_d_ug", "vitamin_e_mg"
                 ]
             }
-        # La referencia de energía pasa a ser la que recomienda la IA en el Plan
-        # Nutricional, en lugar del valor fijo de CDR.
         daily_kcal = planner.daily_kcal
         if daily_kcal:
             if not ref_dict:
@@ -820,19 +806,45 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
                 ref_dict[gender]["energy_kcal"] = float(daily_kcal)
         context["nutritional_references"] = json.dumps(ref_dict)
 
-        # kcal diaria recomendada por la IA para cada día concreto del periodo
+        # kcal diaria recomendada por la IA para cada día concreto del periodo (aritmética rápida)
         for dd in daily_data:
-            dd["recommended_kcal"] = planner.plan_for_day(dd["date"])["daily_kcal_target"]
-
-        # AI Insights
-        from tracking.services.ai_analysis import generate_insights
-        ai_data = generate_insights(user)
-        context["ai_insights"] = ai_data.get("insights", [])
-        context["timeline_labels"] = json.dumps(ai_data.get("timeline_labels", []))
-        context["ai_weight_data"] = json.dumps(ai_data.get("weight_data", []))
-        context["sport_data"] = json.dumps(ai_data.get("sport_data", []))
+            dd["recommended_kcal"] = planner.target_kcal_for(dd["date"])
 
         return context
+
+
+class AnalysisMealPlanPartialView(LoginRequiredMixin, TemplateView):
+    template_name = "tracking/partials/analysis_meal_plan.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+        from tracking.services.meal_planner import AdaptiveMealPlanner
+        planner = AdaptiveMealPlanner(user, build_preferences=True)
+        context["meal_plan"] = planner.get_weekly_plan()
+        context["meal_ml_insights"] = planner.get_ml_insights()
+        context["meal_planner_debug"] = {
+            "daily_kcal": planner.daily_kcal,
+            "daily_kcal_base": planner.base_daily_kcal,
+            "tdee": round(planner.tdee),
+            "target_protein": planner.target_protein,
+            "target_fat": planner.target_fat,
+            "target_carbs": planner.target_carbs,
+        }
+        context["meal_learning"] = planner.slot_stats
+        return context
+
+
+class AnalysisInsightsView(LoginRequiredMixin, View):
+    def get(self, request, *args, **kwargs):
+        from tracking.services.ai_analysis import generate_insights
+        ai_data = generate_insights(request.user)
+        return JsonResponse({
+            "insights": ai_data.get("insights", []),
+            "timeline_labels": ai_data.get("timeline_labels", []),
+            "weight_data": ai_data.get("weight_data", []),
+            "sport_data": ai_data.get("sport_data", []),
+        })
 
 
 # ── Actividad Diaria (Apple Watch) ───────────────────────────────────────────

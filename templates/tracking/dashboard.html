@@ -93,8 +93,27 @@
     </div>
   </div>
 
-  <!-- ─── ÚLTIMAS MEDICIONES + EVOLUCIÓN PESO ─── -->
+  <!-- ─── EVOLUCIÓN PESO ─── -->
   <div class="row mb-3">
+    <div class="col-12">
+      <div class="card shadow-sm">
+        <div class="card-header">
+          <i class="bi bi-graph-up text-success me-2"></i>Evolución del Peso
+        </div>
+        <div class="card-body">
+          <div style="position: relative; height: 35vh; width: 100%;">
+            <canvas id="weightChart"></canvas>
+          </div>
+        </div>
+        <div class="card-footer">
+          <a href="{% url 'weight_history' %}" class="btn btn-link btn-sm">Ver historial completo de peso</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ─── ÚLTIMAS MEDICIONES + ÚLTIMAS INGESTAS ─── -->
+  <div class="row mb-4">
     <div class="col-md-6 mb-3 mb-md-0">
       <div class="card h-100">
         <div class="card-header">
@@ -141,25 +160,6 @@
     </div>
     <div class="col-md-6">
       <div class="card h-100">
-        <div class="card-header">
-          <i class="bi bi-graph-up text-success me-2"></i>Evolución del Peso
-        </div>
-        <div class="card-body">
-          <div style="position: relative; height: 35vh; width: 100%;">
-            <canvas id="weightChart"></canvas>
-          </div>
-        </div>
-        <div class="card-footer">
-          <a href="{% url 'weight_history' %}" class="btn btn-link btn-sm">Ver historial completo de peso</a>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- ─── ÚLTIMAS INGESTAS ─── -->
-  <div class="row">
-    <div class="col-md-12">
-      <div class="card mb-4">
         <div class="card-header">
           <i class="bi bi-calendar3 text-warning me-2"></i>Últimas Ingestas (10 días)
         </div>

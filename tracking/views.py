@@ -56,9 +56,9 @@ class DashboardView(LoginRequiredMixin, TemplateView):
 
         # --- Weight Data ---
         weights = WeightMeasurement.objects.filter(user=self.request.user).order_by("-date", "-created_at")
-        last_10_weights = list(reversed(weights[:10]))
-        weight_dates = [w.date.strftime("%d/%m") for w in last_10_weights]
-        weight_values = [float(w.weight) for w in last_10_weights]
+        last_30_weights = list(reversed(weights[:30]))
+        weight_dates = [w.date.strftime("%d/%m") for w in last_30_weights]
+        weight_values = [float(w.weight) for w in last_30_weights]
 
         context["weight_labels"] = json.dumps(weight_dates)
         context["weight_data"] = json.dumps(weight_values)

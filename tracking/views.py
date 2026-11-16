@@ -1047,16 +1047,12 @@ class AnalysisMealPlanPartialView(LoginRequiredMixin, TemplateView):
         user = self.request.user
         from tracking.services.meal_planner import AdaptiveMealPlanner
         planner = AdaptiveMealPlanner(user, build_preferences=True)
-        context["meal_plan"] = planner.get_weekly_plan()
+        weekly_plan = planner.get_weekly_plan()
+        weekly_summary = planner.get_weekly_summary(weekly_plan)
+        context["meal_plan"] = weekly_plan
         context["meal_ml_insights"] = planner.get_ml_insights()
-        context["meal_planner_debug"] = {
-            "daily_kcal": planner.daily_kcal,
-            "daily_kcal_base": planner.base_daily_kcal,
-            "tdee": round(planner.tdee),
-            "target_protein": planner.target_protein,
-            "target_fat": planner.target_fat,
-            "target_carbs": planner.target_carbs,
-        }
+        context["meal_planner_debug"] = weekly_summary
+        context["weekly_summary"] = weekly_summary
         context["meal_learning"] = planner.slot_stats
         return context
 

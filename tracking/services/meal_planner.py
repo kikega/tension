@@ -709,85 +709,151 @@ class AdaptiveMealPlanner:
             d = today + timedelta(days=i)
             plans.append(self.plan_for_day(d))
 
-        # Nota base explicando por qué la IA ajusta el objetivo cada día
+        # Nota base explicando por qué la IA ajusta el objetivo este día concreto
         for p in plans:
             if p["exercise_delta"]:
                 sign = "+" if p["exercise_delta"] > 0 else ""
                 p["notes"].append(
-                    f"Objetivo ajustado por ejercicio: tu gasto esperado este día "
+                    f"Ingesta del día ajustada por ejercicio: tu gasto esperado este día "
                     f"({sign}{p['exercise_delta']} kcal sobre tu media) modula el total a {p['daily_kcal_target']} kcal."
                 )
 
-        # Nota de aprendizaje: estabilidad de cada franja detectada por el modelo
-        learning_notes = []
-        slot_labels = {"desayuno": "Desayuno", "comida": "Comida", "cena": "Cena"}
-        for slot in ("desayuno", "comida", "cena"):
-            st = self.slot_stats.get(slot, {})
-            n = st.get("n_days", 0)
-            if n < 2:
-                continue
-            stab = st.get("stability", 0.0)
-            if stab >= 0.45:
-                learning_notes.append(
-                    f"{slot_labels[slot]}: has repetido casi la misma ingesta el {stab*100:.0f}% de tus {n} días. "
-                    f"El modelo la considera tu rutina y la mantiene estable."
-                )
-            else:
-                learning_notes.append(
-                    f"{slot_labels[slot]}: franja variable ({st.get('n_distinct_combos', 0)} combinaciones en {n} días). "
-                    f"La IA recomienda variar tus alimentos más frecuentes para mantenerla flexible."
-                )
+        return plans
+
+    def get_weekly_summary(self, plans=None):
+        """Calcula los objetivos semanales y las recomendaciones generales una sola vez por semana."""
+        if plans is None:
+            plans = self.get_weekly_plan()
+
+        n_days = len(plans) or 7
+        weekly_kcal_target = sum(p["daily_kcal_target"] for p in plans) if plans else self.base_daily_kcal * 7
+        weekly_kcal_planned = sum(p["macros"]["kcal"] for p in plans) if plans else self.base_daily_kcal * 7
+        daily_kcal_avg = round(weekly_kcal_target / n_days)
+        weekly_tdee = round(self.tdee * n_days)
+
+        weekly_protein_planned = sum(p["macros"]["protein"] for p in plans) if plans else self.target_protein * 7
+        weekly_fat_planned = sum(p["macros"]["fat"] for p in plans) if plans else self.target_fat * 7
+        weekly_carbs_planned = sum(p["macros"]["carbs"] for p in plans) if plans else self.target_carbs * 7
+
+        target_protein_weekly = self.target_protein * n_days
+        target_fat_weekly = self.target_fat * n_days
+        target_carbs_weekly = self.target_carbs * n_days
+
+        # Recomendaciones por franja horaria (una sola vez para toda la semana)
+        stats = self.slot_stats
+        if stats["desayuno"]["stability"] >= 0.45 and self.pref_summary.get("desayuno"):
+            breakfast_advice = (
+                f"Desayuno habitual detectado: repites esta combinación en el "
+                f"{stats['desayuno']['stability']*100:.0f}% de tus días ({stats['desayuno']['n_days']} días), "
+                f"por lo que se mantiene con tu ración real."
+            )
+        else:
+            breakfast_advice = (
+                "Proteína como base (1-2 cacitos de AMIX/AMIX Predator) + café de desayuno "
+                "(máx. 2 raciones) + fruta al gusto (arándanos, manzana…)."
+            )
+
+        if stats["comida"]["stability"] < 0.45 and stats["comida"]["n_days"] > 3:
+            lunch_advice = (
+                f"Franja más variable ({stats['comida']['n_distinct_combos']} combinaciones en "
+                f"{stats['comida']['n_days']} días): la IA la compone cada día con tus alimentos "
+                f"más frecuentes ajustados al gasto calórico diario."
+            )
+        elif self.pref_summary.get("comida"):
+            lunch_advice = (
+                "Basada en tus comidas habituales, adaptando las cantidades cada día a tu gasto energético."
+            )
+        else:
+            lunch_advice = (
+                "Prioriza proteína animal (150-200 g), carbohidratos complejos (100-120 g), "
+                "legumbres, verduras de hoja verde y AOVE."
+            )
+
+        if stats["cena"]["stability"] >= 0.45 and self.pref_summary.get("cena"):
+            dinner_advice = (
+                f"Cena habitual detectada: la repites en el "
+                f"{stats['cena']['stability']*100:.0f}% de tus días ({stats['cena']['n_days']} días), "
+                f"por lo que se mantiene con tu ración real."
+            )
+        else:
+            dinner_advice = "Batido de caseína + yogur/queso + nueces para recuperación nocturna."
+
+        weekly_notes = []
+
+        # Nota de comidas fuera de casa descartadas del patrón
         eaten_out_total = sum(
             self.slot_stats.get(s, {}).get("n_eaten_out", 0) for s in ("desayuno", "comida", "cena")
         )
         if eaten_out_total:
-            learning_notes.append(
+            weekly_notes.append(
                 f"Se descartaron {eaten_out_total} comidas fuera de casa del aprendizaje del patrón "
-                f"habitual, ya que se consideran desviaciones (no tu rutina real)."
+                f"habitual, ya que se consideran desviaciones puntuales (no tu rutina real)."
             )
-        if learning_notes:
-            for p in plans:
-                p["notes"].extend(learning_notes)
 
+        # Nota de tendencia de peso a nivel semanal
         trend = self._weight_trend()
         if self._weight_trend_has_data():
             weekly_rate = trend * 7.0
             if trend > 0.02:
-                for p in plans:
-                    p["notes"].append(
-                        f"Estás ganando peso (~{weekly_rate:.2f} kg/semana). La IA ha reducido tu consumo a "
-                        f"{p['daily_kcal_target']} kcal para girar el balance hacia la pérdida."
-                    )
-            elif trend > -0.05:
-                for p in plans:
-                    p["notes"].append(
-                        "Tendencia estable. Ajustando el déficit para acercarte a tu objetivo de pérdida semanal."
-                    )
-            else:
-                for p in plans:
-                    p["notes"].append(
-                        f"Tendencia de pérdida (~{abs(weekly_rate):.2f} kg/semana) alineada o superior al objetivo. Mantén el plan."
-                    )
-        else:
-            for p in plans:
-                p["notes"].append(
-                    "Sin suficiente historial de peso: la IA parte de tu BMR y gasto por actividad y recalculará al acumular datos."
+                weekly_notes.append(
+                    f"Estás ganando peso (~{weekly_rate:.2f} kg/semana). La IA ha ajustado tu objetivo semanal a "
+                    f"{weekly_kcal_target} kcal (~{daily_kcal_avg} kcal/día) para girar el balance hacia la pérdida."
                 )
+            elif trend > -0.05:
+                weekly_notes.append(
+                    f"Tendencia de peso estable. Se ajusta el objetivo semanal a {weekly_kcal_target} kcal "
+                    f"(~{daily_kcal_avg} kcal/día) para acercarte a tu meta de pérdida semanal."
+                )
+            else:
+                weekly_notes.append(
+                    f"Tendencia de pérdida (~{abs(weekly_rate):.2f} kg/semana) alineada o superior al objetivo. "
+                    f"Mantén el plan semanal de {weekly_kcal_target} kcal (~{daily_kcal_avg} kcal/día)."
+                )
+        else:
+            weekly_notes.append(
+                "Sin suficiente historial de peso: la IA parte de tu BMR y gasto por actividad y recalculará el objetivo semanal al acumular datos."
+            )
 
+        # Nota de adherencia semanal
         adherence = self.analyse_adherence()
         if adherence:
             recent = [a for a in adherence if a["date"] >= date.today() - timedelta(days=7)]
             if recent:
                 avg_cal = mean(a["actual"]["calories"] for a in recent)
-                avg_target = mean(p["daily_kcal_target"] for p in plans)
+                avg_target = daily_kcal_avg
                 if abs(avg_cal - avg_target) > 150:
-                    for p in plans:
-                        p["notes"].append(
-                            f"Tu ingesta media real es {avg_cal:.0f} kcal. "
-                            f"{'Aumenta' if avg_cal < avg_target else 'Reduce'} raciones para ajustarte al objetivo de {avg_target:.0f} kcal."
-                        )
+                    weekly_actual = round(avg_cal * n_days)
+                    weekly_notes.append(
+                        f"Tu ingesta media reciente equivale a ~{weekly_actual} kcal/semana ({avg_cal:.0f} kcal/día). "
+                        f"{'Aumenta' if avg_cal < avg_target else 'Reduce'} raciones para ajustarte al objetivo semanal de "
+                        f"{weekly_kcal_target} kcal (~{avg_target} kcal/día)."
+                    )
 
-        return plans
+        return {
+            "weekly_kcal": weekly_kcal_target,
+            "weekly_kcal_planned": weekly_kcal_planned,
+            "daily_kcal_avg": daily_kcal_avg,
+            "daily_kcal": self.daily_kcal,
+            "daily_kcal_base": self.base_daily_kcal,
+            "weekly_tdee": weekly_tdee,
+            "tdee": round(self.tdee),
+            "weekly_protein": target_protein_weekly,
+            "weekly_protein_planned": weekly_protein_planned,
+            "target_protein": self.target_protein,
+            "weekly_fat": target_fat_weekly,
+            "weekly_fat_planned": weekly_fat_planned,
+            "target_fat": self.target_fat,
+            "weekly_carbs": target_carbs_weekly,
+            "weekly_carbs_planned": weekly_carbs_planned,
+            "target_carbs": self.target_carbs,
+            "meal_advice": {
+                "desayuno": breakfast_advice,
+                "comida": lunch_advice,
+                "cena": dinner_advice,
+            },
+            "notes": weekly_notes,
+            "supplements": SUPPLEMENTS,
+        }
 
     def get_ml_insights(self):
         if len(self.weights) < 5 or not self.food_logs:

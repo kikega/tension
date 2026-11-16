@@ -619,4 +619,67 @@ class TestDailyGroupingForSupplementsAndActivities:
         assert "Ya existe un registro de actividad diaria para esta fecha." in response.content.decode("utf-8")
 
 
+@pytest.mark.django_db
+class TestWeeklyMealPlan:
+    def test_weekly_summary_and_non_repeated_daily_notes(self, client, test_user):
+        """Test that objectives and recommendations are weekly/single while daily intake adjusts per weekday."""
+        from tracking.models import DailyActivityLog, FoodLog
+        from tracking.services.meal_planner import AdaptiveMealPlanner
+
+        today = timezone.localdate()
+        # Log activity on two different days with different active calories so weekdays differ
+        DailyActivityLog.objects.create(
+            user=test_user,
+            date=today - timezone.timedelta(days=7),
+            active_calories=600,
+            resting_calories=1700,
+            steps=12000,
+        )
+        DailyActivityLog.objects.create(
+            user=test_user,
+            date=today - timezone.timedelta(days=6),
+            active_calories=100,
+            resting_calories=1700,
+            steps=3000,
+        )
+        FoodLog.objects.create(
+            user=test_user,
+            date=today - timezone.timedelta(days=2),
+            meal_type="Cena",
+            eaten_out=True,
+        )
+
+        planner = AdaptiveMealPlanner(test_user, build_preferences=True)
+        plans = planner.get_weekly_plan()
+        summary = planner.get_weekly_summary(plans)
+
+        assert len(plans) == 7
+        # Weekly objectives equal sum/7x of daily values
+        assert summary["weekly_kcal"] == sum(p["daily_kcal_target"] for p in plans)
+        assert summary["weekly_tdee"] == round(planner.tdee * 7)
+        assert summary["weekly_protein"] == planner.target_protein * 7
+        assert summary["weekly_fat"] == planner.target_fat * 7
+        assert summary["weekly_carbs"] == planner.target_carbs * 7
+
+        # Daily intake still adjusts per weekday according to exercise profile
+        daily_targets = [p["daily_kcal_target"] for p in plans]
+        assert len(set(daily_targets)) > 1
+
+        # General weekly notes (e.g. eaten_out or weight trend) are in summary["notes"], NOT repeated in each day's notes
+        assert any("fuera de casa" in n for n in summary["notes"])
+        for p in plans:
+            for n in p["notes"]:
+                assert "fuera de casa" not in n
+                assert "Sin suficiente historial de peso" not in n
+
+        # Render the partial view and check that weekly sections appear only once
+        client.force_login(test_user)
+        response = client.get(reverse("analysis_meal_plan_partial"))
+        assert response.status_code == 200
+        html = response.content.decode("utf-8")
+        assert html.count("Objetivos Semanales") == 1
+        assert html.count("Suplementación semanal recomendada") == 1
+
+
+
 

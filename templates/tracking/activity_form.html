@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Nueva Actividad Física — Salud App{% endblock %}
+{% block title %}{% if object %}Editar{% else %}Nueva{% endif %} Actividad Física — Salud App{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -7,7 +7,7 @@
         <div class="row mb-4 align-items-center">
             <div class="col">
                 <h1 class="h3 mb-0 text-white">
-                    <i class="bi bi-activity text-warning me-2"></i>Nueva Actividad Física
+                    <i class="bi bi-activity text-warning me-2"></i>{% if object %}Editar{% else %}Nueva{% endif %} Actividad Física
                 </h1>
                 <p class="text-muted mb-0 small">Añadir deporte o tipo de ejercicio al catálogo</p>
             </div>

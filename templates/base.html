@@ -12,132 +12,200 @@
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   {% load static %}
   <link rel="icon" type="image/x-icon" href="{% static 'imagenes/logo.ico' %}">
-  <link rel="stylesheet" href="{% static 'css/tension.css' %}?v=2.0">
+  <link rel="stylesheet" href="{% static 'css/tension.css' %}?v=2.1">
   {% block extra_css %}{% endblock %}
 </head>
 
 <body class="{% block body_class %}{% endblock %}">
-  <nav class="navbar navbar-expand-lg navbar-dark navbar-glass mb-4">
+  {% with url_name=request.resolver_match.url_name %}
+  <nav class="navbar navbar-expand-lg navbar-dark navbar-glass mb-4" aria-label="Navegación principal">
     <div class="container">
-      <a class="navbar-brand" href="/">Salud App</a>
+      <a class="navbar-brand d-flex align-items-center gap-2" href="{% url 'dashboard' %}">
+        <i class="bi bi-heart-pulse-fill text-warning"></i>Salud App
+      </a>
       <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarText"
-        aria-controls="navbarText" aria-expanded="false" aria-label="Toggle navigation">
+        aria-controls="navbarText" aria-expanded="false" aria-label="Alternar navegación">
         <span class="navbar-toggler-icon"></span>
       </button>
       <div class="collapse navbar-collapse" id="navbarText">
         <ul class="navbar-nav me-auto mb-2 mb-lg-0">
           {% if user.is_authenticated %}
           <li class="nav-item">
-            <a class="nav-link" href="{% url 'dashboard' %}">Dashboard</a>
+            <a class="nav-link {% if url_name == 'dashboard' %}active{% endif %}"
+              {% if url_name == 'dashboard' %}aria-current="page"{% endif %}
+              href="{% url 'dashboard' %}">
+              <i class="bi bi-grid-1x2 me-1"></i>Dashboard
+            </a>
           </li>
           <li class="nav-item">
-            <a class="nav-link text-info" href="{% url 'analysis' %}">Análisis</a>
+            <a class="nav-link {% if url_name == 'analysis' %}active{% else %}text-info{% endif %}"
+              {% if url_name == 'analysis' %}aria-current="page"{% endif %}
+              href="{% url 'analysis' %}">
+              <i class="bi bi-graph-up-arrow me-1"></i>Análisis
+            </a>
           </li>
           <!-- Tensión -->
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Tensión</a>
+            <a class="nav-link dropdown-toggle {% if url_name == 'add_measurement' or url_name == 'history' or url_name == 'edit_measurement' %}active{% endif %}"
+              href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-heart-pulse me-1"></i>Tensión
+            </a>
             <ul class="dropdown-menu">
               <li>
-                <a class="dropdown-item" href="{% url 'add_measurement' %}">+ Nueva Medición</a>
+                <a class="dropdown-item {% if url_name == 'add_measurement' %}active{% endif %}" href="{% url 'add_measurement' %}">
+                  <i class="bi bi-plus-lg me-2 text-warning"></i>Nueva Medición
+                </a>
               </li>
               <li>
-                <a class="dropdown-item" href="{% url 'history' %}">Historial</a>
+                <a class="dropdown-item {% if url_name == 'history' %}active{% endif %}" href="{% url 'history' %}">
+                  <i class="bi bi-clock-history me-2 text-info"></i>Historial de Tensión
+                </a>
               </li>
             </ul>
           </li>
           <!-- Peso -->
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Peso</a>
+            <a class="nav-link dropdown-toggle {% if url_name == 'add_weight' or url_name == 'weight_history' or url_name == 'weight_edit' %}active{% endif %}"
+              href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-speedometer2 me-1"></i>Peso
+            </a>
             <ul class="dropdown-menu">
               <li>
-                <a class="dropdown-item" href="{% url 'add_weight' %}">+ Nueva Medición</a>
+                <a class="dropdown-item {% if url_name == 'add_weight' %}active{% endif %}" href="{% url 'add_weight' %}">
+                  <i class="bi bi-plus-lg me-2 text-warning"></i>Nueva Medición
+                </a>
               </li>
               <li>
-                <a class="dropdown-item" href="{% url 'weight_history' %}">Historial</a>
+                <a class="dropdown-item {% if url_name == 'weight_history' %}active{% endif %}" href="{% url 'weight_history' %}">
+                  <i class="bi bi-clock-history me-2 text-info"></i>Historial de Peso
+                </a>
               </li>
             </ul>
           </li>
           <!-- Ejercicio -->
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Ejercicio</a>
+            <a class="nav-link dropdown-toggle {% if url_name == 'activity_log_add' or url_name == 'activity_log_list' or url_name == 'activity_log_edit' or url_name == 'daily_activity_add' or url_name == 'daily_activity_list' or url_name == 'daily_activity_edit' or url_name == 'activity_list' or url_name == 'activity_add' or url_name == 'activity_edit' %}active{% endif %}"
+              href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-activity me-1"></i>Ejercicio
+            </a>
             <ul class="dropdown-menu">
               <li>
-                <a class="dropdown-item" href="{% url 'activity_log_add' %}">+ Registrar Ejercicio</a>
+                <a class="dropdown-item {% if url_name == 'activity_log_add' %}active{% endif %}" href="{% url 'activity_log_add' %}">
+                  <i class="bi bi-plus-lg me-2 text-warning"></i>Registrar Ejercicio
+                </a>
               </li>
               <li>
-                <a class="dropdown-item" href="{% url 'activity_log_list' %}">Historial de Ejercicio</a>
+                <a class="dropdown-item {% if url_name == 'activity_log_list' %}active{% endif %}" href="{% url 'activity_log_list' %}">
+                  <i class="bi bi-calendar-check me-2 text-info"></i>Historial de Ejercicio
+                </a>
               </li>
               <li>
                 <hr class="dropdown-divider">
               </li>
               <li>
-                <a class="dropdown-item" href="{% url 'daily_activity_add' %}">+ Registrar Actividad Watch</a>
+                <a class="dropdown-item {% if url_name == 'daily_activity_add' %}active{% endif %}" href="{% url 'daily_activity_add' %}">
+                  <i class="bi bi-smartwatch me-2 text-warning"></i>Registrar Actividad Watch
+                </a>
               </li>
               <li>
-                <a class="dropdown-item" href="{% url 'daily_activity_list' %}">Diario de Actividad Watch</a>
+                <a class="dropdown-item {% if url_name == 'daily_activity_list' %}active{% endif %}" href="{% url 'daily_activity_list' %}">
+                  <i class="bi bi-list-columns-reverse me-2 text-info"></i>Diario de Actividad Watch
+                </a>
+              </li>
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              <li>
+                <a class="dropdown-item {% if url_name == 'activity_list' %}active{% endif %}" href="{% url 'activity_list' %}">
+                  <i class="bi bi-collection me-2 text-secondary"></i>Catálogo de Actividades
+                </a>
               </li>
             </ul>
           </li>
           <!-- Nutrición y Diario -->
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Nutrición</a>
+            <a class="nav-link dropdown-toggle {% if url_name == 'food_log_add' or url_name == 'food_daily_history' or url_name == 'food_log_list' or url_name == 'food_log_edit' or url_name == 'supplement_log_add' or url_name == 'supplement_log_list' or url_name == 'supplement_log_edit' or url_name == 'food_list' or url_name == 'food_detail' or url_name == 'recipe_list' or url_name == 'recipe_detail' or url_name == 'supplement_list' %}active{% endif %}"
+              href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-egg-fried me-1"></i>Nutrición
+            </a>
             <ul class="dropdown-menu">
               <li>
-                <a class="dropdown-item" href="{% url 'food_log_add' %}">+ Registrar Comida</a>
+                <a class="dropdown-item {% if url_name == 'food_log_add' %}active{% endif %}" href="{% url 'food_log_add' %}">
+                  <i class="bi bi-plus-lg me-2 text-warning"></i>Registrar Comida
+                </a>
               </li>
               <li>
-                <a class="dropdown-item" href="{% url 'food_daily_history' %}">Diario de Comidas</a>
-              </li>
-              <li>
-                <hr class="dropdown-divider">
-              </li>
-              <li>
-                <a class="dropdown-item" href="{% url 'supplement_log_add' %}">+ Registrar Suplemento</a>
-              </li>
-              <li>
-                <a class="dropdown-item" href="{% url 'supplement_log_list' %}">Historial Suplementos</a>
+                <a class="dropdown-item {% if url_name == 'food_daily_history' %}active{% endif %}" href="{% url 'food_daily_history' %}">
+                  <i class="bi bi-calendar3 me-2 text-info"></i>Diario de Comidas
+                </a>
               </li>
               <li>
                 <hr class="dropdown-divider">
               </li>
               <li>
-                <a class="dropdown-item" href="{% url 'food_list' %}">Catálogo de Alimentos</a>
+                <a class="dropdown-item {% if url_name == 'supplement_log_add' %}active{% endif %}" href="{% url 'supplement_log_add' %}">
+                  <i class="bi bi-plus-lg me-2 text-warning"></i>Registrar Suplemento
+                </a>
               </li>
               <li>
-                <a class="dropdown-item" href="{% url 'recipe_list' %}">Catálogo de Recetas</a>
+                <a class="dropdown-item {% if url_name == 'supplement_log_list' %}active{% endif %}" href="{% url 'supplement_log_list' %}">
+                  <i class="bi bi-capsule me-2 text-info"></i>Historial Suplementos
+                </a>
+              </li>
+              <li>
+                <hr class="dropdown-divider">
+              </li>
+              <li>
+                <a class="dropdown-item {% if url_name == 'food_list' %}active{% endif %}" href="{% url 'food_list' %}">
+                  <i class="bi bi-basket2 me-2 text-secondary"></i>Catálogo de Alimentos
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item {% if url_name == 'recipe_list' %}active{% endif %}" href="{% url 'recipe_list' %}">
+                  <i class="bi bi-book me-2 text-secondary"></i>Catálogo de Recetas
+                </a>
+              </li>
+              <li>
+                <a class="dropdown-item {% if url_name == 'supplement_list' %}active{% endif %}" href="{% url 'supplement_list' %}">
+                  <i class="bi bi-capsule-pill me-2 text-secondary"></i>Catálogo de Suplementos
+                </a>
               </li>
             </ul>
           </li>
           <!-- Config -->
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Configuración</a>
+            <a class="nav-link dropdown-toggle {% if url_name == 'user_profile' or url_name == 'password_change' %}active{% endif %}"
+              href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-gear me-1"></i>Configuración
+            </a>
             <ul class="dropdown-menu">
               <li>
-                <a class="dropdown-item" href="{% url 'user_profile' %}">Mi Perfil de Salud</a>
+                <a class="dropdown-item {% if url_name == 'user_profile' %}active{% endif %}" href="{% url 'user_profile' %}">
+                  <i class="bi bi-person-badge me-2 text-warning"></i>Mi Perfil de Salud
+                </a>
               </li>
               <li>
                 <hr class="dropdown-divider">
               </li>
               <li>
-                <a class="dropdown-item" href="{% url 'supplement_list' %}">Catálogo de Suplementos</a>
+                <a class="dropdown-item {% if url_name == 'supplement_list' %}active{% endif %}" href="{% url 'supplement_list' %}">
+                  <i class="bi bi-capsule me-2 text-info"></i>Catálogo de Suplementos
+                </a>
               </li>
               <li>
-                <a class="dropdown-item" href="{% url 'activity_list' %}">Catálogo de Actividades Físicas</a>
+                <a class="dropdown-item {% if url_name == 'activity_list' %}active{% endif %}" href="{% url 'activity_list' %}">
+                  <i class="bi bi-activity me-2 text-info"></i>Catálogo de Actividades Físicas
+                </a>
               </li>
             </ul>
           </li>
           {% if user.is_staff %}
           <li class="nav-item dropdown">
-            <a class="nav-link dropdown-toggle text-warning d-flex align-items-center" href="#" role="button"
-              data-bs-toggle="dropdown">
-              <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                class="bi bi-shield-lock-fill align-text-bottom me-1" viewBox="0 0 16 16">
-                <path fill-rule="evenodd"
-                  d="M8 0c-.69 0-1.843.265-2.928.56-1.11.3-2.229.655-2.887.87a1.54 1.54 0 0 0-1.044 1.262c-.596 4.477.787 7.795 2.465 9.99a11.8 11.8 0 0 0 2.517 2.453c.386.273.744.482 1.048.625.28.132.581.24.829.24s.548-.108.829-.24a7 7 0 0 0 1.048-.625 11.8 11.8 0 0 0 2.517-2.453c1.678-2.195 3.061-5.513 2.465-9.99a1.54 1.54 0 0 0-1.044-1.263 63 63 0 0 0-2.887-.87C9.843.266 8.69 0 8 0m0 5a1.5 1.5 0 0 1 .5 2.915l.385 1.99a.5.5 0 0 1-.491.595h-.788a.5.5 0 0 1-.49-.595l.384-1.99A1.5 1.5 0 0 1 8 5" />
-              </svg>Admin
+            <a class="nav-link dropdown-toggle text-warning d-flex align-items-center {% if url_name == 'access_requests_list' %}active{% endif %}"
+              href="#" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="bi bi-shield-lock-fill me-1"></i>Admin
               {% if pending_requests_count > 0 %}
-              <span class="badge rounded-pill bg-danger ms-1" title="Solicitudes pendientes">{{ pending_requests_count
-                }}</span>
+              <span class="badge rounded-pill bg-danger ms-1" title="Solicitudes pendientes">{{ pending_requests_count }}</span>
               {% endif %}
             </a>
             <ul class="dropdown-menu">
@@ -145,15 +213,10 @@
                 <a class="dropdown-item d-flex align-items-center justify-content-between"
                   href="{% url 'access_requests_list' %}">
                   <span>
-                    <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                      class="bi bi-people-fill align-text-bottom me-2" viewBox="0 0 16 16">
-                      <path
-                        d="M7 14s-1 0-1-1 1-4 5-4 5 3 5 4-1 1-1 1zm4-6a3 3 0 1 0 0-6 3 3 0 0 0 0 6m-5.784 6A2.24 2.24 0 0 1 5 13c0-1.355.68-2.75 1.936-3.72A6.3 6.3 0 0 0 5 9c-4 0-5 3-5 4s1 1 1 1zM4.5 8a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5" />
-                    </svg>Solicitudes
+                    <i class="bi bi-people-fill me-2"></i>Solicitudes
                   </span>
                   {% if pending_requests_count > 0 %}
-                  <span class="badge rounded-pill bg-danger" title="Solicitudes pendientes">{{ pending_requests_count
-                    }}</span>
+                  <span class="badge rounded-pill bg-danger" title="Solicitudes pendientes">{{ pending_requests_count }}</span>
                   {% endif %}
                 </a>
               </li>
@@ -162,11 +225,7 @@
               </li>
               <li>
                 <a class="dropdown-item" href="{% url 'admin:index' %}">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
-                    class="bi bi-shield-lock-fill align-text-bottom me-2" viewBox="0 0 16 16">
-                    <path fill-rule="evenodd"
-                      d="M8 0c-.69 0-1.843.265-2.928.56-1.11.3-2.229.655-2.887.87a1.54 1.54 0 0 0-1.044 1.262c-.596 4.477.787 7.795 2.465 9.99a11.8 11.8 0 0 0 2.517 2.453c.386.273.744.482 1.048.625.28.132.581.24.829.24s.548-.108.829-.24a7 7 0 0 0 1.048-.625 11.8 11.8 0 0 0 2.517-2.453c1.678-2.195 3.061-5.513 2.465-9.99a1.54 1.54 0 0 0-1.044-1.263 63 63 0 0 0-2.887-.87C9.843.266 8.69 0 8 0m0 5a1.5 1.5 0 0 1 .5 2.915l.385 1.99a.5.5 0 0 1-.491.595h-.788a.5.5 0 0 1-.49-.595l.384-1.99A1.5 1.5 0 0 1 8 5" />
-                  </svg>Panel Admin
+                  <i class="bi bi-shield-lock-fill me-2"></i>Panel Admin
                 </a>
               </li>
             </ul>
@@ -174,34 +233,38 @@
           {% endif %}
           {% endif %}
         </ul>
-        <span class="navbar-text">
+        <span class="navbar-text d-flex align-items-center gap-2">
           {% if user.is_authenticated %}
-          {{ user.email }} |
+          <a href="{% url 'user_profile' %}" class="text-muted small text-decoration-none" title="Mi Perfil">
+            <i class="bi bi-person-circle me-1"></i>{{ user.email }}
+          </a>
+          <span class="text-secondary">|</span>
           <form action="{% url 'logout' %}" method="post" class="d-inline">
             {% csrf_token %}
-            <button type="submit" class="btn btn-link nav-link d-inline p-0"
-              style="color: rgba(255,255,255,.55)">Logout</button>
+            <button type="submit" class="btn btn-link nav-link d-inline p-0" data-no-loading="true"
+              style="color: rgba(255,255,255,.65)">
+              <i class="bi bi-box-arrow-right me-1"></i>Salir
+            </button>
           </form>
           {% else %}
-          <a href="{% url 'login' %}" class="nav-link">Login</a>
+          <a href="{% url 'login' %}" class="nav-link">Iniciar sesión</a>
           {% endif %}
         </span>
       </div>
     </div>
   </nav>
-  <div class="container">
+  {% endwith %}
+  <main class="container">
     {% if messages %}
     {% for message in messages %}
-    <div class="container">
-      <div class="alert alert-{{ message.tags }} alert-dismissible fade show" role="alert">
+      <div class="alert alert-{% if message.tags == 'error' %}danger{% else %}{{ message.tags|default:'info' }}{% endif %} alert-dismissible fade show mb-3" role="alert">
         {{ message }}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Cerrar"></button>
       </div>
-    </div>
     {% endfor %}
     {% endif %}
     {% block content %}{% endblock %}
-  </div>
+  </main>
   {% block extra_modal %}{% endblock %}
   <!-- ===== FOOTER ===== -->
   {% if request.resolver_match.url_name != "login" %}
@@ -219,10 +282,24 @@
     crossorigin="anonymous"></script>
   <script>
   document.addEventListener('submit', function(e) {
+    if (e.defaultPrevented) return;
+    const method = (e.target.getAttribute('method') || 'get').toLowerCase();
+    if (method !== 'post') return;
     const btn = e.target.querySelector('button[type="submit"]');
     if (btn && !btn.dataset.noLoading) {
+      btn.dataset.originalHtml = btn.innerHTML;
       btn.disabled = true;
       btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span> ' + btn.textContent.trim();
+    }
+  });
+  window.addEventListener('pageshow', function(e) {
+    if (e.persisted) {
+      document.querySelectorAll('button[type="submit"][disabled]').forEach(function(btn) {
+        if (btn.dataset.originalHtml) {
+          btn.innerHTML = btn.dataset.originalHtml;
+          btn.disabled = false;
+        }
+      });
     }
   });
   </script>

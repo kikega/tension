@@ -435,6 +435,8 @@ class DailyActivityLog(models.Model):
     @property
     def extra_exercise_calories(self) -> int:
         """Calorías de ejercicios no registrados por el reloj (Karate, etc.)."""
+        if hasattr(self, "_extra_exercise_calories"):
+            return self._extra_exercise_calories
         exercises = PhysicalActivityLog.objects.filter(
             user=self.user,
             date=self.date,
@@ -448,7 +450,12 @@ class DailyActivityLog(models.Model):
 
     def get_caloric_balance(self) -> float:
         """Balance calórico = Calorías consumidas - Gasto calórico total."""
-        # Calorías ingeridas de ese día
-        food_logs = FoodLog.objects.filter(user=self.user, date=self.date)
-        total_intake = sum(log.get_total_calories() for log in food_logs)
+        if hasattr(self, "_total_intake"):
+            total_intake = self._total_intake
+        else:
+            # Calorías ingeridas de ese día
+            food_logs = FoodLog.objects.filter(user=self.user, date=self.date).prefetch_related(
+                "items__food", "items__recipe__ingredients__food"
+            )
+            total_intake = sum(log.get_total_calories() for log in food_logs)
         return float(total_intake) - float(self.get_total_calories_burned())

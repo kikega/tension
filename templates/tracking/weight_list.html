@@ -81,23 +81,24 @@
 
 <div class="card shadow-sm mb-4">
     <div class="card-body p-0">
-        <div class="table-responsive">
+        <div class="table-responsive" tabindex="0" role="region" aria-label="Historial de peso corporal">
             <table class="table table-dark table-hover mb-0 align-middle">
                 <thead>
                     <tr>
-                        <th class="ps-3">Fecha</th>
-                        <th>Peso (kg)</th>
-                        <th>Masa Magra (kg)</th>
-                        <th>Masa Grasa (kg)</th>
-                        <th>Diferencia (kg)</th>
-                        <th>Diferencia (%)</th>
-                        <th class="pe-3">IMC (Análisis)</th>
+                        <th scope="col" class="ps-3">Fecha</th>
+                        <th scope="col">Peso (kg)</th>
+                        <th scope="col">Masa Magra (kg)</th>
+                        <th scope="col">Masa Grasa (kg)</th>
+                        <th scope="col">Diferencia (kg)</th>
+                        <th scope="col">Diferencia (%)</th>
+                        <th scope="col">IMC (Análisis)</th>
+                        <th scope="col" class="pe-3 text-end">Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for measurement in weight_measurements %}
                         <tr>
-                            <td class="ps-3 fw-bold text-light">{{ measurement.date|date:"d M Y" }}</td>
+                            <th scope="row" class="ps-3 fw-bold text-light text-nowrap">{{ measurement.date|date:"d/m/Y" }}</th>
                             <td><span class="badge bg-warning text-dark fs-6">{{ measurement.weight }} kg</span></td>
                             <td>{{ measurement.lean_mass_kg|default:"—" }}</td>
                             <td>{{ measurement.fat_mass_kg|default:"—" }}</td>
@@ -123,7 +124,7 @@
                                     <span class="text-muted">—</span>
                                 {% endif %}
                             </td>
-                            <td class="pe-3">
+                            <td>
                                 {% if measurement.imc %}
                                     <strong class="text-light">{{ measurement.imc }}</strong>
                                     {% if measurement.imc_classification == "Bajo peso" %}
@@ -139,10 +140,21 @@
                                     <span class="text-muted">—</span>
                                 {% endif %}
                             </td>
+                            <td class="pe-3 text-end text-nowrap">
+                                <a href="{% url 'weight_edit' measurement.pk %}" class="btn btn-sm btn-outline-warning" title="Editar registro">
+                                    <i class="bi bi-pencil"></i>
+                                </a>
+                                <form method="post" action="{% url 'weight_delete' measurement.pk %}" class="d-inline" onsubmit="return confirm('¿Eliminar este registro de peso?');">
+                                    {% csrf_token %}
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" data-no-loading="true" title="Eliminar registro">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                            </td>
                         </tr>
                     {% empty %}
                         <tr>
-                            <td colspan="7" class="text-center py-4 text-muted">No hay registros de peso todavía.</td>
+                            <td colspan="8" class="text-center py-4 text-muted">No hay registros de peso todavía.</td>
                         </tr>
                     {% endfor %}
                 </tbody>

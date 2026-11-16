@@ -9,7 +9,10 @@
         </h1>
         <p class="text-muted mb-0 small">Catálogo de vitaminas, minerales y suplementos registrados</p>
     </div>
-    <div class="col-auto d-flex gap-2">
+    <div class="col-auto d-flex gap-2 flex-wrap">
+        <a href="{% url 'supplement_log_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-clock-history me-1"></i> Historial de Tomas
+        </a>
         <a href="{% url 'supplement_log_add' %}" class="btn btn-outline-info">
             <i class="bi bi-plus-lg me-1"></i> Registrar Toma
         </a>
@@ -33,8 +36,21 @@
                             <h6 class="card-subtitle mb-2 text-muted small"><i class="bi bi-building me-1"></i>{{ s.manufacturer }}</h6>
                         {% endif %}
                         {% if s.description %}
-                            <p class="card-text small text-light mt-2">{{ s.description }}</p>
+                            <p class="card-text small text-light mt-2 mb-0">{{ s.description }}</p>
+                        {% else %}
+                            <p class="card-text small text-muted mt-2 mb-0">Sin descripción</p>
                         {% endif %}
+                    </div>
+                    <div class="card-footer d-flex justify-content-end gap-2">
+                        <a href="{% url 'supplement_edit' s.pk %}" class="btn btn-sm btn-outline-warning" title="Editar suplemento">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <form method="post" action="{% url 'supplement_delete' s.pk %}" class="d-inline" onsubmit="return confirm('¿Eliminar este suplemento y su historial de tomas?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger" data-no-loading="true" title="Eliminar suplemento">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -52,10 +68,4 @@
         </div>
     </div>
 {% endif %}
-
-<div class="d-flex gap-2 align-items-center">
-    <a href="{% url 'supplement_log_list' %}" class="btn btn-outline-secondary">
-        <i class="bi bi-clock-history me-1"></i> Ver historial de tomas
-    </a>
-</div>
 {% endblock %}

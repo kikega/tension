@@ -52,11 +52,13 @@
                             </td>
                             <td>{{ session.get_session_type_display }}</td>
                             <td>{{ session.get_time_of_day_display }}</td>
-                            {% for reading in session.readings.all %}<td>{{ reading.systolic }}/{{ reading.diastolic }}</td>{% endfor %}
+                            {% with readings_list=session.readings.all %}
+                            {% for reading in readings_list %}<td>{{ reading.systolic }}/{{ reading.diastolic }}</td>{% endfor %}
                             <!-- Rellenar celdas vacías si no hay 3 mediciones -->
                             {% for i in "123" %}
-                                {% if forloop.counter > session.readings.count %}<td>-</td>{% endif %}
+                                {% if forloop.counter > readings_list|length %}<td>-</td>{% endif %}
                             {% endfor %}
+                            {% endwith %}
                             <!-- Medias -->
                             <td class="fw-bold">
                                 {% if session.avg_systolic %}

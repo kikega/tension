@@ -108,7 +108,7 @@ class RecipeListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         return Recipe.objects.filter(
             Q(user__isnull=True) | Q(user=self.request.user)
-        )
+        ).prefetch_related("ingredients")
 
 
 class RecipeCreateView(LoginRequiredMixin, CreateView):
@@ -165,7 +165,7 @@ class RecipeDetailView(LoginRequiredMixin, DetailView):
     def get_queryset(self):
         return Recipe.objects.filter(
             Q(user__isnull=True) | Q(user=self.request.user)
-        )
+        ).prefetch_related("ingredients")
 
     def get_context_data(self, **kwargs: Any) -> Dict[str, Any]:
         context = super().get_context_data(**kwargs)

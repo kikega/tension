@@ -150,8 +150,19 @@ class DailyActivityLogForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
-        kwargs.pop("user", None)
+        self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
+
+    def clean_date(self):
+        date = self.cleaned_data.get("date")
+        user = self.user or getattr(self.instance, "user", None)
+        if user and date:
+            qs = DailyActivityLog.objects.filter(user=user, date=date)
+            if self.instance and self.instance.pk:
+                qs = qs.exclude(pk=self.instance.pk)
+            if qs.exists():
+                raise forms.ValidationError("Ya existe un registro de actividad diaria para esta fecha.")
+        return date
 
 
 class FoodLogForm(forms.ModelForm):

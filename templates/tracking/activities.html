@@ -9,7 +9,10 @@
         </h1>
         <p class="text-muted mb-0 small">Deportes, entrenamientos y rutinas de ejercicio</p>
     </div>
-    <div class="col-auto d-flex gap-2">
+    <div class="col-auto d-flex gap-2 flex-wrap">
+        <a href="{% url 'activity_log_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-clock-history me-1"></i> Historial de Sesiones
+        </a>
         <a href="{% url 'activity_log_add' %}" class="btn btn-outline-info">
             <i class="bi bi-plus-lg me-1"></i> Registrar Sesión
         </a>
@@ -27,13 +30,33 @@
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <h5 class="card-title text-warning mb-0">{{ act.name }}</h5>
-                            <i class="bi bi-person-walking text-muted"></i>
+                            {% if act.met_value %}
+                                <span class="badge bg-secondary" title="Equivalente Metabólico (MET)">MET {{ act.met_value }}</span>
+                            {% endif %}
                         </div>
-                        {% if act.description %}
-                            <p class="card-text small text-light mt-2">{{ act.description }}</p>
-                        {% else %}
-                            <p class="card-text small text-muted mt-2">Sin descripción</p>
+                        {% if act.default_not_tracked_by_watch %}
+                            <div class="mb-2">
+                                <span class="badge bg-dark border border-warning text-warning small">
+                                    <i class="bi bi-lightning-charge-fill me-1"></i>Sin reloj por defecto
+                                </span>
+                            </div>
                         {% endif %}
+                        {% if act.description %}
+                            <p class="card-text small text-light mt-2 mb-0">{{ act.description }}</p>
+                        {% else %}
+                            <p class="card-text small text-muted mt-2 mb-0">Sin descripción</p>
+                        {% endif %}
+                    </div>
+                    <div class="card-footer d-flex justify-content-end gap-2">
+                        <a href="{% url 'activity_edit' act.pk %}" class="btn btn-sm btn-outline-warning" title="Editar actividad">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                        <form method="post" action="{% url 'activity_delete' act.pk %}" class="d-inline" onsubmit="return confirm('¿Eliminar esta actividad física y sus sesiones registradas?');">
+                            {% csrf_token %}
+                            <button type="submit" class="btn btn-sm btn-outline-danger" data-no-loading="true" title="Eliminar actividad">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -51,10 +74,4 @@
         </div>
     </div>
 {% endif %}
-
-<div class="d-flex gap-2 align-items-center">
-    <a href="{% url 'activity_log_list' %}" class="btn btn-outline-secondary">
-        <i class="bi bi-clock-history me-1"></i> Ver historial de sesiones deportivas
-    </a>
-</div>
 {% endblock %}

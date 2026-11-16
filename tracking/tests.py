@@ -524,3 +524,99 @@ class TestFoodLogAndEatenOut:
         assert has_eat_out_insight
 
 
+@pytest.mark.django_db
+class TestDailyGroupingForSupplementsAndActivities:
+    def test_supplement_log_list_groups_same_day(self, client, test_user):
+        """Test that SupplementLogListView groups multiple supplements of the same day into one row."""
+        from tracking.models import Supplement, SupplementLog
+
+        s1 = Supplement.objects.create(user=test_user, name="Vitamina D3")
+        s2 = Supplement.objects.create(user=test_user, name="Magnesio")
+        s3 = Supplement.objects.create(user=test_user, name="Omega 3")
+
+        today = timezone.localdate()
+        yesterday = today - timezone.timedelta(days=1)
+
+        # Two logs on today (night created first, morning second to test time_of_day sorting)
+        SupplementLog.objects.create(user=test_user, supplement=s2, date=today, time_of_day="night", notes="Antes de dormir")
+        SupplementLog.objects.create(user=test_user, supplement=s1, date=today, time_of_day="morning", notes="Con desayuno")
+        # One log on yesterday
+        SupplementLog.objects.create(user=test_user, supplement=s3, date=yesterday, time_of_day="noon")
+
+        client.force_login(test_user)
+        response = client.get(reverse("supplement_log_list"))
+        assert response.status_code == 200
+
+        grouped = response.context["daily_supplement_data"]
+        assert len(grouped) == 2
+
+        day_today = grouped[0]
+        assert day_today["date"] == today
+        assert day_today["total_count"] == 2
+        assert [log.supplement.name for log in day_today["logs"]] == ["Vitamina D3", "Magnesio"]
+        assert "Vitamina D3: Con desayuno" in day_today["notes_summary"]
+        assert "Magnesio: Antes de dormir" in day_today["notes_summary"]
+
+        day_yesterday = grouped[1]
+        assert day_yesterday["date"] == yesterday
+        assert day_yesterday["total_count"] == 1
+        assert [log.supplement.name for log in day_yesterday["logs"]] == ["Omega 3"]
+
+    def test_activity_log_list_groups_same_day(self, client, test_user):
+        """Test that PhysicalActivityLogListView groups multiple exercises of the same day into one row."""
+        from tracking.models import PhysicalActivity, PhysicalActivityLog
+
+        WeightMeasurement.objects.create(user=test_user, weight=Decimal("80.0"), date=timezone.localdate())
+        act1 = PhysicalActivity.objects.create(user=test_user, name="Karate", met_value=Decimal("8.0"))
+        act2 = PhysicalActivity.objects.create(user=test_user, name="Caminar", met_value=Decimal("3.5"))
+
+        today = timezone.localdate()
+        yesterday = today - timezone.timedelta(days=1)
+
+        # Two workouts on today: 60m Karate (640 kcal) + 30m Caminar (140 kcal)
+        PhysicalActivityLog.objects.create(user=test_user, activity=act1, date=today, duration_minutes=60, notes="Kata")
+        PhysicalActivityLog.objects.create(user=test_user, activity=act2, date=today, duration_minutes=30, notes="Paseo")
+        # One workout on yesterday: 45m Caminar
+        PhysicalActivityLog.objects.create(user=test_user, activity=act2, date=yesterday, duration_minutes=45)
+
+        client.force_login(test_user)
+        response = client.get(reverse("activity_log_list"))
+        assert response.status_code == 200
+
+        grouped = response.context["daily_activity_logs"]
+        assert len(grouped) == 2
+
+        day_today = grouped[0]
+        assert day_today["date"] == today
+        assert day_today["session_count"] == 2
+        assert day_today["total_duration"] == 90
+        assert day_today["total_calories"] == 780
+        assert "Karate: Kata" in day_today["notes_summary"]
+        assert "Caminar: Paseo" in day_today["notes_summary"]
+
+        day_yesterday = grouped[1]
+        assert day_yesterday["date"] == yesterday
+        assert day_yesterday["session_count"] == 1
+        assert day_yesterday["total_duration"] == 45
+
+    def test_duplicate_daily_activity_log_validation(self, client, test_user):
+        """Test that creating a duplicate DailyActivityLog for the same date returns a form error instead of 500."""
+        from tracking.models import DailyActivityLog
+
+        today = timezone.localdate()
+        DailyActivityLog.objects.create(user=test_user, date=today, steps=5000, active_calories=200, resting_calories=1700)
+
+        client.force_login(test_user)
+        response = client.post(reverse("daily_activity_add"), {
+            "date": today.strftime("%Y-%m-%d"),
+            "active_calories": 300,
+            "resting_calories": 1700,
+            "steps": 8000,
+            "distance_km": "6.00",
+            "notes": "",
+        })
+        assert response.status_code == 200
+        assert "Ya existe un registro de actividad diaria para esta fecha." in response.content.decode("utf-8")
+
+
+

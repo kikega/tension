@@ -3,7 +3,12 @@
         {% for log in food_logs %}
             <li class="list-group-item bg-dark text-white border-secondary mb-3 p-3 rounded border">
                 <div class="d-flex justify-content-between align-items-center mb-2">
-                    <h6 class="mb-0 fw-bold text-warning">{{ log.meal_type }}</h6>
+                    <h6 class="mb-0 fw-bold text-warning">
+                        {{ log.meal_type }}
+                        {% if log.eaten_out %}
+                            <span class="badge bg-danger ms-1 small">Fuera de casa</span>
+                        {% endif %}
+                    </h6>
                     <div class="d-flex align-items-center gap-2">
                         <span class="badge bg-warning text-dark fs-6">{{ log.get_nutritional_totals.calories|floatformat:0 }} kcal</span>
                         {% with cg_data=log.get_glycemic_load %}
@@ -15,6 +20,9 @@
                                 <span class="badge bg-success fs-6" title="Carga Glucémica Baja">CG: {{ cg_data.cg|floatformat:1 }}</span>
                             {% endif %}
                         {% endwith %}
+                        <a href="{% url 'food_log_edit' log.pk %}" class="btn btn-sm btn-outline-warning py-0 px-2" title="Editar esta comida">
+                            <i class="bi bi-pencil"></i>
+                        </a>
                     </div>
                 </div>
                 

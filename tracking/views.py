@@ -1,5 +1,5 @@
 from django.shortcuts import render, redirect, get_object_or_404
-from django.views.generic import TemplateView, CreateView, ListView, UpdateView, View
+from django.views.generic import TemplateView, CreateView, ListView, UpdateView, DeleteView, View
 from django.contrib.auth.mixins import LoginRequiredMixin
 from django.urls import reverse_lazy
 from django.db import transaction
@@ -7,6 +7,7 @@ from django.core.serializers.json import DjangoJSONEncoder
 from django.http import HttpResponse, JsonResponse
 from django.utils import timezone
 from datetime import timedelta
+from decimal import Decimal
 import json
 import csv
 
@@ -100,6 +101,7 @@ class DashboardView(LoginRequiredMixin, TemplateView):
             dist_today = float(daily_log.distance_km)
 
         # Si hoy no hay datos de actividad, mostrar el último día con datos reales
+        steps_log_date = today if daily_log else None
         if steps_today == 0 and dist_today == 0.0:
             last_log = DailyActivityLog.objects.filter(
                 user=self.request.user
@@ -108,9 +110,12 @@ class DashboardView(LoginRequiredMixin, TemplateView):
                 steps_today = last_log.steps
                 dist_today = float(last_log.distance_km)
                 active_cal = last_log.active_calories
+                steps_log_date = last_log.date
 
         # Ingesta de hoy
-        food_logs_today = FoodLog.objects.filter(user=self.request.user, date=today)
+        food_logs_today = FoodLog.objects.filter(
+            user=self.request.user, date=today
+        ).prefetch_related("items__food", "items__recipe__ingredients__food")
         total_intake_today = sum(log.get_total_calories() for log in food_logs_today)
         
         context["today_intake"] = total_intake_today
@@ -122,10 +127,11 @@ class DashboardView(LoginRequiredMixin, TemplateView):
         context["today_resting_calories"] = bmr
         context["today_extra_calories"] = extra_cal
         context["has_daily_log_today"] = (daily_log is not None)
+        context["steps_log_date"] = steps_log_date
 
         # --- Food Data (Last 10 Days) ---
         food_qs = FoodLog.objects.filter(user=self.request.user).prefetch_related(
-            "items__food", "items__recipe"
+            "items__food", "items__recipe__ingredients__food"
         )
         food_dates = food_qs.values_list("date", flat=True).distinct().order_by("-date")[:10]
         recent_food_days = []
@@ -299,17 +305,29 @@ class WeightMeasurementListView(LoginRequiredMixin, ListView):
     paginate_by = 20
 
     def get_queryset(self):
-        return WeightMeasurement.objects.filter(user=self.request.user).order_by("-date", "-created_at")
+        return (
+            WeightMeasurement.objects.filter(user=self.request.user)
+            .select_related("user")
+            .order_by("-date", "-created_at")
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         measurements = list(context["weight_measurements"])
 
+        # Obtener también el registro inmediatamente anterior al último de la página actual
+        next_older_measurement = None
+        page_obj = context.get("page_obj")
+        if page_obj and page_obj.has_next():
+            next_idx = page_obj.end_index()  # 1-based index of last item on current page -> 0-based index of next item
+            next_older_qs = self.get_queryset()[next_idx : next_idx + 1]
+            next_older_measurement = next_older_qs[0] if next_older_qs else None
+
         for i, measurement in enumerate(measurements):
-            measurement.peso_perdido = 0
-            measurement.porcentaje = 0
-            if i + 1 < len(measurements):
-                prev_measurement = measurements[i + 1]
+            measurement.peso_perdido = Decimal("0.0")
+            measurement.porcentaje = Decimal("0.0")
+            prev_measurement = measurements[i + 1] if i + 1 < len(measurements) else next_older_measurement
+            if prev_measurement:
                 perdido = prev_measurement.weight - measurement.weight
                 measurement.peso_perdido = perdido
                 if prev_measurement.weight > 0:
@@ -335,6 +353,24 @@ class WeightMeasurementListView(LoginRequiredMixin, ListView):
         return context
 
 
+class WeightMeasurementUpdateView(LoginRequiredMixin, UpdateView):
+    model = WeightMeasurement
+    form_class = WeightMeasurementForm
+    template_name = "tracking/add_weight.html"
+    success_url = reverse_lazy("weight_history")
+
+    def get_queryset(self):
+        return WeightMeasurement.objects.filter(user=self.request.user)
+
+
+class WeightMeasurementDeleteView(LoginRequiredMixin, DeleteView):
+    model = WeightMeasurement
+    success_url = reverse_lazy("weight_history")
+
+    def get_queryset(self):
+        return WeightMeasurement.objects.filter(user=self.request.user)
+
+
 # ── Suplementos ──────────────────────────────────────────────────────────────
 
 class SupplementListView(LoginRequiredMixin, ListView):
@@ -357,6 +393,24 @@ class SupplementCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
+class SupplementUpdateView(LoginRequiredMixin, UpdateView):
+    model = Supplement
+    form_class = SupplementForm
+    template_name = "tracking/supplement_form.html"
+    success_url = reverse_lazy("supplement_list")
+
+    def get_queryset(self):
+        return Supplement.objects.filter(user=self.request.user)
+
+
+class SupplementDeleteView(LoginRequiredMixin, DeleteView):
+    model = Supplement
+    success_url = reverse_lazy("supplement_list")
+
+    def get_queryset(self):
+        return Supplement.objects.filter(user=self.request.user)
+
+
 class SupplementLogCreateView(LoginRequiredMixin, CreateView):
     model = SupplementLog
     form_class = SupplementLogForm
@@ -373,14 +427,83 @@ class SupplementLogCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
+class SupplementLogUpdateView(LoginRequiredMixin, UpdateView):
+    model = SupplementLog
+    form_class = SupplementLogForm
+    template_name = "tracking/supplement_log_form.html"
+    success_url = reverse_lazy("supplement_log_list")
+
+    def get_queryset(self):
+        return SupplementLog.objects.filter(user=self.request.user)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
+
+class SupplementLogDeleteView(LoginRequiredMixin, DeleteView):
+    model = SupplementLog
+    success_url = reverse_lazy("supplement_log_list")
+
+    def get_queryset(self):
+        return SupplementLog.objects.filter(user=self.request.user)
+
+
 class SupplementLogListView(LoginRequiredMixin, ListView):
     model = SupplementLog
     template_name = "tracking/supplement_log_list.html"
-    context_object_name = "logs"
-    paginate_by = 30
+    context_object_name = "daily_supplement_data"
+    paginate_by = 20
 
     def get_queryset(self):
-        return SupplementLog.objects.filter(user=self.request.user).select_related("supplement")
+        return (
+            SupplementLog.objects.filter(user=self.request.user)
+            .values_list("date", flat=True)
+            .distinct()
+            .order_by("-date")
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        paginated_dates = list(context.get("daily_supplement_data", []))
+
+        time_order = {"morning": 1, "noon": 2, "evening": 3, "night": 4}
+        logs_qs = (
+            SupplementLog.objects.filter(
+                user=self.request.user,
+                date__in=paginated_dates,
+            )
+            .select_related("supplement")
+            .order_by("id")
+        )
+
+        logs_by_date = {}
+        for log in logs_qs:
+            logs_by_date.setdefault(log.date, []).append(log)
+
+        grouped_data = []
+        for d in paginated_dates:
+            day_logs = sorted(
+                logs_by_date.get(d, []),
+                key=lambda x: (time_order.get(x.time_of_day, 99), x.id),
+            )
+            notes_list = [
+                f"{log.supplement.name}: {log.notes}" if len(day_logs) > 1 else log.notes
+                for log in day_logs
+                if log.notes
+            ]
+            grouped_data.append({
+                "date": d,
+                "logs": day_logs,
+                "total_count": len(day_logs),
+                "notes_list": notes_list,
+                "notes_summary": " · ".join(notes_list),
+            })
+
+        context["daily_supplement_data"] = grouped_data
+        context["logs"] = grouped_data
+        return context
 
 
 # ── Actividades Físicas ───────────────────────────────────────────────────────
@@ -405,14 +528,78 @@ class PhysicalActivityCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
+class PhysicalActivityUpdateView(LoginRequiredMixin, UpdateView):
+    model = PhysicalActivity
+    form_class = PhysicalActivityForm
+    template_name = "tracking/activity_form.html"
+    success_url = reverse_lazy("activity_list")
+
+    def get_queryset(self):
+        return PhysicalActivity.objects.filter(user=self.request.user)
+
+
+class PhysicalActivityDeleteView(LoginRequiredMixin, DeleteView):
+    model = PhysicalActivity
+    success_url = reverse_lazy("activity_list")
+
+    def get_queryset(self):
+        return PhysicalActivity.objects.filter(user=self.request.user)
+
+
 class PhysicalActivityLogListView(LoginRequiredMixin, ListView):
     model = PhysicalActivityLog
     template_name = "tracking/activity_log_list.html"
-    context_object_name = "activity_logs"
-    paginate_by = 30
+    context_object_name = "daily_activity_logs"
+    paginate_by = 20
 
     def get_queryset(self):
-        return PhysicalActivityLog.objects.filter(user=self.request.user).select_related("activity")
+        return (
+            PhysicalActivityLog.objects.filter(user=self.request.user)
+            .values_list("date", flat=True)
+            .distinct()
+            .order_by("-date")
+        )
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        paginated_dates = list(context.get("daily_activity_logs", []))
+
+        logs_qs = (
+            PhysicalActivityLog.objects.filter(
+                user=self.request.user,
+                date__in=paginated_dates,
+            )
+            .select_related("activity")
+            .order_by("id")
+        )
+
+        logs_by_date = {}
+        for log in logs_qs:
+            logs_by_date.setdefault(log.date, []).append(log)
+
+        grouped_data = []
+        for d in paginated_dates:
+            day_logs = logs_by_date.get(d, [])
+            total_duration = sum(log.duration_minutes for log in day_logs)
+            total_calories = sum(log.estimated_calories or 0 for log in day_logs)
+            notes_list = [
+                f"{log.activity.name}: {log.notes}" if len(day_logs) > 1 else log.notes
+                for log in day_logs
+                if log.notes
+            ]
+            grouped_data.append({
+                "date": d,
+                "logs": day_logs,
+                "session_count": len(day_logs),
+                "total_duration": total_duration,
+                "total_calories": total_calories,
+                "notes_list": notes_list,
+                "notes_summary": " · ".join(notes_list),
+            })
+
+        context["daily_activity_logs"] = grouped_data
+        context["activity_logs"] = grouped_data
+        return context
 
 
 class PhysicalActivityLogCreateView(LoginRequiredMixin, CreateView):
@@ -431,6 +618,33 @@ class PhysicalActivityLogCreateView(LoginRequiredMixin, CreateView):
         return super().form_valid(form)
 
 
+class PhysicalActivityLogUpdateView(LoginRequiredMixin, UpdateView):
+    model = PhysicalActivityLog
+    form_class = PhysicalActivityLogForm
+    template_name = "tracking/activity_log_form.html"
+    success_url = reverse_lazy("activity_log_list")
+
+    def get_queryset(self):
+        return PhysicalActivityLog.objects.filter(user=self.request.user)
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        form.instance.estimated_calories = form.instance.calculate_estimated_calories()
+        return super().form_valid(form)
+
+
+class PhysicalActivityLogDeleteView(LoginRequiredMixin, DeleteView):
+    model = PhysicalActivityLog
+    success_url = reverse_lazy("activity_log_list")
+
+    def get_queryset(self):
+        return PhysicalActivityLog.objects.filter(user=self.request.user)
+
+
 # ── Alimentación ──────────────────────────────────────────────────────────────
 
 class FoodLogListView(LoginRequiredMixin, ListView):
@@ -440,7 +654,19 @@ class FoodLogListView(LoginRequiredMixin, ListView):
     paginate_by = 30
 
     def get_queryset(self):
-        return FoodLog.objects.filter(user=self.request.user).order_by("-date", "-id")
+        return (
+            FoodLog.objects.filter(user=self.request.user)
+            .prefetch_related("items__food", "items__recipe__ingredients__food")
+            .order_by("-date", "-id")
+        )
+
+
+class FoodLogDeleteView(LoginRequiredMixin, DeleteView):
+    model = FoodLog
+    success_url = reverse_lazy("food_daily_history")
+
+    def get_queryset(self):
+        return FoodLog.objects.filter(user=self.request.user)
 
 
 class FoodLogCreateView(LoginRequiredMixin, CreateView):
@@ -858,12 +1084,44 @@ class DailyActivityLogListView(LoginRequiredMixin, ListView):
     def get_queryset(self):
         return DailyActivityLog.objects.filter(user=self.request.user).order_by("-date")
 
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        logs = list(context.get("daily_activities", []))
+        if logs:
+            dates = [log.date for log in logs]
+            extra_exercises = PhysicalActivityLog.objects.filter(
+                user=self.request.user,
+                date__in=dates,
+                not_tracked_by_watch=True,
+            )
+            extra_by_date = {}
+            for ex in extra_exercises:
+                extra_by_date[ex.date] = extra_by_date.get(ex.date, 0) + (ex.estimated_calories or 0)
+
+            food_logs = FoodLog.objects.filter(
+                user=self.request.user,
+                date__in=dates,
+            ).prefetch_related("items__food", "items__recipe__ingredients__food")
+            intake_by_date = {}
+            for fl in food_logs:
+                intake_by_date[fl.date] = intake_by_date.get(fl.date, 0.0) + fl.get_total_calories()
+
+            for log in logs:
+                log._extra_exercise_calories = extra_by_date.get(log.date, 0)
+                log._total_intake = intake_by_date.get(log.date, 0.0)
+        return context
+
 
 class DailyActivityLogCreateView(LoginRequiredMixin, CreateView):
     model = DailyActivityLog
     form_class = DailyActivityLogForm
     template_name = "tracking/daily_activity_form.html"
     success_url = reverse_lazy("daily_activity_list")
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
 
     def form_valid(self, form):
         form.instance.user = self.request.user
@@ -882,6 +1140,11 @@ class DailyActivityLogUpdateView(LoginRequiredMixin, UpdateView):
     def get_queryset(self):
         return DailyActivityLog.objects.filter(user=self.request.user)
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["user"] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
         if not form.instance.resting_calories or form.instance.resting_calories == 0:
             bmr, _ = get_bmr_for_user(self.request.user, date=form.instance.date)
@@ -899,19 +1162,30 @@ class ExportDataCSVView(LoginRequiredMixin, View):
                          "CaloríasIngeridas", "CaloríasActivas", "Pasos"])
 
         sessions = MeasurementSession.objects.filter(user=request.user).order_by("-date")
-        weights = {w.date: w for w in WeightMeasurement.objects.filter(user=request.user).order_by("-date")}
+        weights = {w.date: w for w in WeightMeasurement.objects.filter(user=request.user).order_by("date", "created_at")}
         daily_logs = {d.date: d for d in DailyActivityLog.objects.filter(user=request.user).order_by("-date")}
+        food_logs = FoodLog.objects.filter(user=request.user).prefetch_related(
+            "items__food", "items__recipe__ingredients__food"
+        )
+        intake_by_date = {}
+        for fl in food_logs:
+            intake_by_date[fl.date] = intake_by_date.get(fl.date, 0.0) + fl.get_total_calories()
 
         for s in sessions:
             w = weights.get(s.date)
             d = daily_logs.get(s.date)
+            intake = intake_by_date.get(s.date)
             writer.writerow([
                 s.date, s.get_session_type_display(),
-                s.avg_systolic, s.avg_diastolic, s.avg_pulse,
+                round(s.avg_systolic, 1) if s.avg_systolic is not None else "",
+                round(s.avg_diastolic, 1) if s.avg_diastolic is not None else "",
+                round(s.avg_pulse, 1) if s.avg_pulse is not None else "",
                 float(w.weight) if w else "",
                 float(w.lean_mass_kg) if w and w.lean_mass_kg else "",
                 float(w.fat_mass_kg) if w and w.fat_mass_kg else "",
-                "", "", ""
+                round(intake, 0) if intake is not None else "",
+                d.active_calories if d else "",
+                d.steps if d else "",
             ])
 
         return response

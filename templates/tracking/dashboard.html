@@ -63,16 +63,22 @@
     <div class="col-6 col-md-4 col-lg-2">
       <div class="stat-mini-card">
         <div class="stat-value text-info">{{ today_steps|default:"0" }}</div>
-        <div class="stat-label"><i class="bi bi-footprints me-1"></i>Pasos / 10k</div>
+        <div class="stat-label">
+          <i class="bi bi-footprints me-1"></i>Pasos / 10k
+          {% if not has_daily_log_today and steps_log_date %}<br><small class="text-muted" style="font-size:0.6rem">({{ steps_log_date|date:"d/m" }})</small>{% endif %}
+        </div>
         <div class="progress mt-1 mx-auto" style="width: 80%; height: 4px;">
-          <div class="progress-bar bg-info progress-bar-striped progress-bar-animated" role="progressbar" style="width: {% widthratio today_steps 100 1 %}%" aria-valuenow="{{ today_steps }}" aria-valuemin="0" aria-valuemax="10000"></div>
+          <div class="progress-bar bg-info progress-bar-striped progress-bar-animated" role="progressbar" style="width: min(100%, {% widthratio today_steps 100 1 %}%)" aria-valuenow="{{ today_steps }}" aria-valuemin="0" aria-valuemax="10000"></div>
         </div>
       </div>
     </div>
     <div class="col-6 col-md-4 col-lg-2">
       <div class="stat-mini-card">
         <div class="stat-value text-primary">{{ today_distance|floatformat:2 }}</div>
-        <div class="stat-label"><i class="bi bi-geo-alt me-1"></i>Distancia (km)</div>
+        <div class="stat-label">
+          <i class="bi bi-geo-alt me-1"></i>Distancia (km)
+          {% if not has_daily_log_today and steps_log_date %}<br><small class="text-muted" style="font-size:0.6rem">({{ steps_log_date|date:"d/m" }})</small>{% endif %}
+        </div>
       </div>
     </div>
   </div>

@@ -1,4 +1,5 @@
 {% extends "base.html" %}
+{% block title %}Análisis Cruzado — Salud App{% endblock %}
 {% block content %}
     <div class="row mb-4 align-items-center">
         <div class="col">
@@ -195,8 +196,8 @@
                     <div class="d-flex align-items-center mt-2 mt-md-0">
                         <label for="cdrGenderSelect" class="form-label mb-0 me-2 text-info">Perfil Base:</label>
                         <select id="cdrGenderSelect" class="form-select form-select-sm w-auto">
-                            <option value="male">Hombre</option>
-                            <option value="female">Mujer</option>
+                            <option value="male" {% if user.gender != 'female' %}selected{% endif %}>Hombre</option>
+                            <option value="female" {% if user.gender == 'female' %}selected{% endif %}>Mujer</option>
                         </select>
                     </div>
                 </div>

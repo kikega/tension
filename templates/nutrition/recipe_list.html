@@ -28,7 +28,9 @@
                         </div>
                         <p class="card-text small text-muted mb-3">{{ recipe.description|default:"Sin descripción"|truncatechars:90 }}</p>
                         <div class="d-flex justify-content-between small text-muted border-top border-secondary border-opacity-25 pt-2">
-                            <span><i class="bi bi-pie-chart me-1"></i> {{ recipe.ingredients.count }} ingrediente{{ recipe.ingredients.count|pluralize }}</span>
+                            {% with ing_count=recipe.ingredients.all|length %}
+                            <span><i class="bi bi-pie-chart me-1"></i> {{ ing_count }} ingrediente{{ ing_count|pluralize }}</span>
+                            {% endwith %}
                             <span class="text-light fw-bold">{{ recipe.calculate_total_weight|floatformat:0 }} g total</span>
                         </div>
                     </div>

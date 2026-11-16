@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}Registrar Toma de Suplemento — Salud App{% endblock %}
+{% block title %}{% if object %}Editar{% else %}Registrar{% endif %} Toma de Suplemento — Salud App{% endblock %}
 
 {% block content %}
 <div class="row justify-content-center">
@@ -7,7 +7,7 @@
         <div class="row mb-4 align-items-center">
             <div class="col">
                 <h1 class="h3 mb-0 text-white">
-                    <i class="bi bi-capsule text-warning me-2"></i>Registrar Toma
+                    <i class="bi bi-capsule text-warning me-2"></i>{% if object %}Editar{% else %}Registrar{% endif %} Toma
                 </h1>
                 <p class="text-muted mb-0 small">Añadir ingesta al historial de suplementación</p>
             </div>

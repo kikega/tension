@@ -680,6 +680,96 @@ class TestWeeklyMealPlan:
         assert html.count("Objetivos Semanales") == 1
         assert html.count("Suplementación semanal recomendada") == 1
 
+    def test_lunch_uses_recipes_and_basic_foods_not_coffee_and_dessert(self, test_user):
+        """Test that lunch recommendations use created recipes & basic foods instead of scaling coffee/dessert."""
+        from nutrition.models import Food, Recipe, RecipeIngredient
+        from tracking.models import FoodLog, FoodLogItem
+        from tracking.services.meal_planner import AdaptiveMealPlanner
+
+        today = timezone.localdate()
+
+        # Basic foods
+        chicken = Food.objects.create(
+            name="Pechuga de pollo", energy_kcal=Decimal("165"), proteins_g=Decimal("31"),
+            lipids_g=Decimal("3.6"), carbohydrates_g=Decimal("0"),
+        )
+        rice = Food.objects.create(
+            name="Arroz blanco", energy_kcal=Decimal("130"), proteins_g=Decimal("2.7"),
+            lipids_g=Decimal("0.3"), carbohydrates_g=Decimal("28"),
+        )
+        salad = Food.objects.create(
+            name="Ensalada mixta", energy_kcal=Decimal("20"), proteins_g=Decimal("1.5"),
+            lipids_g=Decimal("0.2"), carbohydrates_g=Decimal("3"),
+        )
+        yogurt = Food.objects.create(
+            name="Yogur natural", energy_kcal=Decimal("60"), proteins_g=Decimal("4"),
+            lipids_g=Decimal("3"), carbohydrates_g=Decimal("4.5"),
+        )
+        coffee = Food.objects.create(
+            name="Café con leche", energy_kcal=Decimal("35"), proteins_g=Decimal("1.5"),
+            lipids_g=Decimal("1.5"), carbohydrates_g=Decimal("3.5"),
+        )
+
+        # User-created recipes
+        recipe1 = Recipe.objects.create(name="Pollo con arroz", user=test_user, servings=1)
+        RecipeIngredient.objects.create(recipe=recipe1, food=chicken, quantity_g=Decimal("180"))
+        RecipeIngredient.objects.create(recipe=recipe1, food=rice, quantity_g=Decimal("200"))
+
+        recipe2 = Recipe.objects.create(name="Pollo con ensalada", user=test_user, servings=1)
+        RecipeIngredient.objects.create(recipe=recipe2, food=chicken, quantity_g=Decimal("200"))
+        RecipeIngredient.objects.create(recipe=recipe2, food=salad, quantity_g=Decimal("200"))
+
+        # Log coffee + yogurt every day (highest frequency!), and vary main foods/recipes
+        for i in range(6):
+            d = today - timezone.timedelta(days=i + 1)
+            fl = FoodLog.objects.create(user=test_user, date=d, meal_type="Comida")
+            FoodLogItem.objects.create(food_log=fl, food=coffee, quantity_g=Decimal("150"))
+            FoodLogItem.objects.create(food_log=fl, food=yogurt, quantity_g=Decimal("125"))
+            if i == 0:
+                FoodLogItem.objects.create(food_log=fl, recipe=recipe1, servings=Decimal("1"))
+            elif i % 2 == 0:
+                FoodLogItem.objects.create(food_log=fl, food=chicken, quantity_g=Decimal("150"))
+                FoodLogItem.objects.create(food_log=fl, food=rice, quantity_g=Decimal("150"))
+
+        planner = AdaptiveMealPlanner(test_user, build_preferences=True)
+        plans = planner.get_weekly_plan()
+
+        lunch_names_all_days = []
+        for p in plans:
+            lunch_foods = p["meals"]["comida"]["foods"]
+            names = [f["name"] for f in lunch_foods]
+            lunch_names_all_days.extend(names)
+            # Coffee must never be recommended as a lunch calorie filler
+            assert not any("Café" in n for n in names)
+            # Yogurt (if included as optional dessert) must stay at 1 normal serving (~75 kcal), never scaled up
+            for f in lunch_foods:
+                if "Yogur" in f["name"]:
+                    assert f["kcal"] <= 130
+
+        # Both recipes should be rotated across the week
+        assert "Pollo con arroz" in lunch_names_all_days
+        assert "Pollo con ensalada" in lunch_names_all_days
+
+    def test_lunch_fallback_when_only_coffee_and_dessert_logged(self, test_user):
+        """If only coffee and dessert are logged and no recipes exist, fall back to balanced macro template."""
+        from nutrition.models import Food
+        from tracking.models import FoodLog, FoodLogItem
+        from tracking.services.meal_planner import AdaptiveMealPlanner
+
+        today = timezone.localdate()
+        coffee = Food.objects.create(name="Café solo", energy_kcal=Decimal("5"))
+        yogurt = Food.objects.create(name="Yogur natural", energy_kcal=Decimal("60"), proteins_g=Decimal("4"))
+
+        fl = FoodLog.objects.create(user=test_user, date=today - timezone.timedelta(days=1), meal_type="Comida")
+        FoodLogItem.objects.create(food_log=fl, food=coffee, quantity_g=Decimal("100"))
+        FoodLogItem.objects.create(food_log=fl, food=yogurt, quantity_g=Decimal("125"))
+
+        planner = AdaptiveMealPlanner(test_user, build_preferences=True)
+        plan = planner.plan_for_day(today)
+        assert plan["meals"]["comida"]["foods"] == []
+        assert "proteína" in plan["meals"]["comida"]["foods_hint"].lower()
+
+
 
 
 

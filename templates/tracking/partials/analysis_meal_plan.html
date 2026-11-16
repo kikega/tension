@@ -187,7 +187,18 @@
                             <h6 class="text-success mb-0">🍽️ Comida ({{ day.distribution_pct.comida }}%)</h6>
                             <span class="small text-muted">{{ day.meals.comida.macros.kcal }} kcal</span>
                         </div>
+                        {% if day.meals.comida.foods %}
+                        <table class="table table-sm table-dark mb-0 small">
+                            <thead><tr><th>Alimento / Receta</th><th class="text-end">Cant.</th></tr></thead>
+                            <tbody>
+                                {% for food in day.meals.comida.foods %}
+                                <tr><td>{{ food.name }}</td><td class="text-end">{{ food.qty_str }}</td></tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                        {% else %}
                         <div class="small">{{ day.meals.comida.foods_hint }}</div>
+                        {% endif %}
                     </div>
                     <div class="small d-flex justify-content-between mt-2 pt-2 border-top border-secondary border-opacity-25">
                         <span>P: <strong class="text-danger">{{ day.meals.comida.macros.protein }}g</strong></span>

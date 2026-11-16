@@ -4,6 +4,8 @@ from datetime import date, timedelta
 from collections import defaultdict
 from statistics import mean
 import math
+from django.db.models import Q
+from nutrition.models import Recipe
 from tracking.models import FoodLog, WeightMeasurement, DailyActivityLog
 
 # ── Fixed recommendations ────────────────────────────────────────────────────
@@ -78,6 +80,82 @@ def _sum_foods(foods):
     }
 
 
+_BEVERAGE_KEYWORDS = (
+    "café", "cafe", "descafeinado", "té", "te ", "infusión", "infusion",
+    "manzanilla", "poleo", "agua", "refresco", "cerveza", "vino", "edulcorante",
+    "sacarina", "stevia", "coca", "zumo",
+)
+_DESSERT_KEYWORDS = (
+    "yogur", "yogurt", "kéfir", "kefir", "flan", "natilla", "helado",
+    "gelatina", "chocolate", "galleta", "bizcocho", "magdalena", "tarta",
+    "pastel", "miel", "mermelada", "cuajada", "postre", "donut", "croissant",
+)
+_FRUIT_KEYWORDS = (
+    "manzana", "plátano", "platano", "pera", "naranja", "mandarina", "fresa",
+    "arándano", "arandano", "kiwi", "piña", "melón", "melon", "sandía", "sandia",
+    "uva", "melocotón", "melocoton", "cereza", "ciruela", "mango", "papaya",
+    "fruta", "frambuesa", "mora",
+)
+_SUPPLEMENT_KEYWORDS = ("amix", "predator", "caseína", "caseina", "whey", "proteína en polvo", "batido")
+_VEGGIE_KEYWORDS = (
+    "ensalada", "lechuga", "tomate", "espinaca", "brócoli", "brocoli", "coliflor",
+    "calabacín", "calabacin", "berenjena", "pimiento", "cebolla", "pepino",
+    "zanahoria", "judía verde", "judia verde", "espárrago", "esparrago",
+    "champiñón", "champinon", "seta", "alcachofa", "verdura", "menestra",
+    "acelga", "puerro", "repollo", "col", "rúcula", "rucula", "canónigo",
+)
+_FAT_KEYWORDS = (
+    "aceite", "aove", "oliva", "mantequilla", "margarina", "aguacate",
+    "nuez", "nueces", "almendra", "avellana", "cacahuete", "pistacho",
+    "anacardo", "semilla", "chía", "chia",
+)
+_CARB_KEYWORDS = (
+    "arroz", "pasta", "macarrón", "macarron", "espagueti", "fideo", "patata",
+    "boniato", "pan", "quinoa", "avena", "cuscús", "cuscus", "lenteja",
+    "garbanzo", "alubia", "fabada", "legumbre", "guisante", "maíz", "maiz",
+)
+_PROTEIN_KEYWORDS = (
+    "pollo", "pavo", "ternera", "cerdo", "lomo", "solomillo", "pechuga",
+    "carne", "jamón", "jamon", "pescado", "salmón", "salmon", "atún", "atun",
+    "merluza", "bacalao", "dorada", "lubina", "sardina", "caballa", "trucha",
+    "huevo", "clara", "marisco", "gamba", "langostino", "calamar", "pulpo",
+    "sepia", "tofu", "seitán", "seitan", "queso fresco", "requesón", "requeson",
+)
+
+
+def _classify_food_role(name: str, category_name: str = "", kcal: float = 0.0,
+                        protein: float = 0.0, fat: float = 0.0, carbs: float = 0.0) -> str:
+    """Clasifica un alimento según su papel nutricional en una comida principal."""
+    n = (name or "").lower()
+    cat = (category_name or "").lower()
+
+    if any(k in n for k in _SUPPLEMENT_KEYWORDS):
+        return "supplement"
+    if any(k in n for k in _BEVERAGE_KEYWORDS) or "bebida" in cat:
+        return "beverage"
+    if any(k in n for k in _DESSERT_KEYWORDS) or any(k in cat for k in ("dulce", "bollería", "postre")):
+        return "dessert"
+    if any(k in n for k in _FRUIT_KEYWORDS) or "fruta" in cat:
+        return "fruit"
+    if any(k in n for k in _VEGGIE_KEYWORDS) or any(k in cat for k in ("verdura", "hortaliza")):
+        return "veggie"
+    if any(k in n for k in _FAT_KEYWORDS) or any(k in cat for k in ("aceite", "grasa")):
+        return "fat"
+    if any(k in n for k in _PROTEIN_KEYWORDS) or any(k in cat for k in ("carne", "pescado", "marisco", "huevo")):
+        return "protein"
+    if any(k in n for k in _CARB_KEYWORDS) or any(k in cat for k in ("cereal", "legumbre", "tubérculo", "pan")):
+        return "carb"
+
+    if kcal > 0:
+        if fat * 9 >= 0.65 * kcal:
+            return "fat"
+        if protein * 4 >= 0.30 * kcal and protein >= 8:
+            return "protein"
+        if carbs * 4 >= 0.45 * kcal:
+            return "carb"
+    return "other"
+
+
 BREAKFAST_TOTALS = _sum_foods(BREAKFAST_TEMPLATE["foods"])
 DINNER_TOTALS = _sum_foods(DINNER_TEMPLATE["foods"])
 
@@ -134,6 +212,8 @@ class AdaptiveMealPlanner:
     def __init__(self, user, build_preferences: bool = True):
         self.user = user
         self.pref_summary = {"desayuno": [], "comida": [], "cena": []}
+        self.all_freq_foods = {"desayuno": [], "comida": [], "cena": []}
+        self.available_recipes = []
         self.slot_stats = {
             "desayuno": {"n_days": 0, "n_eaten_out": 0, "stability": 0.0, "dominant_combo": None, "n_distinct_combos": 0},
             "comida": {"n_days": 0, "n_eaten_out": 0, "stability": 0.0, "dominant_combo": None, "n_distinct_combos": 0},
@@ -148,7 +228,7 @@ class AdaptiveMealPlanner:
         learning_start = date.today() - timedelta(days=120)
         self.food_logs = list(
             FoodLog.objects.filter(user=self.user, date__gte=learning_start)
-            .prefetch_related("items__food", "items__recipe__ingredients__food")
+            .prefetch_related("items__food__category", "items__recipe__ingredients__food")
             .order_by("date")
         )
         self.weights = list(
@@ -170,6 +250,11 @@ class AdaptiveMealPlanner:
         }
 
         if build_preferences:
+            self.available_recipes = list(
+                Recipe.objects.filter(Q(user__isnull=True) | Q(user=self.user))
+                .prefetch_related("ingredients__food")
+                .order_by("name")
+            )
             self._build_food_preferences()
 
     def _recency_weight(self, days_ago: int, half_life_days: float = 21.0) -> float:
@@ -186,27 +271,35 @@ class AdaptiveMealPlanner:
             if kcal100 <= 0 or qty <= 0:
                 return None
             factor = qty / 100.0
+            cat_name = food.category.name if food.category_id and food.category else ""
+            kcal = kcal100 * factor
+            protein = float(food.proteins_g or 0) * factor
+            fat = float(food.lipids_g or 0) * factor
+            carbs = float(food.carbohydrates_g or 0) * factor
             return {
                 "key": ("food", food.id),
                 "name": food.name,
                 "kind": "food",
+                "category_name": cat_name,
+                "role": _classify_food_role(food.name, cat_name, kcal, protein, fat, carbs),
                 "unit": "g",
                 "qty": qty,
-                "kcal": kcal100 * factor,
-                "protein": float(food.proteins_g or 0) * factor,
-                "fat": float(food.lipids_g or 0) * factor,
-                "carbs": float(food.carbohydrates_g or 0) * factor,
+                "kcal": kcal,
+                "protein": protein,
+                "fat": fat,
+                "carbs": carbs,
             }
         if item.recipe and item.recipe_id:
             factor = item.calculate_recipe_factor()
             if factor:
                 macros = _recipe_macros(item.recipe)
-                servings = float(item.recipe.servings or 1)
                 scaled = {k: macros[k] * factor for k in macros}
                 return {
                     "key": ("recipe", item.recipe_id),
                     "name": item.recipe.name,
                     "kind": "recipe",
+                    "category_name": "",
+                    "role": "recipe",
                     "unit": "ración",
                     "qty": factor,
                     "kcal": scaled["kcal"],
@@ -338,7 +431,12 @@ class AdaptiveMealPlanner:
                         freq_qty_accum[i["key"]] += i["qty"]
                         for k in freq_macros[i["key"]]:
                             freq_macros[i["key"]][k] += i[k] * e["weight"]
-                        freq_meta.setdefault(i["key"], {"name": i["name"], "kind": i["kind"], "unit": i["unit"]})
+                        freq_meta.setdefault(i["key"], {
+                            "name": i["name"],
+                            "kind": i["kind"],
+                            "unit": i["unit"],
+                            "role": i.get("role", "other"),
+                        })
 
             freq_foods = []
             for key, m in freq_meta.items():
@@ -347,7 +445,9 @@ class AdaptiveMealPlanner:
                     continue
                 avg = {k: freq_macros[key][k] / freq_accum[key] for k in freq_macros[key]}
                 freq_foods.append({
+                    "key": key,
                     "kind": m["kind"],
+                    "role": m["role"],
                     "name": m["name"],
                     "unit": m["unit"],
                     "qty": freq_qty_accum[key] / n,
@@ -358,6 +458,7 @@ class AdaptiveMealPlanner:
                     "carbs": avg["carbs"],
                 })
             freq_foods.sort(key=lambda f: -f["count"])
+            self.all_freq_foods[slot] = freq_foods
 
             # Si la franja es estable (rutina repetida) se prioriza la combinación
             # dominante; si no, la de alimentos más frecuentes.
@@ -417,6 +518,181 @@ class AdaptiveMealPlanner:
             "foods": foods,
             "from_preferences": True,
             "count": sum(c["count"] for c in picked),
+        }
+
+    def _build_lunch_for_day(self, target_kcal: int, day_index: int = 0) -> dict | None:
+        """Compone una comida nutricionalmente equilibrada usando primero las recetas
+        creadas y los alimentos básicos habituales (proteína, verdura, hidrato/legumbre,
+        grasa saludable y, opcionalmente, fruta/yogur en ración fija).
+
+        Excluye cafés/bebidas y evita escalar postres para rellenar calorías."""
+        lunch_freq = self.all_freq_foods.get("comida", [])
+        logged_recipe_weights = {
+            f["key"][1]: f["count"]
+            for f in lunch_freq
+            if f.get("kind") == "recipe" and isinstance(f.get("key"), tuple)
+        }
+
+        # 1) Recetas disponibles (del usuario o globales) aptas como plato principal
+        recipe_pool = []
+        for r in self.available_recipes:
+            macros = _recipe_macros(r)
+            servings = float(r.servings or 1)
+            per_s = {k: macros[k] / servings for k in macros}
+            role = _classify_food_role(r.name, "", per_s["kcal"], per_s["protein"], per_s["fat"], per_s["carbs"])
+            if per_s["kcal"] < 120 or role in ("beverage", "dessert", "supplement"):
+                continue
+            recipe_pool.append({
+                "id": r.id,
+                "name": r.name,
+                "kcal": per_s["kcal"],
+                "protein": per_s["protein"],
+                "fat": per_s["fat"],
+                "carbs": per_s["carbs"],
+                "log_weight": logged_recipe_weights.get(r.id, 0.0),
+            })
+        recipe_pool.sort(key=lambda r: (r["log_weight"] > 0, r["log_weight"], r["protein"]), reverse=True)
+
+        # 2) Alimentos básicos habituales agrupados por rol nutricional
+        seen_keys = set()
+        basic_pool = []
+        for f in lunch_freq:
+            if f.get("kind") == "food" and f.get("kcal", 0) > 0:
+                seen_keys.add(f.get("key"))
+                basic_pool.append(f)
+        # Si en comida faltan alimentos básicos, complementar con básicos de cena (sin suplementos)
+        for f in self.all_freq_foods.get("cena", []):
+            if f.get("kind") == "food" and f.get("kcal", 0) > 0 and f.get("key") not in seen_keys:
+                if f.get("role") in ("protein", "carb", "veggie", "fat"):
+                    seen_keys.add(f.get("key"))
+                    basic_pool.append({**f, "count": f["count"] * 0.4})
+
+        by_role = defaultdict(list)
+        for f in basic_pool:
+            role = f.get("role") or _classify_food_role(
+                f["name"], "", f["kcal"], f["protein"], f["fat"], f["carbs"]
+            )
+            if role in ("beverage", "supplement"):
+                continue
+            by_role[role].append(f)
+
+        proteins = by_role["protein"]
+        carbs = by_role["carb"]
+        veggies = by_role["veggie"]
+        fats = by_role["fat"]
+        # Fruta o yogur como postre opcional en 1 ración fija (nunca escalado)
+        desserts = by_role["fruit"] + by_role["dessert"]
+
+        if not recipe_pool and not proteins and not carbs:
+            return None
+
+        foods = []
+        used_names = set()
+
+        def _append_food(item, factor: float = 1.0, unit_override: str | None = None, qty_str_override: str | None = None):
+            unit = unit_override or item.get("unit", "g")
+            qty = round(item.get("qty", 1) * factor) if unit == "g" else round(factor, 1)
+            qty_str = qty_str_override or (f"{qty} {unit}" if unit == "g" else f"{qty:g} {unit}")
+            foods.append({
+                "name": item["name"],
+                "qty_str": qty_str,
+                "qty": qty,
+                "unit": unit,
+                "protein": round(item["protein"] * factor),
+                "fat": round(item["fat"] * factor),
+                "carbs": round(item["carbs"] * factor),
+                "kcal": round(item["kcal"] * factor),
+            })
+            used_names.add(item["name"])
+
+        used_recipe = False
+        # Reservar espacio calórico si añadimos una pieza de fruta/postre habitual (~80 kcal)
+        dessert_item = desserts[day_index % len(desserts)] if desserts else None
+        dessert_kcal = min(130.0, dessert_item["kcal"]) if dessert_item else 0.0
+        main_target_kcal = max(300.0, target_kcal - dessert_kcal)
+
+        if recipe_pool:
+            used_recipe = True
+            rec = recipe_pool[day_index % len(recipe_pool)]
+            # Ración realista de receta: 1 o 1.5 raciones
+            raw_servings = main_target_kcal / rec["kcal"]
+            servings_picked = 1.5 if raw_servings >= 1.35 else 1.0
+            racion_label = "ración" if servings_picked == 1.0 else "raciones"
+            _append_food(
+                rec,
+                factor=servings_picked,
+                unit_override=racion_label,
+                qty_str_override=f"{servings_picked:g} {racion_label}",
+            )
+
+            current = _sum_foods(foods)
+            rem_kcal = main_target_kcal - current["kcal"]
+            rem_protein = max(0, 38 - current["protein"])
+
+            # Si la receta queda corta en proteína, añadir un básico proteico
+            if rem_protein >= 15 and proteins:
+                p_item = proteins[day_index % len(proteins)]
+                if p_item["protein"] > 0:
+                    p_factor = max(0.6, min(1.5, rem_protein / p_item["protein"]))
+                    _append_food(p_item, factor=p_factor)
+                    current = _sum_foods(foods)
+                    rem_kcal = main_target_kcal - current["kcal"]
+
+            # Guarnición de verdura si hay hueco calórico
+            if rem_kcal > 60 and veggies:
+                v_item = veggies[day_index % len(veggies)]
+                _append_food(v_item, factor=1.0)
+                current = _sum_foods(foods)
+                rem_kcal = main_target_kcal - current["kcal"]
+
+            # Base de hidratos/pan/arroz si aún falta energía
+            if rem_kcal > 120 and carbs:
+                c_item = carbs[day_index % len(carbs)]
+                if c_item["kcal"] > 0:
+                    c_factor = max(0.6, min(1.6, rem_kcal / c_item["kcal"]))
+                    _append_food(c_item, factor=c_factor)
+        else:
+            # Plato compuesto por alimentos básicos habituales: Proteína + Verdura + Hidrato + Grasa
+            if proteins:
+                p_item = proteins[day_index % len(proteins)]
+                target_lunch_prot = max(35.0, min(55.0, self.target_protein * 0.38))
+                p_factor = max(0.7, min(1.8, target_lunch_prot / p_item["protein"])) if p_item["protein"] > 0 else 1.0
+                _append_food(p_item, factor=p_factor)
+
+            if veggies:
+                v_item = veggies[day_index % len(veggies)]
+                _append_food(v_item, factor=1.0)
+
+            current = _sum_foods(foods)
+            rem_kcal = main_target_kcal - current["kcal"]
+
+            if carbs and rem_kcal > 80:
+                c_item = carbs[day_index % len(carbs)]
+                if c_item["kcal"] > 0:
+                    c_factor = max(0.6, min(1.8, (rem_kcal - 40) / c_item["kcal"]))
+                    _append_food(c_item, factor=c_factor)
+                current = _sum_foods(foods)
+                rem_kcal = main_target_kcal - current["kcal"]
+
+            if fats and rem_kcal > 80:
+                f_item = fats[day_index % len(fats)]
+                _append_food(f_item, factor=1.0)
+
+        # Postre habitual en 1 ración fija (solo si aporta equilibrio y no supera el objetivo)
+        if dessert_item:
+            current = _sum_foods(foods)
+            if target_kcal - current["kcal"] >= min(60.0, dessert_item["kcal"] * 0.6):
+                _append_food(dessert_item, factor=1.0)
+
+        if not foods:
+            return None
+
+        meal_macros = _sum_foods(foods)
+        return {
+            "macros": meal_macros,
+            "foods": foods,
+            "from_recipes": used_recipe,
+            "from_preferences": True,
         }
 
     def _estimate_tdee(self):
@@ -570,7 +846,7 @@ class AdaptiveMealPlanner:
         slope, _ = _simple_linear_regression(days, vals)
         return slope
 
-    def plan_for_day(self, day=None):
+    def plan_for_day(self, day=None, day_index: int = 0):
         day = day or date.today()
         kcal = self.target_kcal_for(day)
         stats = self.slot_stats
@@ -617,16 +893,17 @@ class AdaptiveMealPlanner:
 
         l_kcal = max(min_lunch, remaining)
 
-        # La comida variable: compone con los alimentos más frecuentes escalados
-        # a la energía restante; si no hay historial, plantilla de macros.
-        if stats["comida"]["n_days"] > 0:
-            l_pref = self._build_meal_from_preferences("comida", target_kcal=l_kcal)
+        # La comida variable: compone con recetas creadas y alimentos básicos habituales
+        # (proteína, verdura, hidrato, grasa saludable), evitando cafés/postres como relleno.
+        l_pref = self._build_lunch_for_day(l_kcal, day_index=day_index)
         if l_pref:
             lunch = l_pref["macros"]
-            lunch_foods_hint = " · ".join(f"{f['name']} {f['qty_str']}" for f in l_pref["foods"][:4])
+            lunch_foods = l_pref["foods"]
+            lunch_foods_hint = " · ".join(f"{f['name']} {f['qty_str']}" for f in lunch_foods[:5])
         else:
             lunch = _compute_lunch_macros(kcal, self.current_weight)
             lunch = _adjust_macros_to_kcal(lunch, l_kcal)
+            lunch_foods = []
             lunch_foods_hint = f"{lunch['protein']}g proteína (pollo/pescado/carne) + {lunch['carbs']}g carbohidratos + verduras + AOVE"
 
         # Textos
@@ -687,6 +964,7 @@ class AdaptiveMealPlanner:
                 },
                 "comida": {
                     "macros": lunch,
+                    "foods": lunch_foods,
                     "foods_hint": lunch_foods_hint,
                     "advice": lunch_advice,
                     "protein_range": (150, 200),
@@ -707,7 +985,7 @@ class AdaptiveMealPlanner:
         plans = []
         for i in range(7):
             d = today + timedelta(days=i)
-            plans.append(self.plan_for_day(d))
+            plans.append(self.plan_for_day(d, day_index=i))
 
         # Nota base explicando por qué la IA ajusta el objetivo este día concreto
         for p in plans:
@@ -753,16 +1031,18 @@ class AdaptiveMealPlanner:
                 "(máx. 2 raciones) + fruta al gusto (arándanos, manzana…)."
             )
 
-        if stats["comida"]["stability"] < 0.45 and stats["comida"]["n_days"] > 3:
-            lunch_advice = (
-                f"Franja más variable ({stats['comida']['n_distinct_combos']} combinaciones en "
-                f"{stats['comida']['n_days']} días): la IA la compone cada día con tus alimentos "
-                f"más frecuentes ajustados al gasto calórico diario."
-            )
-        elif self.pref_summary.get("comida"):
-            lunch_advice = (
-                "Basada en tus comidas habituales, adaptando las cantidades cada día a tu gasto energético."
-            )
+        if any(p["meals"]["comida"].get("foods") for p in plans):
+            if self.available_recipes:
+                lunch_advice = (
+                    "Compuesta con tus recetas creadas y alimentos básicos habituales "
+                    "(proteína, verdura, hidratos/legumbres y fruta/postre en ración fija, sin cafés como relleno), "
+                    "rotando platos a lo largo de la semana."
+                )
+            else:
+                lunch_advice = (
+                    "Compuesta con tus alimentos básicos habituales equilibrando proteína, verdura, "
+                    "hidratos complejos y grasas saludables según tu gasto diario."
+                )
         else:
             lunch_advice = (
                 "Prioriza proteína animal (150-200 g), carbohidratos complejos (100-120 g), "

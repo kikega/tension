@@ -24,9 +24,11 @@ INSTALLED_APPS = [
     "django.contrib.messages",
     "django.contrib.staticfiles",
     # Local
+    "core",
     "accounts",
     "tracking",
     "nutrition",
+    "recipes",
 ]
 
 MIDDLEWARE = [
@@ -53,6 +55,7 @@ TEMPLATES = [
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
                 "accounts.context_processors.pending_requests",
+                "core.context_processors.site_urls",
             ],
         },
     },
@@ -109,6 +112,18 @@ HOST_URLCONFS = {
     # Desarrollo local: http://recetas.localhost:8000 resuelve a 127.0.0.1
     "recetas.localhost": "config.urls_recetas",
 }
+
+# Sesión compartida (SSO) entre subdominios. En producción: ".egalvez.es".
+# En desarrollo local dejar vacío (None) para que funcione en localhost.
+SESSION_COOKIE_DOMAIN = env("SESSION_COOKIE_DOMAIN", default="") or None
+CSRF_COOKIE_DOMAIN = env("CSRF_COOKIE_DOMAIN", default="") or None
+CSRF_TRUSTED_ORIGINS = env.list(
+    "CSRF_TRUSTED_ORIGINS",
+    default=[
+        f"https://{TENSION_HOST}",
+        f"https://{RECETAS_HOST}",
+    ],
+)
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

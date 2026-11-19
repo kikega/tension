@@ -1,4 +1,5 @@
-{% extends "base.html" %}
+{% extends "recipes/base.html" %}
+{% load site_urls %}
 {% block title %}{{ recipe.name }} — Detalle de Receta{% endblock %}
 
 {% block content %}
@@ -12,7 +13,16 @@
             <p class="text-muted mb-0 small">{{ recipe.description }}</p>
         {% endif %}
     </div>
-    <div class="col-auto d-flex gap-2">
+    <div class="col-auto d-flex flex-wrap gap-2">
+        {% if recipe.youtube_embed_url %}
+            <button type="button"
+                    class="btn btn-danger"
+                    data-bs-toggle="modal"
+                    data-bs-target="#recipeVideoModal"
+                    data-video-src="{{ recipe.youtube_embed_url }}">
+                <i class="bi bi-play-circle me-1"></i> Ver vídeo
+            </button>
+        {% endif %}
         {% if recipe.user == request.user or user.is_staff %}
             <a href="{% url 'recipe_edit' recipe.pk %}" class="btn btn-outline-warning">
                 <i class="bi bi-pencil me-1"></i> Editar
@@ -27,6 +37,50 @@
     </div>
 </div>
 
+{% with gallery=recipe.gallery_media %}
+{% if gallery %}
+<div class="row mb-4">
+    <div class="col-12">
+        {% with cover=gallery.0 %}
+        <div class="card shadow-sm overflow-hidden">
+            <img id="recipe-main-photo"
+                 src="{{ cover.image_medium.url|default:cover.image.url }}"
+                 srcset="{{ cover.srcset }}"
+                 sizes="(max-width: 767px) 100vw, 900px"
+                 {% if cover.width and cover.height %}width="{{ cover.width }}" height="{{ cover.height }}"{% endif %}
+                 alt="{{ cover.effective_alt }}"
+                 class="w-100 object-fit-cover"
+                 style="max-height: 420px;">
+            {% if cover.caption or cover.credits %}
+            <div class="card-footer d-flex justify-content-between small text-muted">
+                <span id="recipe-main-caption">{{ cover.caption }}</span>
+                {% if cover.credits %}<span>Foto: {{ cover.credits }}</span>{% endif %}
+            </div>
+            {% endif %}
+        </div>
+        {% endwith %}
+        {% if gallery|length > 1 %}
+        <div class="d-flex gap-2 mt-2 overflow-auto pb-1">
+            {% for photo in gallery %}
+            <button type="button"
+                    class="btn p-0 border border-secondary rounded overflow-hidden flex-shrink-0 gallery-thumb-btn"
+                    data-full-src="{{ photo.image_medium.url|default:photo.image.url }}"
+                    data-full-srcset="{{ photo.srcset }}"
+                    data-full-alt="{{ photo.effective_alt }}"
+                    data-full-caption="{{ photo.caption }}">
+                <img src="{{ photo.image_thumb.url|default:photo.image.url }}"
+                     alt="{{ photo.effective_alt }}"
+                     loading="lazy"
+                     style="width: 96px; height: 72px; object-fit: cover;">
+            </button>
+            {% endfor %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
+{% endwith %}
+
 <div class="row">
     <div class="col-md-5">
         <div class="card shadow-sm mb-4">
@@ -37,7 +91,7 @@
             <ul class="list-group list-group-flush">
                 {% for ing in recipe.ingredients.all %}
                     <li class="list-group-item d-flex justify-content-between align-items-center">
-                        <a href="{% url 'food_detail' ing.food.pk %}" class="text-decoration-none fw-semibold">
+                        <a href="{% tension_url 'food_detail' ing.food.pk %}" class="text-decoration-none fw-semibold">
                             <i class="bi bi-arrow-right-short text-warning me-1"></i>{{ ing.food.name }}
                         </a>
                         <span class="badge bg-dark border border-secondary">{{ ing.quantity_g|floatformat:0 }} g</span>
@@ -125,3 +179,65 @@
     </div>
 </div>
 {% endblock content %}
+
+{% block extra_modal %}
+{% if recipe.youtube_embed_url %}
+<div class="modal fade" id="recipeVideoModal" tabindex="-1" aria-labelledby="recipeVideoModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content bg-dark border-secondary">
+            <div class="modal-header border-secondary">
+                <h5 class="modal-title text-white" id="recipeVideoModalLabel">
+                    <i class="bi bi-youtube text-danger me-2"></i>{{ recipe.name }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="ratio ratio-16x9">
+                    <iframe id="recipeVideoIframe"
+                            src=""
+                            title="Vídeo de {{ recipe.name }}"
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowfullscreen
+                            referrerpolicy="strict-origin-when-cross-origin"></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+{% endblock extra_modal %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const videoModal = document.getElementById('recipeVideoModal');
+    const videoIframe = document.getElementById('recipeVideoIframe');
+    if (videoModal && videoIframe) {
+        videoModal.addEventListener('show.bs.modal', function(event) {
+            const trigger = event.relatedTarget;
+            if (trigger && trigger.dataset.videoSrc) {
+                videoIframe.src = trigger.dataset.videoSrc + '&autoplay=1';
+            }
+        });
+        videoModal.addEventListener('hidden.bs.modal', function() {
+            videoIframe.src = '';
+        });
+    }
+
+    const mainPhoto = document.getElementById('recipe-main-photo');
+    const mainCaption = document.getElementById('recipe-main-caption');
+    document.querySelectorAll('.gallery-thumb-btn').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            if (mainPhoto) {
+                mainPhoto.src = btn.dataset.fullSrc;
+                mainPhoto.srcset = btn.dataset.fullSrcset || '';
+                mainPhoto.alt = btn.dataset.fullAlt || '';
+            }
+            if (mainCaption) {
+                mainCaption.textContent = btn.dataset.fullCaption || '';
+            }
+        });
+    });
+});
+</script>
+{% endblock extra_js %}

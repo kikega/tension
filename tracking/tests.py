@@ -157,7 +157,8 @@ class TestWeightViews:
 @pytest.mark.django_db
 class TestGlycemicCalculations:
     def test_glycemic_load_calculations(self, test_user):
-        from nutrition.models import Food, Recipe, RecipeIngredient
+        from nutrition.models import Food
+        from recipes.models import Recipe, RecipeIngredient
         from tracking.models import FoodLog, FoodLogItem
         
         # 1. Create foods with various IGs and carbs
@@ -394,47 +395,56 @@ class TestUserRegistration:
 
 @pytest.mark.django_db
 class TestRecipeMultiUser:
-    def test_recipe_scoping(self, client, test_user):
-        from nutrition.models import Recipe
+    def test_recipe_scoping(self, client, test_user, settings):
+        settings.ALLOWED_HOSTS = ["recetas.egalvez.es", "testserver"]
+        from recipes.models import Recipe
         other_user = User.objects.create_user(email="other@example.com", password="password")
         
         # Create global recipe (no user)
         recipe_global = Recipe.objects.create(name="Receta Global", servings=2)
         # Create user's recipe
         recipe_user = Recipe.objects.create(name="Mi Receta", user=test_user, servings=1)
-        # Create other user's recipe
-        recipe_other = Recipe.objects.create(name="Receta Ajena", user=other_user, servings=3)
+        # Create other user's published and private recipes
+        recipe_other_pub = Recipe.objects.create(name="Receta Ajena Publicada", user=other_user, servings=3)
+        recipe_other_priv = Recipe.objects.create(
+            name="Receta Ajena Privada", user=other_user, servings=3, status=Recipe.STATUS_PRIVATE
+        )
         
         client.force_login(test_user)
         
         # 1. Test List View
-        url = reverse("recipe_list")
-        response = client.get(url)
+        url = reverse("recipe_list", urlconf="config.urls_recetas")
+        response = client.get(url, HTTP_HOST="recetas.egalvez.es")
         assert response.status_code == 200
         recipes_context = list(response.context["recipes"])
-        # Should contain global and user's own, but NOT other user's
+        # Should contain global, user's own, and other users' published recipes, NOT private ones
         assert recipe_global in recipes_context
         assert recipe_user in recipes_context
-        assert recipe_other not in recipes_context
+        assert recipe_other_pub in recipes_context
+        assert recipe_other_priv not in recipes_context
         
         # 2. Test Detail View access
         # Can see own recipe
-        url_own = reverse("recipe_detail", kwargs={"pk": recipe_user.pk})
-        response_own = client.get(url_own)
+        url_own = reverse("recipe_detail", urlconf="config.urls_recetas", kwargs={"pk": recipe_user.pk})
+        response_own = client.get(url_own, HTTP_HOST="recetas.egalvez.es")
         assert response_own.status_code == 200
         
         # Can see global recipe
-        url_global = reverse("recipe_detail", kwargs={"pk": recipe_global.pk})
-        response_global = client.get(url_global)
+        url_global = reverse("recipe_detail", urlconf="config.urls_recetas", kwargs={"pk": recipe_global.pk})
+        response_global = client.get(url_global, HTTP_HOST="recetas.egalvez.es")
         assert response_global.status_code == 200
         
-        # Cannot see other user's recipe (should return 404)
-        url_other = reverse("recipe_detail", kwargs={"pk": recipe_other.pk})
-        response_other = client.get(url_other)
-        assert response_other.status_code == 404
+        # Can see other user's published recipe
+        url_other_pub = reverse("recipe_detail", urlconf="config.urls_recetas", kwargs={"pk": recipe_other_pub.pk})
+        assert client.get(url_other_pub, HTTP_HOST="recetas.egalvez.es").status_code == 200
 
-    def test_recipe_ownership_mutations(self, client, test_user):
-        from nutrition.models import Recipe
+        # Cannot see other user's private recipe (should return 404)
+        url_other_priv = reverse("recipe_detail", urlconf="config.urls_recetas", kwargs={"pk": recipe_other_priv.pk})
+        assert client.get(url_other_priv, HTTP_HOST="recetas.egalvez.es").status_code == 404
+
+    def test_recipe_ownership_mutations(self, client, test_user, settings):
+        settings.ALLOWED_HOSTS = ["recetas.egalvez.es", "testserver"]
+        from recipes.models import Recipe
         other_user = User.objects.create_user(email="other@example.com", password="password")
         
         # Create other user's recipe
@@ -443,13 +453,13 @@ class TestRecipeMultiUser:
         client.force_login(test_user)
         
         # Cannot edit other user's recipe (should return 404)
-        url_edit = reverse("recipe_edit", kwargs={"pk": recipe_other.pk})
-        response_edit = client.post(url_edit, {"name": "Hackeado", "servings": 4})
+        url_edit = reverse("recipe_edit", urlconf="config.urls_recetas", kwargs={"pk": recipe_other.pk})
+        response_edit = client.post(url_edit, {"name": "Hackeado", "servings": 4}, HTTP_HOST="recetas.egalvez.es")
         assert response_edit.status_code == 404
         
         # Cannot delete other user's recipe (should return 404)
-        url_delete = reverse("recipe_delete", kwargs={"pk": recipe_other.pk})
-        response_delete = client.post(url_delete)
+        url_delete = reverse("recipe_delete", urlconf="config.urls_recetas", kwargs={"pk": recipe_other.pk})
+        response_delete = client.post(url_delete, HTTP_HOST="recetas.egalvez.es")
         assert response_delete.status_code == 404
 
 
@@ -479,26 +489,30 @@ class TestFoodLogAndEatenOut:
 
     def test_recipe_filtering_in_formset(self, client, test_user):
         """Test that the food_log_add view renders the formset filtering recipes to only user-owned and global ones"""
-        from nutrition.models import Recipe
+        from recipes.models import Recipe
         other_user = User.objects.create_user(email="other@example.com", password="password")
         
         # Create recipes
         recipe_global = Recipe.objects.create(name="Receta Global", servings=2)
         recipe_user = Recipe.objects.create(name="Mi Receta", user=test_user, servings=1)
-        recipe_other = Recipe.objects.create(name="Receta Ajena", user=other_user, servings=3)
+        recipe_other_pub = Recipe.objects.create(name="Receta Ajena Publicada", user=other_user, servings=3)
+        recipe_other_priv = Recipe.objects.create(
+            name="Receta Ajena Privada", user=other_user, servings=3, status=Recipe.STATUS_PRIVATE
+        )
 
         client.force_login(test_user)
         response = client.get(reverse("food_log_add"))
         assert response.status_code == 200
         
-        # Check that recipe queryset in context items formset contains global and user recipes, but not other
+        # Check that recipe queryset contains global, user's own, and published recipes, but not other's private
         formset = response.context["items"]
         recipe_field = formset.forms[0].fields["recipe"]
         queryset = list(recipe_field.queryset)
         
         assert recipe_global in queryset
         assert recipe_user in queryset
-        assert recipe_other not in queryset
+        assert recipe_other_pub in queryset
+        assert recipe_other_priv not in queryset
 
     def test_eat_out_ai_insights(self, test_user):
         """Test that generate_insights correctly incorporates eating out analysis and recommendations"""
@@ -682,7 +696,8 @@ class TestWeeklyMealPlan:
 
     def test_lunch_uses_recipes_and_basic_foods_not_coffee_and_dessert(self, test_user):
         """Test that lunch recommendations use created recipes & basic foods instead of scaling coffee/dessert."""
-        from nutrition.models import Food, Recipe, RecipeIngredient
+        from nutrition.models import Food
+        from recipes.models import Recipe, RecipeIngredient
         from tracking.models import FoodLog, FoodLogItem
         from tracking.services.meal_planner import AdaptiveMealPlanner
 

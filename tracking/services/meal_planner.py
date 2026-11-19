@@ -5,7 +5,7 @@ from collections import defaultdict
 from statistics import mean
 import math
 from django.db.models import Q
-from nutrition.models import Recipe
+from recipes.models import Recipe
 from tracking.models import FoodLog, WeightMeasurement, DailyActivityLog
 
 # ── Fixed recommendations ────────────────────────────────────────────────────
@@ -251,7 +251,7 @@ class AdaptiveMealPlanner:
 
         if build_preferences:
             self.available_recipes = list(
-                Recipe.objects.filter(Q(user__isnull=True) | Q(user=self.user))
+                Recipe.objects.visible_for(self.user)
                 .prefetch_related("ingredients__food")
                 .order_by("name")
             )

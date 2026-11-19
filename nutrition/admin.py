@@ -1,10 +1,18 @@
 from django.contrib import admin
-from .models import FoodCategory, Food, NutritionalReference, Recipe, RecipeIngredient
+
+from .models import Allergen, Food, FoodCategory, HouseholdMeasure, NutritionalReference
 
 
-class RecipeIngredientInline(admin.TabularInline):
-    model = RecipeIngredient
+class HouseholdMeasureInline(admin.TabularInline):
+    model = HouseholdMeasure
     extra = 1
+
+
+@admin.register(Allergen)
+class AllergenAdmin(admin.ModelAdmin):
+    list_display = ("name", "code", "icon")
+    search_fields = ("name", "code")
+    prepopulated_fields = {"code": ("name",)}
 
 
 @admin.register(FoodCategory)
@@ -15,12 +23,14 @@ class FoodCategoryAdmin(admin.ModelAdmin):
 
 @admin.register(Food)
 class FoodAdmin(admin.ModelAdmin):
-    list_display = ("name", "category", "seasonality", "glycemic_index", "energy_kcal", "proteins_g", "carbohydrates_g", "lipids_g")
-    list_filter = ("category", "seasonality")
-    search_fields = ("name",)
+    list_display = ("name", "category", "seasonality", "data_source", "glycemic_index", "energy_kcal", "proteins_g", "carbohydrates_g", "lipids_g")
+    list_filter = ("category", "seasonality", "data_source", "allergens")
+    search_fields = ("name", "external_id")
+    filter_horizontal = ("allergens",)
+    inlines = [HouseholdMeasureInline]
     fieldsets = (
         ("Datos Generales", {
-            "fields": ("category", "name", "description", "seasonality", "edible_portion", "nutritional_rating")
+            "fields": ("category", "name", "description", "seasonality", "edible_portion", "nutritional_rating", "allergens", "data_source", "external_id")
         }),
         ("Macronutrientes", {
             "fields": ("energy_kcal", "proteins_g", "lipids_g", "cholesterol_mg", "carbohydrates_g", "glycemic_index", "fiber_g", "water_g")
@@ -37,10 +47,3 @@ class FoodAdmin(admin.ModelAdmin):
 @admin.register(NutritionalReference)
 class NutritionalReferenceAdmin(admin.ModelAdmin):
     list_display = ("gender", "energy_kcal", "proteins_g", "carbohydrates_g")
-
-
-@admin.register(Recipe)
-class RecipeAdmin(admin.ModelAdmin):
-    list_display = ("name", "servings", "created_at")
-    search_fields = ("name",)
-    inlines = [RecipeIngredientInline]

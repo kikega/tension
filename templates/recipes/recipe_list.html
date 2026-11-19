@@ -1,5 +1,5 @@
-{% extends "base.html" %}
-{% block title %}Recetas Saludables - Salud App{% endblock %}
+{% extends "recipes/base.html" %}
+{% block title %}Recetas · egalvez.es{% endblock %}
 
 {% block content %}
 <div class="row mb-4 align-items-center">
@@ -20,7 +20,25 @@
     <div class="row row-cols-1 row-cols-md-3 g-3">
         {% for recipe in recipes %}
             <div class="col">
-                <div class="card h-100 shadow-sm border-secondary border-opacity-25">
+                <div class="card h-100 shadow-sm border-secondary border-opacity-25 overflow-hidden">
+                    {% with cover=recipe.cover_media %}
+                    {% if cover %}
+                        <a href="{% url 'recipe_detail' recipe.pk %}" class="d-block position-relative">
+                            <img src="{{ cover.image_thumb.url|default:cover.image.url }}"
+                                 srcset="{{ cover.srcset }}"
+                                 sizes="(max-width: 767px) 100vw, 33vw"
+                                 alt="{{ cover.effective_alt }}"
+                                 loading="lazy"
+                                 class="card-img-top object-fit-cover"
+                                 style="height: 180px;">
+                            {% if recipe.youtube_embed_url %}
+                                <span class="badge bg-danger position-absolute top-0 end-0 m-2">
+                                    <i class="bi bi-play-fill"></i> Vídeo
+                                </span>
+                            {% endif %}
+                        </a>
+                    {% endif %}
+                    {% endwith %}
                     <div class="card-body">
                         <div class="d-flex justify-content-between align-items-start mb-2">
                             <h5 class="card-title text-warning mb-0">{{ recipe.name }}</h5>

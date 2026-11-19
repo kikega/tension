@@ -5,7 +5,8 @@ from django.urls import reverse
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 
-from nutrition.models import Food, FoodCategory, Recipe, RecipeIngredient
+from nutrition.models import Food, FoodCategory
+from recipes.models import Recipe, RecipeIngredient
 from nutrition.services.nutrition_calculator import (
     normalize_nutrients_to_100g,
     scale_nutrients_for_weight,
@@ -237,10 +238,17 @@ class TestRecipeAndFoodDetailAPIViews:
         assert len(data["recipe"]["ingredients"]) == 1
         assert data["recipe"]["ingredients"][0]["food_name"] == "Pasta"
 
-        # User B no debe poder acceder a la receta de User A
+        # User B sí puede consultar la receta publicada de User A
         client.force_login(user_b)
         response_b = client.get(url)
-        assert response_b.status_code == 404
+        assert response_b.status_code == 200
+
+        # Pero NO puede acceder a una receta privada de User A
+        recipe_private = Recipe.objects.create(
+            user=user_a, name="Pasta Secreta", servings=1, status=Recipe.STATUS_PRIVATE
+        )
+        url_private = reverse("api_recipe_detail", kwargs={"pk": recipe_private.pk})
+        assert client.get(url_private).status_code == 404
 
     def test_food_search_api_scoping(self, client, user_a, user_b):
         food_global = Food.objects.create(name="Manzana Global", energy_kcal=Decimal("52.0"))
@@ -345,7 +353,7 @@ class TestFoodCustomMutationsAndPermissions:
 @pytest.mark.django_db
 class TestRecipeIngredientFormsAndViews:
     def test_recipe_ingredient_form_filtering(self, user_a, user_b):
-        from nutrition.forms import RecipeIngredientForm
+        from recipes.forms import RecipeIngredientForm
         food_a = Food.objects.create(user=user_a, name="Alimento Propio A")
         food_b = Food.objects.create(user=user_b, name="Alimento Privado B")
         food_global = Food.objects.create(name="Alimento Global")
@@ -356,11 +364,12 @@ class TestRecipeIngredientFormsAndViews:
         assert food_global in qs
         assert food_b not in qs
 
-    def test_recipe_create_view_context(self, client, user_a):
+    def test_recipe_create_view_context(self, client, user_a, settings):
+        settings.ALLOWED_HOSTS = ["recetas.egalvez.es", "testserver"]
         Food.objects.create(user=user_a, name="Plátano Canario", energy_kcal=Decimal("90.0"))
         client.force_login(user_a)
-        url = reverse("recipe_add")
-        response = client.get(url)
+        url = reverse("recipe_add", urlconf="config.urls_recetas")
+        response = client.get(url, HTTP_HOST="recetas.egalvez.es")
         assert response.status_code == 200
         assert "available_foods" in response.context
         food_names = [f["name"] for f in response.context["available_foods"]]

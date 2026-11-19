@@ -320,7 +320,7 @@ class FoodLogItem(models.Model):
 
     food_log = models.ForeignKey(FoodLog, related_name="items", on_delete=models.CASCADE)
     food = models.ForeignKey("nutrition.Food", on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Alimento"))
-    recipe = models.ForeignKey("nutrition.Recipe", on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Receta"))
+    recipe = models.ForeignKey("recipes.Recipe", on_delete=models.SET_NULL, null=True, blank=True, verbose_name=_("Receta"))
     quantity_g = models.DecimalField(max_digits=7, decimal_places=2, null=True, blank=True, verbose_name=_("Cantidad (g)"))
     servings = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name=_("Raciones (Receta)"))
 

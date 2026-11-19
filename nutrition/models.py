@@ -18,6 +18,22 @@ class FoodCategory(models.Model):
         return self.name
 
 
+class Allergen(models.Model):
+    """Alérgenos de declaración obligatoria (Reglamento UE 1169/2011)."""
+
+    code = models.SlugField(max_length=40, unique=True, verbose_name=_("Código"))
+    name = models.CharField(max_length=100, unique=True, verbose_name=_("Nombre"))
+    icon = models.CharField(max_length=40, blank=True, verbose_name=_("Icono"))
+
+    class Meta:
+        ordering = ["name"]
+        verbose_name = _("Alérgeno")
+        verbose_name_plural = _("Alérgenos")
+
+    def __str__(self) -> str:
+        return self.name
+
+
 class Food(models.Model):
     """Alimento con su composición nutricional completa."""
 
@@ -27,6 +43,13 @@ class Food(models.Model):
         ("summer", "Verano"),
         ("autumn", "Otoño"),
         ("winter", "Invierno"),
+    ]
+
+    SOURCE_CHOICES = [
+        ("manual", "Manual"),
+        ("bedca", "BEDCA"),
+        ("openfoodfacts", "Open Food Facts"),
+        ("other", "Otra"),
     ]
 
     user = models.ForeignKey(
@@ -42,6 +65,9 @@ class Food(models.Model):
     seasonality = models.CharField(max_length=10, choices=SEASON_CHOICES, default="all", verbose_name=_("Estacionalidad"))
     edible_portion = models.DecimalField(max_digits=5, decimal_places=2, null=True, blank=True, verbose_name=_("Porción comestible (%)"))
     nutritional_rating = models.CharField(max_length=100, blank=True, verbose_name=_("Valoración nutricional"))
+    allergens = models.ManyToManyField(Allergen, blank=True, related_name="foods", verbose_name=_("Alérgenos"))
+    data_source = models.CharField(max_length=20, choices=SOURCE_CHOICES, default="manual", verbose_name=_("Fuente de datos"))
+    external_id = models.CharField(max_length=64, blank=True, db_index=True, verbose_name=_("ID externo"))
 
     # Composición nutricional por 100 g (todos opcionales)
     energy_kcal = models.DecimalField(max_digits=8, decimal_places=2, null=True, blank=True, verbose_name=_("Energía (kcal)"))
@@ -78,6 +104,23 @@ class Food(models.Model):
 
     def __str__(self) -> str:
         return self.name
+
+
+class HouseholdMeasure(models.Model):
+    """Medida casera de un alimento y su equivalencia en gramos (ej. '1 huevo M' = 53 g)."""
+
+    food = models.ForeignKey(Food, related_name="household_measures", on_delete=models.CASCADE, verbose_name=_("Alimento"))
+    name = models.CharField(max_length=100, verbose_name=_("Medida casera"))
+    grams = models.DecimalField(max_digits=7, decimal_places=2, verbose_name=_("Equivalencia (g)"))
+
+    class Meta:
+        ordering = ["food__name", "name"]
+        unique_together = ("food", "name")
+        verbose_name = _("Medida casera")
+        verbose_name_plural = _("Medidas caseras")
+
+    def __str__(self) -> str:
+        return f"{self.food.name}: {self.name} ({self.grams} g)"
 
 
 class NutritionalReference(models.Model):
@@ -117,89 +160,3 @@ class NutritionalReference(models.Model):
 
     def __str__(self) -> str:
         return f"Referencia {self.get_gender_display()}"
-
-
-class Recipe(models.Model):
-    """Receta de cocina con cálculo nutricional basado en ingredientes."""
-
-    user = models.ForeignKey(
-        settings.AUTH_USER_MODEL,
-        on_delete=models.CASCADE,
-        null=True,
-        blank=True,
-        verbose_name=_("Usuario")
-    )
-    name = models.CharField(max_length=200, verbose_name=_("Nombre"))
-    description = models.TextField(blank=True, verbose_name=_("Descripción"))
-    instructions = models.TextField(blank=True, verbose_name=_("Preparación"))
-    servings = models.PositiveIntegerField(default=1, verbose_name=_("Raciones"))
-    created_at = models.DateTimeField(auto_now_add=True)
-
-    class Meta:
-        ordering = ["name"]
-        verbose_name = _("Receta")
-        verbose_name_plural = _("Recetas")
-
-    def __str__(self) -> str:
-        return self.name
-
-    def calculate_total_weight(self) -> float:
-        """Suma total del peso (g) de todos los ingredientes de la receta."""
-        return sum((float(i.quantity_g) for i in self.ingredients.all()), 0.0)
-
-    def calculate_nutrition(self) -> dict:
-        """Calcula la composición nutricional total de la receta en base a sus ingredientes."""
-        NUTRIENT_FIELDS = [
-            "energy_kcal", "proteins_g", "lipids_g", "cholesterol_mg",
-            "carbohydrates_g", "fiber_g", "water_g", "calcium_mg", "iron_mg",
-            "iodine_ug", "magnesium_mg", "zinc_mg", "sodium_mg", "potassium_mg",
-            "phosphorus_mg", "selenium_ug", "thiamine_mg", "riboflavin_mg",
-            "vitamin_b6_mg", "folate_ug", "vitamin_b12_ug", "vitamin_c_mg",
-            "vitamin_a_ug", "vitamin_d_ug", "vitamin_e_mg",
-        ]
-        totals: dict = {field: 0 for field in NUTRIENT_FIELDS}
-        for ingredient in self.ingredients.select_related("food").all():
-            factor = float(ingredient.quantity_g) / 100.0
-            for field in NUTRIENT_FIELDS:
-                value = getattr(ingredient.food, field)
-                if value is not None:
-                    totals[field] += float(value) * factor
-        return totals
-
-    def calculate_glycemic_load(self) -> dict:
-        """
-        Calcula la carga glucémica (CG) total de la receta en base a sus ingredientes.
-        Retorna un diccionario con:
-          - 'total_cg': la suma de las CG de los ingredientes
-          - 'has_missing_ig': indica si algún ingrediente con carbohidratos carece de IG
-        """
-        total_cg = 0.0
-        has_missing_ig = False
-        for ingredient in self.ingredients.select_related("food").all():
-            food = ingredient.food
-            carbs = float(food.carbohydrates_g or 0)
-            if carbs > 0:
-                if food.glycemic_index is not None:
-                    portion_carbs = carbs * (float(ingredient.quantity_g) / 100.0)
-                    total_cg += (float(food.glycemic_index) * portion_carbs) / 100.0
-                else:
-                    has_missing_ig = True
-        return {
-            "total_cg": round(total_cg, 2),
-            "has_missing_ig": has_missing_ig
-        }
-
-
-class RecipeIngredient(models.Model):
-    """Ingrediente de una receta con cantidad en gramos."""
-
-    recipe = models.ForeignKey(Recipe, related_name="ingredients", on_delete=models.CASCADE)
-    food = models.ForeignKey(Food, on_delete=models.CASCADE, verbose_name=_("Alimento"))
-    quantity_g = models.DecimalField(max_digits=7, decimal_places=2, verbose_name=_("Cantidad (g)"))
-
-    class Meta:
-        verbose_name = _("Ingrediente")
-        verbose_name_plural = _("Ingredientes")
-
-    def __str__(self) -> str:
-        return f"{self.food.name} — {self.quantity_g}g"

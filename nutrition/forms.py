@@ -1,6 +1,5 @@
 from django import forms
-from django.forms import inlineformset_factory
-from .models import Food, FoodCategory, Recipe, RecipeIngredient
+from .models import Food, FoodCategory
 
 
 class FoodForm(forms.ModelForm):
@@ -40,45 +39,3 @@ class FoodForm(forms.ModelForm):
         for field in nutrient_fields:
             self.fields[field].widget = forms.NumberInput(attrs={"class": "form-control", "step": "0.01"})
             self.fields[field].required = False
-
-
-class RecipeIngredientForm(forms.ModelForm):
-    class Meta:
-        model = RecipeIngredient
-        fields = ("food", "quantity_g")
-        widgets = {
-            "food": forms.Select(attrs={"class": "form-control form-select"}),
-            "quantity_g": forms.NumberInput(attrs={"class": "form-control", "placeholder": "Cantidad (g)"}),
-        }
-
-    def __init__(self, *args, **kwargs):
-        user = kwargs.pop("user", None)
-        super().__init__(*args, **kwargs)
-        from django.db.models import Q
-        if user:
-            self.fields["food"].queryset = Food.objects.filter(
-                Q(user__isnull=True) | Q(user=user)
-            ).order_by("name")
-        else:
-            self.fields["food"].queryset = Food.objects.order_by("name")
-
-
-RecipeIngredientFormSet = inlineformset_factory(
-    Recipe,
-    RecipeIngredient,
-    form=RecipeIngredientForm,
-    extra=1,
-    can_delete=True,
-)
-
-
-class RecipeForm(forms.ModelForm):
-    class Meta:
-        model = Recipe
-        fields = ["name", "description", "instructions", "servings"]
-        widgets = {
-            "name": forms.TextInput(attrs={"class": "form-control"}),
-            "description": forms.Textarea(attrs={"class": "form-control", "rows": 2}),
-            "instructions": forms.Textarea(attrs={"class": "form-control", "rows": 5}),
-            "servings": forms.NumberInput(attrs={"class": "form-control"}),
-        }

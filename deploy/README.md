@@ -110,3 +110,63 @@ viene en `policycoreutils-python-utils`), rsync y uv funcionan igual. Tras la
 actualización, revisa que el paquete cliente de PostgreSQL coincida con la
 versión del servidor (para `pg_dump`) y vuelve a ejecutar `restorecon` sobre
 `media/`.
+
+---
+
+# Despliegue — Fase 1: app `recipes`, SSO y migraciones versionadas
+
+A partir de esta fase:
+- Las migraciones entran en git (se ha quitado `migrations/` de `.gitignore`).
+- `Recipe` y `RecipeIngredient` viven en la app `recipes`, conservando las
+  tablas existentes `nutrition_recipe` y `nutrition_recipeingredient` mediante
+  `SeparateDatabaseAndState` (sin mover ni borrar datos).
+- La sesión y la cookie CSRF se comparten entre subdominios con
+  `SESSION_COOKIE_DOMAIN=.egalvez.es` y `CSRF_COOKIE_DOMAIN=.egalvez.es`
+  (por defecto en `config/settings/produccion.py`).
+- `tension.egalvez.es/nutrition/recipes/...` devuelve 301 permanente hacia
+  `recetas.egalvez.es/...`.
+
+## Pasos en producción (con BD existente con datos)
+
+1. **Copia de seguridad previa obligatoria:**
+
+```bash
+sudo -u tension /var/www/tension/deploy/backup/backup.sh
+```
+
+2. **Actualizar código y limpiar el historial antiguo de migraciones:**
+   Como antes `migrations/` no estaba en git, las migraciones intermedias
+   generadas localmente en el servidor (`0002_*`, `0003_*`, …) ya están
+   consolidadas en el nuevo `0001_initial.py` de `accounts`, `nutrition` y
+   `tracking`. Hay que borrar cualquier fichero antiguo de `*/migrations/` que
+   no venga en git y podar esas entradas de `django_migrations`:
+
+```bash
+cd /var/www/tension
+git pull
+# Eliminar ficheros de migraciones antiguas que estuvieran sin versionar en el VPS
+git clean -fd accounts/migrations nutrition/migrations tracking/migrations
+
+# Podar en django_migrations las entradas antiguas que ya no existen en disco
+uv run python manage.py migrate accounts  --prune --settings=config.settings.produccion
+uv run python manage.py migrate nutrition --prune --settings=config.settings.produccion
+uv run python manage.py migrate tracking  --prune --settings=config.settings.produccion
+
+# Aplicar las migraciones de la Fase 1 (solo estado + ContentType; 0 cambios de esquema)
+uv run python manage.py migrate --settings=config.settings.produccion
+```
+
+3. **Comprobar y reiniciar:**
+
+```bash
+uv run python manage.py showmigrations accounts nutrition recipes tracking --settings=config.settings.produccion
+uv run python manage.py check --deploy --settings=config.settings.produccion
+uv run python manage.py collectstatic --noinput --settings=config.settings.produccion
+sudo systemctl restart <servicio-gunicorn>
+```
+
+4. **Verificación rápida:**
+   - `curl -I https://tension.egalvez.es/nutrition/recipes/` → `301` hacia `https://recetas.egalvez.es/`.
+   - Iniciar sesión en `https://tension.egalvez.es/` y abrir `https://recetas.egalvez.es/` → entras ya autenticado (SSO) viendo tus recetas.
+   - Registrar una ingesta con receta en `tension.egalvez.es` → sigue funcionando igual.
+

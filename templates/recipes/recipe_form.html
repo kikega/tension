@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+{% extends "recipes/base.html" %}
 {% block title %}{% if object %}Editar Receta{% else %}Nueva Receta{% endif %} — Salud App{% endblock %}
 
 {% block content %}
@@ -23,7 +23,7 @@
                 <i class="bi bi-pencil-square text-warning me-2"></i>Detalles de la Receta
             </div>
             <div class="card-body">
-                <form method="post">
+                <form method="post" enctype="multipart/form-data">
                     {% csrf_token %}
                     {% if form.non_field_errors %}
                         <div class="alert alert-danger mb-3">{{ form.non_field_errors }}</div>
@@ -46,6 +46,66 @@
                             <label class="form-label text-muted">Instrucciones de Preparación</label>
                             {{ form.instructions }}
                         </div>
+                        <div class="col-12">
+                            <label class="form-label text-muted">
+                                <i class="bi bi-youtube text-danger me-1"></i>Vídeo de YouTube (opcional)
+                            </label>
+                            {{ form.video_url }}
+                            {% if form.video_url.errors %}
+                                <div class="text-danger small mt-1">{{ form.video_url.errors }}</div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <div class="border-bottom border-secondary border-opacity-25 pb-2 mb-3 mt-4">
+                        <h5 class="text-warning mb-0 fw-bold">
+                            <i class="bi bi-images me-2"></i>Fotos de la Receta
+                        </h5>
+                        <p class="text-muted small mb-0">JPG, PNG o WebP (máx. 10 MB). Se convierten automáticamente a WebP optimizado.</p>
+                    </div>
+
+                    {{ media_formset.management_form }}
+                    <div class="mb-4">
+                        {% for mform in media_formset %}
+                        <div class="row g-2 mb-2 p-2 rounded border border-secondary border-opacity-25 align-items-center">
+                            {{ mform.id }}
+                            {% if mform.instance.pk and mform.instance.image_thumb %}
+                            <div class="col-auto">
+                                <img src="{{ mform.instance.image_thumb.url }}" alt="{{ mform.instance.effective_alt }}"
+                                     style="width: 72px; height: 54px; object-fit: cover;" class="rounded">
+                            </div>
+                            {% endif %}
+                            <div class="col-md-4">
+                                <label class="form-label small text-muted mb-1">Imagen</label>
+                                {{ mform.image }}
+                                {% if mform.image.errors %}<div class="text-danger small">{{ mform.image.errors }}</div>{% endif %}
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label small text-muted mb-1">Texto alternativo</label>
+                                {{ mform.alt_text }}
+                            </div>
+                            <div class="col-md-2">
+                                <label class="form-label small text-muted mb-1">Pie de foto</label>
+                                {{ mform.caption }}
+                            </div>
+                            <div class="col-auto pt-3">
+                                <div class="form-check">
+                                    {{ mform.is_cover }}
+                                    <label class="form-check-label small" for="{{ mform.is_cover.id_for_label }}">Portada</label>
+                                </div>
+                            </div>
+                            {% if mform.instance.pk %}
+                            <div class="col-auto pt-3">
+                                <div class="form-check">
+                                    {{ mform.DELETE }}
+                                    <label class="form-check-label text-danger small" for="{{ mform.DELETE.id_for_label }}">
+                                        <i class="bi bi-trash"></i>
+                                    </label>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center border-bottom border-secondary border-opacity-25 pb-2 mb-3 mt-4">

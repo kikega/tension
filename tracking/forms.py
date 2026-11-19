@@ -192,13 +192,14 @@ class FoodLogItemForm(forms.ModelForm):
     def __init__(self, *args, **kwargs):
         user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
-        from nutrition.models import Recipe, Food
+        from nutrition.models import Food
+        from recipes.models import Recipe
         from django.db.models import Q
         if user:
-            self.fields["recipe"].queryset = Recipe.objects.filter(Q(user__isnull=True) | Q(user=user))
+            self.fields["recipe"].queryset = Recipe.objects.visible_for(user)
             self.fields["food"].queryset = Food.objects.filter(Q(user__isnull=True) | Q(user=user))
         else:
-            self.fields["recipe"].queryset = Recipe.objects.filter(user__isnull=True)
+            self.fields["recipe"].queryset = Recipe.objects.filter(status=Recipe.STATUS_PUBLISHED)
             self.fields["food"].queryset = Food.objects.filter(user__isnull=True)
 
 FoodLogItemFormSet = inlineformset_factory(

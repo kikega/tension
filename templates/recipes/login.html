@@ -1,0 +1,46 @@
+{% extends "recipes/base.html" %}
+{% load static %}
+{% block title %}Iniciar sesión — Recetas · egalvez.es{% endblock %}
+{% block body_class %}login-page{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center my-5">
+  <div class="col-md-5 col-lg-4">
+    <div class="card shadow-sm border-secondary border-opacity-25 p-4 text-center">
+      <img src="{% static 'imagenes/logo2.png' %}" alt="Logo egalvez" width="137" height="40" class="mx-auto mb-3">
+      <h1 class="h4 text-white fw-bold mb-1">Recetas · egalvez.es</h1>
+      <p class="text-muted small mb-4">Usa tu cuenta de Salud App</p>
+      <form method="post">
+        {% csrf_token %}
+        {% if form.non_field_errors %}
+          <div class="alert alert-danger py-2 px-3 small rounded-3">{{ form.non_field_errors }}</div>
+        {% endif %}
+        <div class="form-floating mb-3 text-start">
+          <input type="email"
+                 class="form-control {% if form.username.errors %}is-invalid{% endif %}"
+                 id="id_username"
+                 name="username"
+                 placeholder="correo@ejemplo.com"
+                 required
+                 autocomplete="username">
+          <label for="id_username">Correo electrónico</label>
+        </div>
+        <div class="form-floating mb-4 text-start">
+          <input type="password"
+                 class="form-control {% if form.password.errors %}is-invalid{% endif %}"
+                 id="id_password"
+                 name="password"
+                 placeholder="Contraseña"
+                 required
+                 autocomplete="current-password">
+          <label for="id_password">Contraseña</label>
+        </div>
+        {% if next %}
+          <input type="hidden" name="next" value="{{ next }}">
+        {% endif %}
+        <button type="submit" class="btn btn-warning w-100 fw-semibold">Iniciar sesión</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}

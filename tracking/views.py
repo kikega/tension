@@ -678,14 +678,15 @@ class FoodLogCreateView(LoginRequiredMixin, CreateView):
     def get_context_data(self, **kwargs):
         data = super().get_context_data(**kwargs)
         from .forms import FoodLogItemFormSet
-        from nutrition.models import Food, FoodCategory, Recipe
+        from nutrition.models import Food, FoodCategory
+        from recipes.models import Recipe
         from django.db.models import Q
         if self.request.POST:
             data['items'] = FoodLogItemFormSet(self.request.POST, form_kwargs={'user': self.request.user})
         else:
             data['items'] = FoodLogItemFormSet(form_kwargs={'user': self.request.user})
         data['categories'] = FoodCategory.objects.all()
-        data['available_recipes'] = Recipe.objects.filter(Q(user__isnull=True) | Q(user=self.request.user)).order_by("name")
+        data['available_recipes'] = Recipe.objects.visible_for(self.request.user).order_by("name")
         foods_qs = Food.objects.filter(
             Q(user__isnull=True) | Q(user=self.request.user)
         ).select_related("category").order_by("name")
@@ -731,14 +732,15 @@ class FoodLogUpdateView(LoginRequiredMixin, UpdateView):
     def get_context_data(self, **kwargs):
         data = super().get_context_data(**kwargs)
         from .forms import FoodLogItemFormSet
-        from nutrition.models import Food, FoodCategory, Recipe
+        from nutrition.models import Food, FoodCategory
+        from recipes.models import Recipe
         from django.db.models import Q
         if self.request.POST:
             data['items'] = FoodLogItemFormSet(self.request.POST, instance=self.object, form_kwargs={'user': self.request.user})
         else:
             data['items'] = FoodLogItemFormSet(instance=self.object, form_kwargs={'user': self.request.user})
         data['categories'] = FoodCategory.objects.all()
-        data['available_recipes'] = Recipe.objects.filter(Q(user__isnull=True) | Q(user=self.request.user)).order_by("name")
+        data['available_recipes'] = Recipe.objects.visible_for(self.request.user).order_by("name")
         foods_qs = Food.objects.filter(
             Q(user__isnull=True) | Q(user=self.request.user)
         ).select_related("category").order_by("name")
@@ -854,7 +856,7 @@ class AnalysisView(LoginRequiredMixin, TemplateView):
             .order_by("date")
         )
         # Precompute nutrition for all recipes used in this period (with caching)
-        from nutrition.models import Recipe
+        from recipes.models import Recipe
         recipe_ids = set()
         for f in foods:
             for item in f.items.all():

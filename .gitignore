@@ -34,4 +34,4 @@ logs
 .env
 
 # Documentacion
-*.md
+*.md!deploy/README.md

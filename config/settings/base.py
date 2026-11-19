@@ -32,6 +32,7 @@ INSTALLED_APPS = [
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",
     "django.contrib.sessions.middleware.SessionMiddleware",
+    "config.middleware.HostRoutingMiddleware",
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
@@ -87,6 +88,27 @@ STATIC_URL = "static/"
 STATICFILES_DIRS = [BASE_DIR / "static"]
 
 STATIC_ROOT = os.path.join(BASE_DIR, 'collectstatic')
+
+# Ficheros subidos por los usuarios (fotos de recetas, etc.).
+# En producción Nginx sirve MEDIA_URL directamente desde MEDIA_ROOT.
+MEDIA_URL = "/media/"
+MEDIA_ROOT = Path(env("MEDIA_ROOT", default=str(BASE_DIR / "media")))
+
+# Límites de subida: las fotos grandes se vuelcan a disco temporal en lugar de RAM.
+FILE_UPLOAD_MAX_MEMORY_SIZE = 5 * 1024 * 1024  # 5 MB
+DATA_UPLOAD_MAX_MEMORY_SIZE = 25 * 1024 * 1024  # 25 MB (petición completa)
+FILE_UPLOAD_PERMISSIONS = 0o644
+FILE_UPLOAD_DIRECTORY_PERMISSIONS = 0o755
+
+# Sitios servidos por este mismo proyecto (enrutado por dominio).
+# HostRoutingMiddleware selecciona el urlconf según el host de la petición.
+TENSION_HOST = env("TENSION_HOST", default="tension.egalvez.es")
+RECETAS_HOST = env("RECETAS_HOST", default="recetas.egalvez.es")
+HOST_URLCONFS = {
+    RECETAS_HOST: "config.urls_recetas",
+    # Desarrollo local: http://recetas.localhost:8000 resuelve a 127.0.0.1
+    "recetas.localhost": "config.urls_recetas",
+}
 
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
 

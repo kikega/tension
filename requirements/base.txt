@@ -3,6 +3,7 @@ click
 colorama
 django
 django-environ
+pillow
 dnspython
 packaging
 pymongo

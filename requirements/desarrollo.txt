@@ -8,6 +8,7 @@ django==6.0.2
 django-environ==0.13.0
 dnspython==2.8.0
 packaging==26.0
+pillow==13.0.0
 pymongo==4.16.0
 regex==2026.2.19
 six==1.17.0

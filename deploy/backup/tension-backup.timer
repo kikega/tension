@@ -1,0 +1,12 @@
+# /etc/systemd/system/tension-backup.timer
+[Unit]
+Description=Copia de seguridad diaria de tension/recetas
+
+[Timer]
+OnCalendar=*-*-* 03:30:00
+RandomizedDelaySec=15min
+# Si el VPS estaba apagado a la hora prevista, se ejecuta al arrancar
+Persistent=true
+
+[Install]
+WantedBy=timers.target

@@ -1,0 +1,3 @@
+# recetas.egalvez.es — en construcción: no indexar hasta el lanzamiento (Fase 7).
+User-agent: *
+Disallow: /

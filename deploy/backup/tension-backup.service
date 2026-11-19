@@ -1,0 +1,14 @@
+# /etc/systemd/system/tension-backup.service
+[Unit]
+Description=Copia de seguridad de tension/recetas (PostgreSQL + media)
+Wants=network-online.target
+After=network-online.target postgresql.service
+
+[Service]
+Type=oneshot
+# Usuario con acceso de lectura a MEDIA_ROOT y escritura en BACKUP_DIR (ajusta)
+User=tension
+Group=tension
+ExecStart=/var/www/tension/deploy/backup/backup.sh /etc/tension/backup.env
+Nice=10
+IOSchedulingClass=idle

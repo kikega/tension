@@ -1,0 +1,95 @@
+{% load static %}<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <meta name="description" content="Recetas saludables con información nutricional completa, fotos y vídeos. Próximamente.">
+  <meta name="theme-color" content="#faf7f2">
+  <title>Recetas · egalvez.es — Próximamente</title>
+  <link rel="icon" type="image/x-icon" href="{% static 'imagenes/logo.ico' %}">
+  <style>
+    :root {
+      --bg: #faf7f2;
+      --ink: #2b2a28;
+      --muted: #6f6a62;
+      --accent: #c8553d;
+      --accent-soft: #f3d9cf;
+      --leaf: #4f7a4a;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body {
+      font-family: system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+      background: var(--bg);
+      color: var(--ink);
+      display: grid;
+      place-items: center;
+      padding: 2rem 1.25rem;
+      line-height: 1.6;
+    }
+    main { max-width: 38rem; text-align: center; }
+    .badge {
+      display: inline-block;
+      padding: .3rem .9rem;
+      border-radius: 999px;
+      background: var(--accent-soft);
+      color: var(--accent);
+      font-size: .8rem;
+      font-weight: 600;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    h1 {
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: clamp(2.2rem, 6vw, 3.4rem);
+      line-height: 1.15;
+      margin: 1.2rem 0 .8rem;
+    }
+    h1 span { color: var(--accent); }
+    p { color: var(--muted); font-size: 1.1rem; margin: 0 0 2rem; }
+    ul {
+      list-style: none;
+      padding: 0;
+      margin: 0 0 2.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      gap: .6rem;
+      justify-content: center;
+    }
+    li {
+      border: 1px solid #e4ddd2;
+      border-radius: .6rem;
+      padding: .45rem .9rem;
+      font-size: .95rem;
+      background: #fff;
+    }
+    li::before { content: "✓ "; color: var(--leaf); font-weight: 700; }
+    a.link {
+      color: var(--accent);
+      font-weight: 600;
+      text-decoration-thickness: 2px;
+      text-underline-offset: 4px;
+    }
+    footer { margin-top: 3rem; font-size: .85rem; color: var(--muted); }
+  </style>
+</head>
+<body>
+  <main>
+    <span class="badge">Próximamente</span>
+    <h1>Cocina sana, <span>bien explicada</span></h1>
+    <p>
+      Estamos preparando un recetario con información nutricional completa,
+      paso a paso con fotos y vídeos de cada elaboración.
+    </p>
+    <ul aria-label="Lo que encontrarás">
+      <li>Valores nutricionales por ración</li>
+      <li>Fotos y vídeos</li>
+      <li>Alérgenos</li>
+      <li>Apto para hipertensión</li>
+    </ul>
+    <a class="link" href="https://{{ tension_host }}/">Ir a Salud App</a>
+    <footer>&copy; {% now "Y" %} egalvez.es</footer>
+  </main>
+</body>
+</html>
